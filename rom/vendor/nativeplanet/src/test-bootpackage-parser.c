@@ -553,6 +553,53 @@ TEST(control_char_in_path) {
     ASSERT_PARSE_FAIL(json, "invalid characters");
 }
 
+TEST(single_line_json) {
+    const char *json = "{\"ship\":\"zod\",\"pillPath\":\"/system_ext/etc/nativeplanet/satellite.pill\",\"pierPath\":\"/data/nativeplanet/ships/zod\",\"bootMode\":\"FAKE_TEST\",\"keyMaterialRef\":\"none\",\"packageVersion\":1}";
+    ASSERT_PARSE_OK(json);
+}
+
+TEST(fields_different_order) {
+    const char *json =
+        "{\n"
+        "  \"packageVersion\": 1,\n"
+        "  \"keyMaterialRef\": \"none\",\n"
+        "  \"bootMode\": \"FAKE_TEST\",\n"
+        "  \"pierPath\": \"/data/nativeplanet/ships/zod\",\n"
+        "  \"pillPath\": \"/system_ext/etc/nativeplanet/satellite.pill\",\n"
+        "  \"ship\": \"zod\"\n"
+        "}";
+    ASSERT_PARSE_OK(json);
+}
+
+TEST(extra_unknown_fields) {
+    const char *json =
+        "{\n"
+        "  \"ship\": \"zod\",\n"
+        "  \"pillPath\": \"/system_ext/etc/nativeplanet/satellite.pill\",\n"
+        "  \"pierPath\": \"/data/nativeplanet/ships/zod\",\n"
+        "  \"bootMode\": \"FAKE_TEST\",\n"
+        "  \"keyMaterialRef\": \"none\",\n"
+        "  \"packageVersion\": 1,\n"
+        "  \"futureField\": \"should be ignored\",\n"
+        "  \"anotherFutureField\": 12345,\n"
+        "  \"nestedFuture\": { \"a\": 1, \"b\": 2 }\n"
+        "}";
+    ASSERT_PARSE_OK(json);
+}
+
+TEST(trailing_whitespace) {
+    const char *json =
+        "{\n"
+        "  \"ship\": \"zod\",\n"
+        "  \"pillPath\": \"/system_ext/etc/nativeplanet/satellite.pill\",\n"
+        "  \"pierPath\": \"/data/nativeplanet/ships/zod\",\n"
+        "  \"bootMode\": \"FAKE_TEST\",\n"
+        "  \"keyMaterialRef\": \"none\",\n"
+        "  \"packageVersion\": 1\n"
+        "}   \n\n\n";
+    ASSERT_PARSE_OK(json);
+}
+
 int main(void) {
     printf("BootPackage Parser Tests\n");
     printf("========================\n\n");
@@ -560,6 +607,10 @@ int main(void) {
     printf("Valid input:\n");
     RUN_TEST(valid_bootpackage);
     RUN_TEST(valid_moon_ship_name);
+    RUN_TEST(single_line_json);
+    RUN_TEST(fields_different_order);
+    RUN_TEST(extra_unknown_fields);
+    RUN_TEST(trailing_whitespace);
 
     printf("\nMissing required fields:\n");
     RUN_TEST(missing_ship);
