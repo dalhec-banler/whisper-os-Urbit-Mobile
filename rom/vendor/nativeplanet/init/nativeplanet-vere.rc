@@ -1,0 +1,18 @@
+on post-fs-data
+    mkdir /data/nativeplanet 0700 shell shell
+    mkdir /data/nativeplanet/logs 0700 shell shell
+    restorecon_recursive /data/nativeplanet
+
+service nativeplanet_vere /system_ext/bin/nativeplanet-vere-launch
+    class late_start
+    user shell
+    group shell inet
+    seclabel u:r:nativeplanet_vere:s0
+    disabled
+    stdio_to_kmsg
+
+on property:nativeplanet.vere.enabled=1
+    start nativeplanet_vere
+
+on property:nativeplanet.vere.enabled=0
+    stop nativeplanet_vere
