@@ -8,6 +8,7 @@ Location: `vendor/nativeplanet/init/nativeplanet-vere.rc`
 on post-fs-data
     mkdir /data/nativeplanet 0700 shell shell
     mkdir /data/nativeplanet/logs 0700 shell shell
+    mkdir /data/nativeplanet/ships 0700 shell shell
     restorecon_recursive /data/nativeplanet
 
 service nativeplanet_vere /system_ext/bin/nativeplanet-vere-launch
@@ -58,15 +59,29 @@ Created on `post-fs-data`:
 |------|------|-------|---------|
 | `/data/nativeplanet` | 0700 | shell:shell | Root data directory |
 | `/data/nativeplanet/logs` | 0700 | shell:shell | Launcher/vere logs |
-| `/data/nativeplanet/pier` | created by vere | shell:shell | Urbit pier |
+| `/data/nativeplanet/ships` | 0700 | shell:shell | Pier container (Satellite v0) |
+| `/data/nativeplanet/boot-package.json` | created by controller | shell:shell | Boot configuration |
+
+## BootPackage Requirement (Satellite v0)
+
+The service requires a valid BootPackage at `/data/nativeplanet/boot-package.json`.
+
+Without a BootPackage, the service will fail with:
+```
+[ERROR] BootPackage not found: /data/nativeplanet/boot-package.json
+```
+
+See [BootPackage](../architecture/bootpackage.md) for schema details.
 
 ## Launcher Wrapper
 
 The service runs `nativeplanet-vere-launch` instead of `vere` directly because:
 
-1. **State detection**: Checks if pier exists before choosing boot mode
-2. **Foreground mode**: Uses `-t` flag for init compatibility
-3. **Logging**: Writes startup state to log file
+1. **BootPackage parsing**: Reads config from JSON file
+2. **State detection**: Checks if pier exists before choosing boot mode
+3. **Path validation**: Enforces security allowlist
+4. **Foreground mode**: Uses `-t` flag for init compatibility
+5. **Logging**: Writes startup state and errors to log file
 
 ## Debugging
 
@@ -77,8 +92,11 @@ adb shell dmesg | grep nativeplanet_vere
 # View launcher decisions
 adb shell cat /data/nativeplanet/logs/nativeplanet-vere-launch.log
 
-# View vere early boot
-adb shell cat /data/nativeplanet/logs/vere-early.log
+# Check if BootPackage is valid
+adb shell cat /data/nativeplanet/boot-package.json
+
+# Check pier exists
+adb shell ls -la /data/nativeplanet/ships/<ship>/.urb
 
 # Force restart
 adb shell setprop nativeplanet.vere.enabled 0
@@ -86,7 +104,7 @@ sleep 5
 adb shell setprop nativeplanet.vere.enabled 1
 ```
 
-## Service Lifecycle
+## Service Lifecycle (Satellite v0)
 
 ```
 Boot
@@ -99,14 +117,31 @@ Boot
   │               │
   │               └─► nativeplanet-vere-launch
   │                       │
-  │                       ├─► pier exists? → vere -t --no-dock /pier
+  │                       ├─► read BootPackage
+  │                       │       │
+  │                       │       ├─► missing? → log error, exit 1
+  │                       │       │
+  │                       │       └─► invalid? → log reason, exit 1
   │                       │
-  │                       └─► no pier? → vere -t -F zod -B pill -c /pier
+  │                       ├─► pier exists? → vere -t --no-dock <pierPath>
+  │                       │
+  │                       └─► no pier? → vere -t -F <ship> -B <pillPath> -c <pierPath>
   │
   └─► (property trigger: enabled=0)
           │
           └─► stop nativeplanet_vere → SIGTERM → SIGKILL
 ```
+
+## Failure Modes
+
+| Condition | Behavior | Log Message |
+|-----------|----------|-------------|
+| Missing BootPackage | Exit 1, service stops | "BootPackage not found" |
+| Invalid JSON | Exit 1, service stops | "BootPackage invalid: <reason>" |
+| Missing pill | Exit 1, service stops | "Pill not found" |
+| Path traversal | Exit 1, service stops | "invalid characters" |
+| Wrong path prefix | Exit 1, service stops | "must start with..." |
+| MOON mode | Exit 1, service stops | "MOON not supported in v0" |
 
 ## Auto-Start on Boot
 
@@ -117,4 +152,4 @@ on property:sys.boot_completed=1
     setprop nativeplanet.vere.enabled 1
 ```
 
-**Note:** Not recommended until launcher app is ready to manage lifecycle.
+**Note:** Not recommended until launcher app is ready to manage lifecycle and prepare BootPackage.

@@ -7,12 +7,65 @@ A Satellite Pill is a minimal urbit boot image designed for mobile devices that:
 - Connects to a parent planet for state sync
 - Handles intermittent connectivity gracefully
 
+## Installation Path
+
+```
+/system_ext/etc/nativeplanet/satellite.pill
+```
+
+## Pill Versions
+
+### Satellite Pill v0 (Current)
+
+For v0, the Satellite Pill is an alias for the known-good brass pill:
+
+```bash
+cp urbit-v4.3.pill satellite.pill
+```
+
+This validates the runtime infrastructure before building custom pills.
+
+### Satellite Pill v1 (Planned)
+
+Built from `+brass` with:
+- `%base` desk (core urbit)
+- `%nativeplanet-mobile` desk (mobile-specific agents)
+
+### Satellite Pill v2+ (Future)
+
+Full mobile satellite with:
+- `%base`
+- `%nativeplanet-mobile`
+- `%satellite-sync`
+- `%parent-delegation`
+- `%lick-bridge`
+- `%launcher-api`
+
+## Building with brass.hoon
+
+The Satellite Pill is built using `+brass` from `pkg/arvo/gen/pill/brass.hoon`.
+
+```hoon
+:: Generate pill from desk list
+:: First desk becomes base, others installed via Kiln
+.brass/pill +brass %base %nativeplanet-mobile
+```
+
+Key facts about `+brass`:
+- Builds a pill from a list of desks
+- First desk becomes the pill's base desk
+- Remaining desks are installed through Kiln
+- Default is `%base` only
+
+See `satellite-pill/README.md` for build instructions.
+
 ## Design Goals
 
 1. **Fast cold boot** - Under 30 seconds on mobile hardware
 2. **Small footprint** - Minimal desk set for mobile use cases
 3. **Parent sync** - State backed up to parent planet
 4. **Offline capable** - Core functionality works without network
+5. **Generic** - No user secrets, identity provisioned at runtime
 
 ## Pill Contents
 
@@ -53,23 +106,50 @@ Parent Planet (desktop/server)
 ## Boot Sequence
 
 1. **First Boot**
-   - Load satellite pill
-   - Generate or import identity
-   - Connect to parent for initial sync
+   - Load satellite pill from `/system_ext/etc/nativeplanet/satellite.pill`
+   - Read BootPackage from `/data/nativeplanet/boot-package.json`
+   - Create pier at specified `pierPath`
+   - Generate fake identity (v0) or import moon identity (v1+)
 
 2. **Subsequent Boots**
-   - Load from local pier
-   - Sync delta from parent
-   - Process offline queue
+   - Detect existing pier (`.urb` directory)
+   - Boot from local pier without `-c`
+   - Connect to parent for delta sync (v1+)
+   - Process offline queue (v1+)
+
+## Security Constraints
+
+The Satellite Pill:
+- Must NOT contain user secrets
+- Must NOT contain moon keys
+- Must NOT contain +codes
+- Must NOT contain real BootPackages
+- Must NOT contain parent-specific identity material
+
+The pill is generic. Identity is provisioned through the BootPackage at runtime.
 
 ## Implementation Status
 
-- [ ] Define minimal desk set
-- [ ] Create satellite pill builder
-- [ ] Parent sync protocol
-- [ ] Offline queue mechanism
-- [ ] Identity binding to parent
+### v0 (Current)
+- [x] Define canonical path (`/system_ext/etc/nativeplanet/satellite.pill`)
+- [x] Alias to known-good brass pill
+- [x] Document brass.hoon builder
+- [x] BootPackage integration
+
+### v1 (Next)
+- [ ] Create `%nativeplanet-mobile` desk
+- [ ] Build custom pill with brass
+- [ ] Integration testing
+
+### v2+ (Future)
+- [ ] Parent sync protocol desks
+- [ ] Delegation desks
+- [ ] Lick bridge desks
+- [ ] Launcher API desks
 
 ## Next Steps
 
-See [Parent-Satellite Protocol](parent-satellite-protocol.md) for sync details.
+See:
+- [Parent-Satellite Protocol](parent-satellite-protocol.md) for sync details
+- [BootPackage](bootpackage.md) for runtime configuration
+- `satellite-pill/README.md` for build instructions
