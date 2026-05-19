@@ -1,0 +1,42 @@
+sh_binary {
+    name: "nativeplanet-hello",
+    src: "prebuilts/bin/nativeplanet-hello",
+    system_ext_specific: true,
+}
+
+cc_prebuilt_binary {
+    name: "nativeplanet-vere",
+    srcs: ["prebuilts/bin/vere"],
+    stem: "vere",
+    system_ext_specific: true,
+    static_executable: true,
+    strip: {
+        none: true,
+    },
+}
+
+cc_binary {
+    name: "nativeplanet-vere-launch",
+    srcs: ["src/nativeplanet-vere-launch.c"],
+    system_ext_specific: true,
+    cflags: [
+        "-Wall",
+        "-Werror",
+    ],
+}
+
+prebuilt_etc {
+    name: "nativeplanet-vere-rc",
+    src: "init/nativeplanet-vere.rc",
+    filename: "nativeplanet-vere.rc",
+    relative_install_path: "init",
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "nativeplanet-pill",
+    src: "prebuilts/pill/urbit-v4.3.pill",
+    filename: "urbit-v4.3.pill",
+    relative_install_path: "nativeplanet",
+    system_ext_specific: true,
+}

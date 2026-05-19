@@ -1,0 +1,6 @@
+# NativePlanet file contexts
+# Runtime Base v1: launcher + vere
+
+/data/nativeplanet(/.*)?                 u:object_r:nativeplanet_data_file:s0
+/system_ext/bin/vere                     u:object_r:nativeplanet_vere_exec:s0
+/system_ext/bin/nativeplanet-vere-launch u:object_r:nativeplanet_vere_exec:s0

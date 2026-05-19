@@ -1,0 +1,5 @@
+# NativePlanet data file type definition
+# Round 7: allows vere to write pier data to /data/nativeplanet
+# Round 9: access granted to nativeplanet_vere domain in nativeplanet_vere.te
+
+type nativeplanet_data_file, file_type, data_file_type, core_data_file_type;

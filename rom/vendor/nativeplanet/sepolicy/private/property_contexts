@@ -1,0 +1,3 @@
+# NativePlanet vere control property
+# Round 6: allows shell to trigger vere service start/stop
+nativeplanet.vere.        u:object_r:nativeplanet_vere_prop:s0

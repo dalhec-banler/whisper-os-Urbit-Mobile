@@ -1,0 +1,9 @@
+# NativePlanet property type definition
+# Round 6 temporary debug permission:
+# shell can set nativeplanet_vere_prop so adb can start/stop the disabled init service.
+# This should be replaced later by a NativePlanet privileged controller app/service.
+
+type nativeplanet_vere_prop, property_type, system_property_type;
+
+# Allow shell to set the property (temporary for Round 6 testing)
+set_prop(shell, nativeplanet_vere_prop)
