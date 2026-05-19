@@ -34,9 +34,9 @@ prebuilt_etc {
 }
 
 prebuilt_etc {
-    name: "nativeplanet-pill",
-    src: "prebuilts/pill/urbit-v4.3.pill",
-    filename: "urbit-v4.3.pill",
+    name: "nativeplanet-satellite-pill",
+    src: "prebuilts/pill/satellite.pill",
+    filename: "satellite.pill",
     relative_install_path: "nativeplanet",
     system_ext_specific: true,
 }

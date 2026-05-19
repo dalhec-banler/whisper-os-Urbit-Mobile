@@ -3,4 +3,4 @@ PRODUCT_PACKAGES += \
     nativeplanet-vere \
     nativeplanet-vere-launch \
     nativeplanet-vere-rc \
-    nativeplanet-pill
+    nativeplanet-satellite-pill

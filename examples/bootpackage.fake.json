@@ -1,0 +1,19 @@
+{
+  "ship": "zod",
+  "parent": null,
+  "pillPath": "/system_ext/etc/nativeplanet/satellite.pill",
+  "pierPath": "/data/nativeplanet/ships/zod",
+  "bootMode": "FAKE_TEST",
+  "keyMaterialRef": "none",
+  "networkConfig": {},
+  "delegationConfig": {
+    "canReadNotifications": false,
+    "canMirrorMessages": false,
+    "canRequestPosts": false,
+    "canRequestReplies": false,
+    "canAccessFiles": false,
+    "revocationEpoch": 0
+  },
+  "createdAtMs": 0,
+  "packageVersion": 1
+}
