@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Surfaces (dark) -->
+    <color name="bg_warm_black">#0E0D0C</color>
+    <color name="bg_warm_black_2">#1A1916</color>
+    <color name="bg_stream">#1A1815</color>
+
+    <!-- Surfaces (light) -->
+    <color name="bg_paper">#F4F1EC</color>
+    <color name="bg_paper_2">#FDFAF3</color>
+
+    <!-- Foregrounds -->
+    <color name="fg_cream">#F4F1EC</color>
+    <color name="fg_ink">#1A1916</color>
+
+    <!-- Accents -->
+    <color name="accent_amber">#F3A712</color>
+    <color name="accent_amber_soft">#D6A35C</color>
+    <color name="accent_coral">#D97757</color>
+    <color name="accent_sage">#8FB39A</color>
+    <color name="accent_sky">#7DA6C9</color>
+</resources>

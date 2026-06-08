@@ -1,7 +1,8 @@
 on post-fs-data
-    mkdir /data/nativeplanet 0700 shell shell
+    mkdir /data/nativeplanet 2770 system shell
     mkdir /data/nativeplanet/logs 0700 shell shell
-    mkdir /data/nativeplanet/ships 0700 shell shell
+    mkdir /data/nativeplanet/ships 2770 system shell
+    mkdir /data/nativeplanet/keys 0700 shell shell
     restorecon_recursive /data/nativeplanet
 
 service nativeplanet_vere /system_ext/bin/nativeplanet-vere-launch
@@ -10,6 +11,7 @@ service nativeplanet_vere /system_ext/bin/nativeplanet-vere-launch
     group shell inet
     seclabel u:r:nativeplanet_vere:s0
     disabled
+    oneshot
     stdio_to_kmsg
 
 on property:nativeplanet.vere.enabled=1

@@ -7,3 +7,7 @@ type nativeplanet_vere_prop, property_type, system_property_type;
 
 # Allow shell to set the property (temporary for Round 6 testing)
 set_prop(shell, nativeplanet_vere_prop)
+
+# Allow the platform-signed controller app to start/stop the init-managed vere
+# service through the NativePlanet control property.
+set_prop(system_app, nativeplanet_vere_prop)

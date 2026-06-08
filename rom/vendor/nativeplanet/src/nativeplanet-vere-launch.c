@@ -30,6 +30,7 @@
 
 #define PILL_PATH_PREFIX    "/system_ext/etc/nativeplanet/"
 #define PIER_PATH_PREFIX    "/data/nativeplanet/ships/"
+#define KEY_PATH_PREFIX     "/data/nativeplanet/keys/"
 
 #define MAX_JSON_SIZE       8192
 #define MAX_PATH_LEN        512
@@ -43,9 +44,11 @@
 
 typedef struct {
     char ship[MAX_SHIP_LEN];
+    char parent[MAX_SHIP_LEN];
     char pillPath[MAX_PATH_LEN];
     char pierPath[MAX_PATH_LEN];
     char keyMaterialRef[128];
+    char keyFilePath[MAX_PATH_LEN];
     int bootMode;
     int packageVersion;
     int valid;
@@ -202,6 +205,52 @@ static int validate_pier_path(const char *path) {
     return 1;
 }
 
+static int validate_key_file_ref(const char *ref, char *out_path, size_t out_size) {
+    if (strncmp(ref, "file:", 5) != 0) {
+        log_error("BootPackage invalid: keyMaterialRef must start with 'file:'");
+        return 0;
+    }
+
+    const char *path = ref + 5;
+
+    if (!validate_path_safe(path)) {
+        log_error("BootPackage invalid: key file path contains invalid characters");
+        return 0;
+    }
+
+    if (strncmp(path, KEY_PATH_PREFIX, strlen(KEY_PATH_PREFIX)) != 0) {
+        log_error_fmt("BootPackage invalid: key file must be in %s", KEY_PATH_PREFIX);
+        return 0;
+    }
+
+    if (strlen(path) >= out_size) {
+        log_error("BootPackage invalid: key file path too long");
+        return 0;
+    }
+
+    strncpy(out_path, path, out_size - 1);
+    out_path[out_size - 1] = '\0';
+
+    return 1;
+}
+
+static int validate_key_file_exists(const char *path) {
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        log_error("Key file not found");
+        return 0;
+    }
+    if (!S_ISREG(st.st_mode)) {
+        log_error("Key file is not a regular file");
+        return 0;
+    }
+    if (access(path, R_OK) != 0) {
+        log_error("Key file not readable");
+        return 0;
+    }
+    return 1;
+}
+
 static int looks_like_secret(const char *value) {
     size_t len = strlen(value);
 
@@ -319,11 +368,6 @@ static int parse_bootpackage(const char *json, BootPackage *pkg) {
         return -1;
     }
 
-    if (pkg->bootMode == BOOT_MODE_MOON) {
-        log_error("BootPackage invalid: bootMode 'MOON' not supported in v0");
-        return -1;
-    }
-
     p = find_key(json, "keyMaterialRef");
     if (!p) {
         log_error("BootPackage invalid: missing 'keyMaterialRef'");
@@ -342,6 +386,26 @@ static int parse_bootpackage(const char *json, BootPackage *pkg) {
     if (pkg->bootMode == BOOT_MODE_FAKE_TEST) {
         if (strcmp(pkg->keyMaterialRef, "none") != 0) {
             log_error("BootPackage invalid: FAKE_TEST mode requires keyMaterialRef='none'");
+            return -1;
+        }
+    }
+
+    if (pkg->bootMode == BOOT_MODE_MOON) {
+        p = find_key(json, "parent");
+        if (!p) {
+            log_error("BootPackage invalid: MOON mode requires 'parent' field");
+            return -1;
+        }
+        if (!parse_string_value(p, pkg->parent, sizeof(pkg->parent))) {
+            log_error("BootPackage invalid: 'parent' is not a valid string");
+            return -1;
+        }
+        if (!validate_ship_name(pkg->parent)) {
+            log_error("BootPackage invalid: 'parent' contains invalid characters");
+            return -1;
+        }
+
+        if (!validate_key_file_ref(pkg->keyMaterialRef, pkg->keyFilePath, sizeof(pkg->keyFilePath))) {
             return -1;
         }
     }
@@ -438,6 +502,28 @@ static int ensure_parent_dirs(const char *path) {
     return 0;
 }
 
+static void unlink_if_exists(const char *path) {
+    if (unlink(path) == 0) {
+        log_info_fmt("Removed stale runtime file: %s", path);
+        return;
+    }
+
+    if (errno != ENOENT) {
+        log_error_fmt("Failed to remove stale runtime file: %s", path);
+    }
+}
+
+static void cleanup_stale_runtime_files(const char *pier_path) {
+    char lock_path[MAX_PATH_LEN + 16];
+    char sock_path[MAX_PATH_LEN + 32];
+
+    snprintf(lock_path, sizeof(lock_path), "%s/.vere.lock", pier_path);
+    snprintf(sock_path, sizeof(sock_path), "%s/.urb/conn.sock", pier_path);
+
+    unlink_if_exists(lock_path);
+    unlink_if_exists(sock_path);
+}
+
 static void exec_vere_new_pier(const BootPackage *pkg) {
     log_info_fmt("Creating new pier: %s", pkg->pierPath);
     log_info_fmt("Using pill: %s", pkg->pillPath);
@@ -463,6 +549,7 @@ static void exec_vere_new_pier(const BootPackage *pkg) {
 static void exec_vere_existing_pier(const BootPackage *pkg) {
     log_info_fmt("Booting existing pier: %s", pkg->pierPath);
     log_info("keyMaterialRef: [redacted]");
+    cleanup_stale_runtime_files(pkg->pierPath);
 
     char *args[] = {
         VERE_PATH,
@@ -473,6 +560,30 @@ static void exec_vere_existing_pier(const BootPackage *pkg) {
     };
 
     log_info("Executing vere (existing pier, foreground)");
+    execv(VERE_PATH, args);
+
+    log_error_fmt("execv failed: %s", strerror(errno));
+}
+
+static void exec_vere_new_pier_moon(const BootPackage *pkg) {
+    log_info_fmt("Creating new moon pier: %s", pkg->pierPath);
+    log_info_fmt("Using pill: %s", pkg->pillPath);
+    log_info_fmt("Moon: %s", pkg->ship);
+    log_info_fmt("Parent: %s", pkg->parent);
+    log_info("keyMaterialRef: [redacted]");
+
+    char *args[] = {
+        VERE_PATH,
+        "-t",
+        "-w", (char *)pkg->ship,
+        "-k", (char *)pkg->keyFilePath,
+        "--no-dock",
+        "-B", (char *)pkg->pillPath,
+        "-c", (char *)pkg->pierPath,
+        NULL
+    };
+
+    log_info("Executing vere (MOON, new pier, foreground)");
     execv(VERE_PATH, args);
 
     log_error_fmt("execv failed: %s", strerror(errno));
@@ -495,8 +606,21 @@ int main(int argc, char *argv[]) {
     log_info_fmt("BootPackage loaded: ship=%s", pkg.ship);
     log_info_fmt("  pierPath=%s", pkg.pierPath);
     log_info_fmt("  pillPath=%s", pkg.pillPath);
-    log_info("  bootMode=FAKE_TEST");
+    if (pkg.bootMode == BOOT_MODE_FAKE_TEST) {
+        log_info("  bootMode=FAKE_TEST");
+    } else if (pkg.bootMode == BOOT_MODE_MOON) {
+        log_info("  bootMode=MOON");
+        log_info_fmt("  parent=%s", pkg.parent);
+    }
     log_info("  keyMaterialRef=[redacted]");
+
+    if (pkg.bootMode == BOOT_MODE_MOON) {
+        if (!validate_key_file_exists(pkg.keyFilePath)) {
+            log_error("Key file validation failed - service will not start");
+            log_close();
+            return 1;
+        }
+    }
 
     if (pier_exists(pkg.pierPath)) {
         log_info("Existing pier detected");
@@ -514,7 +638,11 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        exec_vere_new_pier(&pkg);
+        if (pkg.bootMode == BOOT_MODE_MOON) {
+            exec_vere_new_pier_moon(&pkg);
+        } else {
+            exec_vere_new_pier(&pkg);
+        }
     }
 
     log_error("vere exec failed - service terminating");

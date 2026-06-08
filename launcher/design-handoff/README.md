@@ -1,56 +1,18 @@
-# Launcher Design Handoff
+# Design Handoff
 
-Design assets and specifications for the Whisper Launcher.
+Place launcher design handoff material here when it is ready to become implementation input.
 
-## Figma
+Do commit:
 
-[Link to Figma project - TBD]
+- exported specs
+- token references
+- screenshots without secrets
+- design notes
 
-## Design System
+Do not commit:
 
-### Colors
-- Primary: TBD
-- Background: TBD
-- Text: TBD
-- Accent: TBD
+- files containing keys, tickets, moon secrets, or private user data
+- generated APKs or build output
+- oversized binary assets that should live in design tooling or release storage
 
-### Typography
-- Headlines: TBD
-- Body: TBD
-- Mono: TBD (for @p display)
-
-### Spacing
-- Base unit: 8dp
-- Grid: 8dp
-
-## Screens
-
-### Onboarding
-- [ ] Welcome
-- [ ] Identity choice
-- [ ] Boot progress
-- [ ] Ready
-
-### Main
-- [ ] Landscape WebView container
-- [ ] Bottom navigation
-- [ ] Loading states
-
-### Settings
-- [ ] Account info
-- [ ] Sync status
-- [ ] About
-
-## Assets
-
-Export specifications:
-- Format: PNG for raster, SVG for vector
-- Densities: mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi
-- Naming: `ic_<name>_<size>dp.png`
-
-## Interactions
-
-- [ ] Pull to refresh
-- [ ] Swipe navigation
-- [ ] Notification handling
-- [ ] Deep linking
+Current launcher implementation lives under `launcher/app`.

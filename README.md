@@ -1,110 +1,109 @@
-# Whisper OS
+# Whisper OS / NativePlanet Mobile
 
-Whisper OS is an open-source GrapheneOS-derived mobile environment for running a local Urbit satellite moon on Android hardware.
+Mobile-first Urbit runtime integration for Android, built on a GrapheneOS-derived ROM.
 
-The project includes:
-- NativePlanet runtime integration for system-level vere
-- Satellite Pill architecture
-- BootPackage provisioning
-- Parent planet ↔ satellite moon protocol
-- Whisper Launcher design and implementation
-- Android/Urbit bridge work through Lick
+This repository is the project home for NativePlanet Mobile work: roadmap, ROM overlay source, controller/provider contracts, launcher source, verification reports, and research notes. Runtime changes that belong upstream live in the Vere fork; build outputs, keys, pills, piers, and release artifacts do not belong here.
 
-Original code in this repository is MIT licensed unless otherwise noted. Third-party components retain their original licenses.
+## Current Status
 
-## Project Status
+Source of truth: [docs/ROADMAP.md](docs/ROADMAP.md)
 
-**Runtime Base v1: Complete** (2026-05-18)
+As of 2026-06-08:
 
-- Vere runs natively on Android ARM64
-- Full urbit boot from brass pill
-- Init-managed service lifecycle
-- State-aware pier management
+- Pixel 8 Pro / husky ROM boots as userdebug with SELinux enforcing.
+- `vere64` runs as an init-managed Android service.
+- Dev moon `~namfeb-rossyp-palrum-roclur` boots through `nativeplanet_vere`.
+- `conn.sock` works and replaces Lens for runtime health.
+- `NativePlanetController` polls conn.sock and exposes provider status to the launcher.
+- Launcher debug app consumes provider data and launches without crashing.
+- Reboot auto-start from a healthy pier is verified.
+- GroundSeg-compatible graceful shutdown through Click/conn.sock `%hood %drum-exit` is verified on device and queued in controller source.
 
-## Architecture
+## Repository Layout
 
-```
-┌─────────────────────────────────────────────┐
-│              Android Device                  │
-├─────────────────────────────────────────────┤
-│  Launcher App (Kotlin)                      │
-│    └── WebView (Landscape UI)               │
-│    └── Lick Bridge (native commands)        │
-├─────────────────────────────────────────────┤
-│  vere (ARM64 native binary)                 │
-│    └── /system_ext/bin/vere                 │
-│    └── /data/nativeplanet/pier              │
-├─────────────────────────────────────────────┤
-│  GrapheneOS (hardened Android base)         │
-└─────────────────────────────────────────────┘
-```
-
-## Repository Structure
-
-```
+```text
 docs/
-  runtime/          # Vere Android runtime documentation
-  architecture/     # System design docs
-  product/          # Product specs and onboarding
-rom/
-  vendor/nativeplanet/  # Android build integration
-launcher/           # Android launcher app
-tools/              # Build and packaging scripts
-secrets/            # Local-only keys (gitignored)
+  ROADMAP.md                 Current source-of-truth roadmap
+  controller/                Provider and conn.sock controller contracts
+  verification/              Flash/test reports
+  research/                  Research notes and upstream findings
+  architecture/              Product architecture notes
+  archive/                   Historical docs that are no longer current
+
+rom/vendor/nativeplanet/     Source overlay for GrapheneOS vendor/nativeplanet
+launcher/                    Whisper Launcher Android project
+controller/                  Historical placeholder; controller now lives under rom/vendor/nativeplanet/controller
+examples/                    Safe fixtures only
+satellite-pill/              Pill build notes/scripts, not pill binaries
+tools/                       Helper scripts
+secrets/                     Local-only, gitignored
 ```
 
-## Quick Start
+## What Belongs Where
 
-### Build vere for Android
+- This repo: project docs, ROM overlay source, launcher source, controller API contracts, verification reports.
+- `dalhec-banler/vere`: upstream runtime changes only, such as Android build/runtime patches.
+- Local GrapheneOS checkout: build workspace and generated artifacts, not project memory.
+- Local device/workstation: keys, boot packages, piers, target files, factory images, APK build outputs.
 
-```bash
-cd /path/to/vere
-zig build -Dtarget=aarch64-linux-musl -Dandroid=true -Drelease
+See [docs/PROJECT_MAP.md](docs/PROJECT_MAP.md) for the full ownership map.
+
+## Current Architecture
+
+```text
+Launcher
+  |
+  | ContentProvider calls
+  v
+NativePlanetController
+  |-- Android network observer -> /data/nativeplanet/network-state.json
+  |-- runtime poller ----------> /data/nativeplanet/runtime-status.json
+  |-- provider ----------------> content://io.nativeplanet.controller/*
+  |
+  | conn.sock / newt / jam+cued nouns
+  v
+vere64 / Urbit moon
 ```
 
-### Build ROM with Urbit
+Runtime truth comes from conn.sock:
+
+- `%peel %live`
+- `%peel %who`
+- `%peel %v`
+- `%peel %info`
+- `%fyrd %base %khan-eval` for Click-style operations
+
+Lens is deprecated and must not be used for product health checks. Lick remains future Android capability IPC, not the current MVP control plane.
+
+## Build Pointers
+
+Build details move quickly, so prefer the current guide:
+
+- [docs/runtime/build-and-flash.md](docs/runtime/build-and-flash.md)
+
+Useful current commands:
 
 ```bash
-cd /path/to/grapheneos
+cd /home/anoffice/grapheneos-2026040800
 source build/envsetup.sh
-lunch husky
-m vendorbootimage vendorkernelbootimage target-files-package
-./script/finalize.sh
-./script/generate-release.sh husky $BUILD_NUMBER
+lunch husky bp4a userdebug
+m NativePlanetController -j10
+m vendorbootimage vendorkernelbootimage target-files-package -j10
 ```
 
-### Flash and Test
-
-```bash
-# Flash factory image
-cd releases/$BUILD_NUMBER/release-husky-$BUILD_NUMBER
-bash flash-all.sh
-
-# Start urbit service
-adb shell setprop nativeplanet.vere.enabled 1
-
-# Verify
-adb shell getprop init.svc.nativeplanet_vere  # should be "running"
-adb forward tcp:12321 tcp:12321
-curl -X POST http://127.0.0.1:12321 \
-  -H "Content-Type: application/json" \
-  -d '{"source":{"dojo":"+trouble"},"sink":{"stdout":null}}'
-```
-
-## Documentation
-
-- [Runtime Base v1](docs/runtime/nativeplanet-runtime-base-v1.md) - Core Android runtime
-- [Build and Flash](docs/runtime/build-and-flash.md) - Complete build instructions
-- [Whisper OS Overview](docs/product/whisper-os-overview.md) - Product vision
-
-## License
-
-MIT License - See [LICENSE](LICENSE) for the full license text.
-
-## Contributing
-
-Contributions are welcome under the MIT License. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Do not generate a release or flash unless target-files verification passes and the user explicitly approves.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for information about what should never be committed to this repository (keys, secrets, piers, etc.).
+Read [SECURITY.md](SECURITY.md) before committing.
+
+Never commit:
+
+- Urbit keys, tickets, boot packages with real identities, or pier data
+- ROM signing keys or AVB keys
+- pills, target files, OTA/factory images, APKs, or build outputs
+- logs or screenshots containing secrets
+
+## License
+
+Original code in this repository is MIT licensed unless otherwise noted. Third-party components retain their original licenses.

@@ -1,5 +1,7 @@
 # Parent-Satellite Protocol
 
+Status: product architecture sketch, not implemented MVP behavior. The current verified path is a throwaway dev moon running locally on Android with controller/provider/conn.sock status. Parent sync and Lick integration remain future work.
+
 ## Overview
 
 The Parent-Satellite Protocol defines how a mobile satellite syncs state with its parent planet, handles offline operation, and manages identity.

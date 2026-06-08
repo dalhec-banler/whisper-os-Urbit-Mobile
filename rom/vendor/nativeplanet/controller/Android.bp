@@ -1,0 +1,28 @@
+// NativePlanet Controller - System App
+// Observes network state and writes resolver configuration for vere
+
+android_app {
+    name: "NativePlanetController",
+    srcs: ["src/main/java/**/*.java"],
+    resource_dirs: ["src/main/res"],
+    manifest: "AndroidManifest.xml",
+
+    // Install as privileged app in system_ext
+    system_ext_specific: true,
+    privileged: true,
+
+    // Platform signing for system UID
+    certificate: "platform",
+
+    // Use platform_apis to access android.system.UnixSocketAddress (SystemApi)
+    // and standard Android APIs (ConnectivityManager, etc.)
+    platform_apis: true,
+
+    // Optimize
+    optimize: {
+        enabled: true,
+    },
+
+    // Required for network APIs
+    static_libs: [],
+}

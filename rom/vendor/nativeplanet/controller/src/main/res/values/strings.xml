@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="permission_read_status_desc">Allows reading NativePlanet runtime status including network state, ship identity, and diagnostics. Does not expose key material.</string>
+</resources>
