@@ -136,12 +136,16 @@ Content Provider allows passive queries without holding service connection. Broa
 
 ## 4. Controls
 
+Status: updated after the June 2026 conn.sock lifecycle work. Product-facing
+stop/restart must go through controller-owned graceful shutdown, not raw
+`setprop` hard-stop behavior.
+
 ### Operations
 | Operation | Phase 1 Mechanism | Phase 2 Mechanism |
 |-----------|-------------------|-------------------|
 | start | `setprop nativeplanet.vere.enabled 1` | Binder `startRuntime()` |
-| stop | `setprop nativeplanet.vere.enabled 0` | Binder `stopRuntime()` |
-| restart | stop + start | Binder `restartRuntime()` |
+| stop | Provider `stopRuntime` call; controller sends Click-style graceful `%hood` `%drum-exit` over conn.sock, then clears desired-state property after exit | Binder `stopRuntime()` |
+| restart | graceful stop + start | Binder `restartRuntime()` |
 | refresh | re-read status files | Content Provider query |
 | clearTestData | `rm -rf /data/nativeplanet/ships/*` | Binder `clearTestData()` (gated) |
 
@@ -159,12 +163,14 @@ Content Provider allows passive queries without holding service connection. Broa
 ```
 
 ### What's Real Now
-- start/stop via system properties (requires shell or system app)
+- start via controller-owned property toggle
+- graceful stop via controller/provider path queued in ROM overlay source
+- low-level `setprop nativeplanet.vere.enabled 0` remains emergency/debug-only
 
 ### What's Stubbed
-- restart (needs sequencing)
+- restart (needs sequencing through graceful stop + start)
 - clearTestData (needs gating logic)
-- response confirmation (fire-and-forget now)
+- richer response confirmation
 
 ---
 

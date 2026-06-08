@@ -1,5 +1,10 @@
 # Controller Runtime-Status Polling via conn.sock
 
+Status: implemented in the ROM overlay source. Early drafts assumed
+`android.net.LocalSocket`; device testing showed that path fails before
+`connect()`. The current implementation uses `android.system.Os` with
+`AF_UNIX` filesystem sockets, explicit read/write loops, and socket timeouts.
+
 ## Overview
 
 Replace deprecated Lens-based health checks with conn.sock %peel queries. The Controller polls the running pier and writes status to a JSON file that the StatusProvider exposes to the launcher.
@@ -14,7 +19,7 @@ Replace deprecated Lens-based health checks with conn.sock %peel queries. The Co
                                                               │ writes
                         ┌──────────────────────┐              │
                         │ NativePlanetController│─────────────┘
-                        │ (system_server)      │
+                        │ (system_app)         │
                         └──────────┬───────────┘
                                    │ Unix socket
                         ┌──────────▼───────────┐
@@ -87,34 +92,32 @@ Replace deprecated Lens-based health checks with conn.sock %peel queries. The Co
 - `starting` - conn.sock exists but %live = %.n or timeout
 - `error` - conn.sock responds with error or malformed data
 
-## Implementation Options
+## Implementation
 
-### Option A: Pure Java (Preferred)
+### Current Approach: Java With `android.system.Os`
 
-Android API 26+ supports Unix domain sockets via `java.net.UnixDomainSocketAddress` (API 33+) or `android.net.LocalSocket` (older).
+The controller uses Android's low-level `android.system.Os` APIs directly:
 
 ```kotlin
-// Controller polling loop
-class ConnSockClient(private val sockPath: String) {
-    private val socket = LocalSocket()
-
-    fun connect() {
-        socket.connect(LocalSocketAddress(sockPath, LocalSocketAddress.Namespace.FILESYSTEM))
-    }
-
-    fun sendPeel(cmd: String): ByteArray {
-        val request = buildPeelRequest(cmd)
-        val framed = newtEncode(jam(request))
-        socket.outputStream.write(framed)
-        return newtDecode(socket.inputStream)
-    }
-}
+val fd = Os.socket(AF_UNIX, SOCK_STREAM, 0)
+val address = UnixSocketAddress.createFileSystem(sockPath)
+Os.setsockoptTimeval(fd, SOL_SOCKET, SO_RCVTIMEO, timeout)
+Os.setsockoptTimeval(fd, SOL_SOCKET, SO_SNDTIMEO, timeout)
+Os.connect(fd, address)
 ```
 
-**Pros:** No JNI, pure Kotlin, easier maintenance
-**Cons:** Need to implement jam/cue in Kotlin (or use existing lib)
+`ConnSockClient.java` handles Newt framing, partial reads/writes, normalized
+error codes, and cleanup. `NounCodec.java` implements the small jam/cue subset
+needed for `%peel` and `%fyrd` requests.
 
-### Option B: Tiny Native Helper
+### Rejected Approach: `android.net.LocalSocket`
+
+`LocalSocket` with `Namespace.FILESYSTEM` looked like the simplest option, but
+on-device tracing showed it closed the socket before making the native
+`connect()` syscall. `nc -U` and direct native sockets worked against the same
+path, so the controller moved to `android.system.Os`.
+
+### Future Fallback: Tiny Native Helper
 
 Small C binary that wraps conn protocol:
 
@@ -129,7 +132,7 @@ Controller spawns process, reads stdout.
 **Pros:** Reuses vere's jam/cue, simple IPC
 **Cons:** Extra binary, process spawn overhead
 
-### Option C: Controller JNI
+### Future Fallback: Controller JNI
 
 Link jam/cue from vere's libnoun into a JNI library.
 
@@ -141,60 +144,45 @@ external fun cueNoun(bytes: ByteArray): ByteArray
 **Pros:** Fast, native performance
 **Cons:** JNI complexity, library management
 
-## Recommended Approach
-
-**Start with Option A (Pure Java)** because:
-1. `android.net.LocalSocket` works with filesystem paths
-2. Jam/cue implementation is ~200 lines (port from nockjs)
-3. No additional SELinux rules for native binaries
-4. Polling is infrequent (5s), performance not critical
-
-If jam/cue proves complex, fall back to **Option B** (native helper).
-
 ## Implementation Tasks
 
 ### Phase 1: Core Protocol (Controller)
 
-1. [ ] Add `LocalSocket` conn.sock client to Controller
-2. [ ] Port minimal jam/cue to Kotlin (atoms + cells only, no jets)
-3. [ ] Implement newt framing encode/decode
-4. [ ] Add %peel %live health check
-5. [ ] Write runtime-status.json on state change
+1. [x] Add `android.system.Os` conn.sock client to Controller
+2. [x] Port minimal jam/cue to Java (atoms + cells only, no jets)
+3. [x] Implement newt framing encode/decode
+4. [x] Add %peel %live health check
+5. [x] Write runtime-status.json on state change
 
 ### Phase 2: Full Status (Controller)
 
-6. [ ] Add %peel %who for ship identity
-7. [ ] Add %peel %v for version
-8. [ ] Add %peel %info for metrics (lower frequency)
+6. [x] Add %peel %who for ship identity
+7. [x] Add %peel %v for version
+8. [x] Add %peel %info for metrics (lower frequency)
 9. [ ] Parse $mass tree for event number, ports
-10. [ ] Add PID detection via /proc scan
+10. [x] Add PID detection via /proc scan
 
 ### Phase 3: Provider Integration
 
-11. [ ] Update NativePlanetStatusProvider to read runtime-status.json
-12. [ ] Map JSON fields to existing provider columns
-13. [ ] Add new columns for extended metrics
-14. [ ] Test launcher queries
+11. [x] Update NativePlanetStatusProvider to read runtime-status.json
+12. [x] Map JSON fields to existing provider columns
+13. [x] Add fields for version, lastSuccessfulPoll, connSockAvailable
+14. [ ] Test launcher queries after next ROM flash
 
 ### Phase 4: Error Handling
 
-15. [ ] Classify conn failures (refused, timeout, protocol)
-16. [ ] Populate lastError field
-17. [ ] Add retry logic with backoff
-18. [ ] Handle pier restart detection
+15. [x] Classify conn failures (refused, timeout, protocol)
+16. [x] Populate lastError field
+17. [x] Add slower polling when stopped
+18. [x] Handle pier restart detection
 
 ## SELinux Considerations
 
-Current policy already allows:
-- `nativeplanet_vere` creating `sock_file` in data dir
-- Controller (system_server) needs to connect to that socket
+Current policy includes:
+- `nativeplanet_vere` creating `sock_file` in the data dir
+- `system_app` atomic-write permissions for runtime status files
 
-May need:
-```
-allow system_server nativeplanet_data_file:sock_file { read write connectto };
-```
-
-Defer SELinux changes until implementation confirms requirements.
+The controller runs as `system_app` in this package layout.
 
 ## Testing Plan
 
@@ -206,14 +194,13 @@ Defer SELinux changes until implementation confirms requirements.
 ## Files to Create/Modify
 
 ```
-frameworks/base/services/core/java/com/android/server/nativeplanet/
-├── ConnSockClient.kt           # Unix socket + newt framing
-├── NounCodec.kt                # Minimal jam/cue
-├── RuntimeStatusPoller.kt      # Polling loop + JSON writer
-└── NativePlanetController.java # Add poller integration
-
-frameworks/base/core/java/android/provider/
-└── NativePlanetStatusProvider.java  # Read JSON, expose columns
+rom/vendor/nativeplanet/controller/src/main/java/io/nativeplanet/controller/
+├── ConnSockClient.java                 # AF_UNIX socket + newt framing
+├── NounCodec.java                      # Minimal jam/cue
+├── RuntimeStatusPoller.java            # Polling loop + JSON writer
+├── RuntimeControl.java                 # Start/stop lifecycle control
+├── NativePlanetControllerService.java  # Poller integration
+└── NativePlanetStatusProvider.java     # Read JSON, expose status
 ```
 
 ## Open Questions

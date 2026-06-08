@@ -1,10 +1,15 @@
 # Phase 1 conn.sock Status Report
 
-**Status: MODULE BUILD IN PROGRESS**
+**Status: IMPLEMENTED AND MODULE-BUILD VERIFIED**
+
+Note: this report was originally written during the first Phase 1 pass. It has
+been updated to reflect the current ROM overlay implementation, which uses
+`android.system.Os` direct AF_UNIX sockets instead of `android.net.LocalSocket`.
 
 ## Summary
 
-Phase 1 conn.sock runtime-status polling implementation is complete. Build validation in progress.
+Phase 1 conn.sock runtime-status polling implementation is complete and module
+build validation has passed.
 
 ## Files Changed
 
@@ -17,7 +22,7 @@ Phase 1 conn.sock runtime-status polling implementation is complete. Build valid
    - %peel request/response builders
 
 2. **ConnSockClient.java** (NEW)
-   - LocalSocket Unix domain socket client
+   - `android.system.Os` Unix domain socket client
    - Try-with-resources for cleanup
    - StatusResult for failure classification
    - pollStatus() convenience method
@@ -66,7 +71,7 @@ Phase 1 conn.sock runtime-status polling implementation is complete. Build valid
 - ✅ Socket path derived only from pierPath in boot-package.json
 
 ### Resource Management
-- ✅ LocalSocket uses try-with-resources
+- ✅ AF_UNIX FileDescriptor uses try-with-resources
 - ✅ closeQuietly() handles cleanup
 - ✅ HandlerThread.quitSafely() on stop
 
@@ -106,18 +111,21 @@ bash --norc -c '
 '
 ```
 
-Build started at ~12:02. Still in progress (~20+ min runtime). Working through framework dependencies.
+Module build has passed with the current Android.bp configuration
+(`platform_apis: true`) and the controller APK contains `NounCodec`,
+`ConnSockClient`, `RuntimeStatusPoller`, and `RuntimeControl`.
 
 ## Device State
 
 - Moon ~namfeb-rossyp-palrum-roclur running
 - conn.sock exists and working
 - SELinux overlay with sock_file fix active
-- Current Controller APK does NOT have new code (old version)
+- Current flashed device state may lag this source until the next ROM flash.
 
 ## Live APK Testing Safety
 
-**NOT SAFE YET**
+Live APK push remains unsafe when signatures differ from the flashed ROM. Use a
+batched ROM build/flash for controller verification.
 
 Before pushing to /system_ext:
 1. Build must complete successfully
