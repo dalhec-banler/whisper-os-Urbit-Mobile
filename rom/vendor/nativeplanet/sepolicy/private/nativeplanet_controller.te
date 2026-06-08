@@ -1,0 +1,28 @@
+# NativePlanet Controller SELinux policy
+# Gate NB-2: Controller network observer
+#
+# The controller is a platform-signed system app that:
+# - Observes network state via ConnectivityManager
+# - Writes resolver config to /data/nativeplanet/resolv.conf
+# - Writes network state to /data/nativeplanet/network-state.json
+
+# TODO: TEMPORARY - Narrow before production
+# This grants ALL system_app domain apps write access to nativeplanet_data_file.
+# Before production release:
+# 1. Define dedicated nativeplanet_controller domain
+# 2. Create nativeplanet_controller_exec type for the APK
+# 3. Add file_contexts entry for the controller
+# 4. Move these allows to the dedicated domain
+# 5. Remove system_app access to nativeplanet_data_file
+
+# Allow system_app (which the controller runs as) to write nativeplanet data
+# Includes remove_name/rename/unlink for atomic writes (temp file + rename)
+allow system_app nativeplanet_data_file:dir { search write add_name remove_name create };
+allow system_app nativeplanet_data_file:file { create read write open getattr setattr rename unlink };
+allow system_app nativeplanet_data_file:sock_file write;
+
+# Allow the controller's runtime poller to connect to vere's conn.sock.
+allow system_app nativeplanet_vere:unix_stream_socket connectto;
+
+# Allow system_app to read network state (already granted by default)
+# ConnectivityManager APIs work for system apps

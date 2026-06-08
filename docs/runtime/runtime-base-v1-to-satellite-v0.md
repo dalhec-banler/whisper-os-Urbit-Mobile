@@ -1,5 +1,7 @@
 # Runtime Base v1 to Satellite v0 Transition
 
+Status: historical transition note from the May bring-up. It is useful context, but it predates the current controller/provider/conn.sock architecture. Use [../ROADMAP.md](../ROADMAP.md) and [build-and-flash.md](build-and-flash.md) for current behavior.
+
 ## Overview
 
 This document describes the changes from Runtime Base v1 (hardcoded configuration) to Satellite v0 (BootPackage-driven configuration).

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.nativeplanet.controller"
+    android:sharedUserId="android.uid.system">
+
+    <!-- Network state observation -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Write to /data/nativeplanet (requires SELinux policy) -->
+    <!-- Controller runs as system, writes to nativeplanet_data_file -->
+
+    <!--
+        Permission to read NativePlanet status.
+
+        DEBUG ONLY: Currently normal protection level for testing velocity.
+        Any app can request this permission in debug builds.
+
+        TODO production: Change protectionLevel to "signature|privileged"
+        to restrict access to ROM-signed apps only.
+    -->
+    <permission
+        android:name="io.nativeplanet.permission.READ_STATUS"
+        android:label="Read NativePlanet Status (DEBUG)"
+        android:description="@string/permission_read_status_desc"
+        android:protectionLevel="normal" />
+    <!-- TODO production: android:protectionLevel="signature|privileged" -->
+
+    <application
+        android:label="NativePlanet Controller"
+        android:persistent="true"
+        android:directBootAware="true">
+
+        <!-- Network observer service - starts on boot -->
+        <service
+            android:name=".NativePlanetControllerService"
+            android:enabled="true"
+            android:exported="false">
+        </service>
+
+        <!-- Boot receiver to start service -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="false"
+            android:directBootAware="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+            Status ContentProvider for Launcher integration.
+            Exposes sanitized runtime/network/boot status.
+            No key material, no raw secrets.
+        -->
+        <provider
+            android:name=".NativePlanetStatusProvider"
+            android:authorities="io.nativeplanet.controller"
+            android:exported="true"
+            android:readPermission="io.nativeplanet.permission.READ_STATUS">
+        </provider>
+
+    </application>
+
+</manifest>

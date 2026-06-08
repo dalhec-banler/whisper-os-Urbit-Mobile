@@ -1,113 +1,99 @@
 # Whisper OS Overview
 
-## Vision
+Whisper OS is a mobile-first NativePlanet environment for running a local Urbit moon on Android hardware.
 
-Whisper OS is a mobile-first sovereign computing platform that puts users in complete control of their digital identity, data, and communications.
+The near-term product is not a generic WebView wrapper. The current spine is:
 
-Built on urbit running natively on Android, Whisper OS provides:
-- **True ownership** - Your data lives on your device, not in the cloud
-- **Encrypted by default** - End-to-end encryption for all communications
-- **Interoperable** - Connect with the broader urbit network
-- **Open source** - Fully auditable, no black boxes
-
-## Target Users
-
-### Phase 1: Technical Early Adopters
-- Existing urbit users wanting mobile access
-- Privacy-conscious developers
-- Self-sovereignty advocates
-
-### Phase 2: Privacy-Conscious Mainstream
-- Journalists and activists
-- Business users needing secure comms
-- Anyone tired of surveillance capitalism
-
-## Core Features
-
-### Messaging
-- Encrypted peer-to-peer chat
-- Group conversations
-- Offline message queuing
-- Sync with desktop urbit
-
-### Identity
-- Self-sovereign identity (@p)
-- No phone number required
-- Portable across devices
-- Optional satellite/moon mode
-
-### Data
-- Local-first storage
-- Optional parent planet backup
-- No cloud dependency
-- Full export capability
-
-## Technical Foundation
-
+```text
+Whisper Launcher
+  -> NativePlanetStatusProvider
+  -> NativePlanetController
+  -> conn.sock / Click-style runtime control
+  -> vere64 running a moon
 ```
-┌─────────────────────────────────────┐
-│         Whisper Launcher            │
-│   (Kotlin native Android app)       │
-├─────────────────────────────────────┤
-│         Landscape UI                │
-│   (WebView + native bridges)        │
-├─────────────────────────────────────┤
-│         Urbit Runtime               │
-│   (vere on Android ARM64)           │
-├─────────────────────────────────────┤
-│         GrapheneOS                  │
-│   (hardened Android base)           │
-├─────────────────────────────────────┤
-│         Pixel Hardware              │
-│   (Titan M2 security chip)          │
-└─────────────────────────────────────┘
-```
+
+## Product Goal
+
+Give a user a phone that can host and manage a local Urbit identity with a quiet, trustworthy launcher UI and a controller that tells the truth about runtime, network, provisioning, and diagnostics.
+
+## Current MVP Scope
+
+In scope:
+
+- local dev moon boot
+- WiFi/mobile resolver state
+- controller-owned runtime status
+- provider API for launcher
+- launcher Runtime Console and onboarding shell
+- import/provisioning flow
+- graceful start/stop/restart through controller
+
+Out of scope for MVP:
+
+- Lens-based health checks
+- direct launcher access to pier internals
+- production parent/satellite sync
+- Lick-based Android capability IPC
+- Groundwire comet support
+- global SystemUI replacement
+
+## Current Technical Foundation
+
+Verified:
+
+- GrapheneOS-derived ROM on husky
+- `vere64` ARM64 runtime
+- init-managed `nativeplanet_vere`
+- dev moon `~namfeb-rossyp-palrum-roclur`
+- `conn.sock` runtime control plane
+- controller status polling via `android.system.Os`
+- launcher reads provider data
+
+Queued:
+
+- flash controller graceful shutdown implementation after the next ROM build
+- wire launcher start/stop to provider control calls after live verification
 
 ## Development Phases
 
-### Phase 1: Runtime Foundation ✅
-- Vere running on Android ARM64
-- Init service lifecycle
-- Basic pier management
+### Phase 0: Runtime Base
 
-### Phase 2: Satellite System (Current)
-- Satellite pill for fast mobile boot
-- Parent-satellite sync protocol
-- BootPackage provisioning
+Mostly complete. Android can boot and host modern Vere safely.
 
-### Phase 3: Launcher App
-- Native Android launcher
-- WebView for Landscape UI
-- Lick bridge for native features
+### Phase 0.5: Runtime Truth And Provisioning Spine
 
-### Phase 4: Polish & Distribution
-- UX refinement
-- Beta program
-- ROM distribution
+Current priority. The controller must own runtime truth, provisioning, lifecycle operations, and structured errors.
 
-## Why GrapheneOS?
+### Phase 1: Launcher MVP On Real Truth
 
-- Hardened Android with security focus
-- Verified boot chain
-- No Google services dependency
-- Active security maintenance
-- Pixel hardware support (Titan M2)
+Build polished launcher surfaces against provider data:
 
-## Differentiation
+- Runtime Console
+- onboarding/import
+- identity settings
+- network/runtime/boot-package diagnostics
 
-| Feature | Whisper OS | Signal | WhatsApp |
-|---------|------------|--------|----------|
-| Self-hosted | ✅ | ❌ | ❌ |
-| No phone number | ✅ | ❌ | ❌ |
-| Open source | ✅ | Partial | ❌ |
-| Decentralized | ✅ | ❌ | ❌ |
-| Offline capable | ✅ | Limited | ❌ |
-| Data portability | ✅ | Limited | ❌ |
+### Phase 2: Moon Lifecycle
+
+Production-grade moon import, backup reminders, restart persistence, and safe graceful shutdown.
+
+### Phase 3: Mobile Network Behavior
+
+WiFi/mobile handoff, Helium classification, NAT64, resolver resilience, and power behavior.
+
+### Phase 4: Android/Urbit Capabilities
+
+Lick, Hark notifications, Android intents/sensors, and app-level IPC.
+
+## Principles
+
+- Runtime truth first, UI second.
+- Click/conn.sock replaces Lens for health and control.
+- Lick is future capability IPC, not MVP lifecycle.
+- Launcher reads provider data; controller owns privileged behavior.
+- Never expose raw key material through provider or logs.
+- Use throwaway dev moons for testing until lifecycle is stable.
 
 ## Getting Involved
 
-See [CONTRIBUTING.md](../../../CONTRIBUTING.md) for how to participate.
-
-## License
-
-MIT License - See [LICENSE](../../../LICENSE).
+Start with [../ROADMAP.md](../ROADMAP.md) and [../PROJECT_MAP.md](../PROJECT_MAP.md).

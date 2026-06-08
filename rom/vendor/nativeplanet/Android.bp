@@ -40,3 +40,12 @@ prebuilt_etc {
     relative_install_path: "nativeplanet",
     system_ext_specific: true,
 }
+
+// Symlink /system/etc/resolv.conf -> /data/nativeplanet/resolv.conf
+// Allows vere (static musl binary) to read DNS config from data partition
+// NativePlanet Controller writes actual resolv.conf based on Android network state
+install_symlink {
+    name: "nativeplanet-resolv-conf",
+    installed_location: "etc/resolv.conf",
+    symlink_target: "/data/nativeplanet/resolv.conf",
+}

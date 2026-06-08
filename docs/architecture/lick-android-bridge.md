@@ -1,5 +1,11 @@
 # Lick Android Bridge
 
+Status: future architecture, not current MVP.
+
+Current MVP integration uses `conn.sock` / Click-style `%peel` and `%fyrd` requests for runtime truth and lifecycle operations. The launcher reads Android `ContentProvider` data exposed by `NativePlanetController`; it does not connect directly to Lick or pier internals.
+
+Use this document as Phase 4 planning material for Android capability IPC, such as notifications, sensors, intents, and app-specific native integrations.
+
 ## Overview
 
 Lick is an urbit vane that provides a bridge between the urbit runtime and native Android functionality. On Whisper OS, it enables the launcher app to communicate bidirectionally with the urbit.

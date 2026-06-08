@@ -1,156 +1,193 @@
-# Build and Flash Guide
+# Build And Flash Guide
 
-Complete instructions for building vere for Android and integrating with GrapheneOS.
+Current target: Pixel 8 Pro / `husky`, Android release `bp4a`, `userdebug`.
 
-## Prerequisites
+This guide is intentionally conservative. A full ROM build is expensive; run cheap module validation first, verify target-files contents before release generation, and do not flash without explicit approval.
 
-- Zig 0.15.2+ (cross-compilation toolchain)
-- GrapheneOS source tree
-- Android SDK/NDK
-- ~100GB disk space for ROM build
-- Device: Pixel 8 Pro (husky) or compatible
+## Paths Used In Current Bring-Up
 
-## Step 1: Build vere for Android
-
-```bash
-cd /path/to/vere
-
-# Clean previous builds
-rm -rf .zig-cache zig-out
-
-# Build for Android ARM64
-/path/to/zig build \
-  -Dtarget=aarch64-linux-musl \
-  -Dandroid=true \
-  -Drelease
-
-# Verify binary
-readelf -h zig-out/aarch64-linux-musl/urbit | grep -E 'Type|Entry'
-# Should show: Entry point address: 0x402XXXXX (above 1GB)
+```text
+GrapheneOS: /home/anoffice/grapheneos-2026040800
+Vere fork:  /home/anoffice/dev/mobile-vere/vere
+Launcher:   /home/anoffice/dev/mobile-vere/whisper-launcher
+Project:    /home/anoffice/dev/mobile-vere/whisper-os-Urbit-Mobile
 ```
 
-## Step 2: Copy to ROM Tree
+## Build Vere64
+
+Use modern Vere. Do not regress to old/32-bit runtime.
+
+```bash
+cd /home/anoffice/dev/mobile-vere/vere
+/tmp/zig-x86_64-linux-0.15.2/zig build \
+  -Dtarget=aarch64-linux-musl \
+  -Doptimize=ReleaseFast \
+  -Dandroid=true \
+  --summary all
+```
+
+Output:
+
+```text
+zig-out/aarch64-linux-musl/urbit
+```
+
+Copy to the GrapheneOS vendor tree only when intentionally updating the ROM prebuilt:
 
 ```bash
 cp zig-out/aarch64-linux-musl/urbit \
-   /path/to/grapheneos/vendor/nativeplanet/prebuilts/bin/vere
+  /home/anoffice/grapheneos-2026040800/vendor/nativeplanet/prebuilts/bin/vere
 ```
 
-## Step 3: Build ROM
+Record SHA256 and provenance. Do not commit the binary to this repository.
+
+## Cheap Controller Validation
+
+Use this before any full ROM build if controller Java, manifest, or sepolicy source changed.
 
 ```bash
-cd /path/to/grapheneos
-
-# Set up environment
+cd /home/anoffice/grapheneos-2026040800
 source build/envsetup.sh
-lunch husky
+lunch husky bp4a userdebug
+m NativePlanetController -j10
+```
 
-# Build target files (incremental, ~3-30 min depending on changes)
-m vendorbootimage vendorkernelbootimage target-files-package
+Expected output ends with:
 
-# Build OTA tools
-m otatools-package
+```text
+#### build completed successfully
+```
 
-# Finalize
+Verify classes when relevant:
+
+```bash
+strings out/target/product/husky/system_ext/priv-app/NativePlanetController/NativePlanetController.apk \
+  | grep -E 'RuntimeControl|ConnSockClient|NounCodec|RuntimeStatusPoller'
+```
+
+## Full Target-Files Build
+
+Only run after cheap gates pass and the queued change justifies a ROM build.
+
+```bash
+cd /home/anoffice/grapheneos-2026040800
+source build/envsetup.sh
+lunch husky bp4a userdebug
+m vendorbootimage vendorkernelbootimage target-files-package -j10
+```
+
+Before verification, record the build start time. Reject target-files artifacts older than that time.
+
+Expected target-files path:
+
+```text
+out/target/product/husky/obj/PACKAGING/target_files_intermediates/husky-target_files.zip
+```
+
+## Target-Files Verification Gates
+
+Verify the exact target-files zip built in this run.
+
+Required checks:
+
+- Timestamp is newer than build start.
+- Bootloop fix files exist:
+  - `VENDOR_DLKM/etc/init.insmod.husky.cfg`
+  - `VENDOR_DLKM/etc/init.insmod.ripcurrent.cfg`
+  - `VENDOR_DLKM/etc/init.insmod.shiba.cfg`
+- `init.insmod.husky.cfg` contains `bcmdhd4398.ko`.
+- `SYSTEM_EXT/priv-app/NativePlanetController/NativePlanetController.apk` exists.
+- Controller APK contains expected classes for the change.
+- `SYSTEM_EXT/etc/init/nativeplanet-vere.rc` contains expected service options.
+- SELinux CIL contains any newly queued rules.
+- No source-only documentation file such as `vere.provenance` is installed.
+
+Stop immediately if any gate fails.
+
+## Release Generation
+
+Only after target-files verification passes.
+
+```bash
+cd /home/anoffice/grapheneos-2026040800
 ./script/finalize.sh
-
-# Generate release (needs signing keys)
-export password=""  # or your key passphrase
-./script/generate-release.sh husky $BUILD_NUMBER
+./script/generate-release.sh husky <BUILD_NUMBER>
 ```
 
-## Step 4: Flash
+Verify release artifacts under:
 
-```bash
-BUILD_NUMBER=2026051404  # adjust as needed
-
-cd releases/$BUILD_NUMBER
-
-# Extract install image
-unzip release-husky-$BUILD_NUMBER/husky-install-$BUILD_NUMBER.zip
-
-# Reboot to bootloader
-adb reboot bootloader
-
-# Flash
-cd husky-install-$BUILD_NUMBER
-bash flash-all.sh
+```text
+releases/<BUILD_NUMBER>/release-husky-<BUILD_NUMBER>/
 ```
 
-## Step 5: Verify
+Do not commit release artifacts.
+
+## Flash
+
+Only flash after explicit approval.
 
 ```bash
-# Wait for boot
+cd /home/anoffice/grapheneos-2026040800/releases/<BUILD_NUMBER>/release-husky-<BUILD_NUMBER>/husky-factory-<BUILD_NUMBER>
+./flash-all.sh
+```
+
+## Post-Flash Verification
+
+Core:
+
+```bash
 adb wait-for-device
-
-# Enable root for testing
-adb root
-
-# Clear any stale pier
-adb shell rm -rf /data/nativeplanet/pier
-
-# Start service
-adb shell setprop nativeplanet.vere.enabled 1
-
-# Wait for boot (~60-90 seconds for fresh pier)
-sleep 90
-
-# Check status
-adb shell getprop init.svc.nativeplanet_vere
-# Should output: running
-
-# Check HTTP
-adb forward tcp:12321 tcp:12321
-curl -X POST http://127.0.0.1:12321 \
-  -H "Content-Type: application/json" \
-  -d '{"source":{"dojo":"+trouble"},"sink":{"stdout":null}}'
+adb shell getprop sys.boot_completed
+adb shell getprop sys.init.updatable_crashing
+adb shell getprop ro.build.type
+adb shell getprop ro.debuggable
 ```
 
-## Incremental Builds
-
-For small changes (launcher, init.rc, sepolicy):
+Controller/provider:
 
 ```bash
-# Just rebuild affected targets
-m nativeplanet-vere-launch systemextimage target-files-package
-
-# Then finalize and generate release as above
+adb shell pidof io.nativeplanet.controller
+adb shell content call --uri content://io.nativeplanet.controller --method getStatus
 ```
+
+Runtime:
+
+```bash
+adb shell getprop init.svc.nativeplanet_vere
+adb shell pidof vere
+adb shell find /data/nativeplanet/ships -name conn.sock
+adb shell content call --uri content://io.nativeplanet.controller --method getRuntime
+```
+
+conn.sock health:
+
+```bash
+adb forward tcp:12321 localfilesystem:/data/nativeplanet/ships/<ship>/.urb/conn.sock
+node /tmp/conn-test/conn-client.js 12321 live
+node /tmp/conn-test/conn-client.js 12321 who
+node /tmp/conn-test/conn-client.js 12321 v
+```
+
+Graceful shutdown:
+
+- Preferred product path: controller-owned Click/conn.sock `|exit`.
+- Verified test path: `%fyrd %base %khan-eval %noun %ted-eval` with `%hood %drum-exit`.
+- Do not use `setprop nativeplanet.vere.enabled 0` as normal user-facing stop behavior.
 
 ## Troubleshooting
 
-### Service keeps restarting
+Check logs:
 
 ```bash
-# Check launcher log
 adb shell cat /data/nativeplanet/logs/nativeplanet-vere-launch.log
-
-# Check vere early log
 adb shell cat /data/nativeplanet/logs/vere-early.log
-
-# Check dmesg
-adb shell dmesg | grep nativeplanet
+adb logcat -d -b all | grep -Ei 'NativePlanet|ConnSock|RuntimeStatus|vere'
+adb shell dmesg | grep -i 'avc.*nativeplanet'
 ```
 
-### SELinux denials
+Non-blocking noise seen during bring-up:
 
-```bash
-# Check for AVC denials
-adb shell dmesg | grep "avc.*nativeplanet"
+- `/proc/net/route` reads by Vere
+- `/dev/kmsg_debug` writes by Vere
 
-# Common issue: kmsg_debug write denial (harmless, can be ignored)
-```
-
-### Binary load failure
-
-If vere crashes before main():
-1. Verify `image_base = 0x40000000` in build.zig
-2. Check entry point with `readelf -h`
-3. Should be above 0x40000000
-
-### Pier locked
-
-```bash
-# Remove stale lock
-adb shell rm /data/nativeplanet/pier/.vere.lock
-```
+Do not broaden SELinux for non-blocking noise.

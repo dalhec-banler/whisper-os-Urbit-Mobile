@@ -16,6 +16,7 @@ zig-out/
 *.dex
 build/
 .gradle/
+local.properties
 
 # Keys and secrets (NEVER COMMIT)
 *.pk8

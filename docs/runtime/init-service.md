@@ -1,5 +1,9 @@
 # Init Service Configuration
 
+Status: historical baseline with current caveats.
+
+The current service in `rom/vendor/nativeplanet/init/nativeplanet-vere.rc` includes later changes such as setgid data directories and `oneshot`. Do not treat `setprop nativeplanet.vere.enabled 0` as a normal user-facing stop path. Product stop/restart should go through controller-owned graceful shutdown via conn.sock / Click-style `%hood` `%drum-exit`, then update the property after the ship exits.
+
 ## Service Definition
 
 Location: `vendor/nativeplanet/init/nativeplanet-vere.rc`

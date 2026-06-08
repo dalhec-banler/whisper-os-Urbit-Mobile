@@ -11,9 +11,11 @@ io_uring_use(nativeplanet_vere)
 allow nativeplanet_vere nativeplanet_data_file:dir create_dir_perms;
 allow nativeplanet_vere nativeplanet_data_file:file create_file_perms;
 allow nativeplanet_vere nativeplanet_data_file:lnk_file create_file_perms;
+allow nativeplanet_vere nativeplanet_data_file:sock_file create_file_perms;
 
 allow nativeplanet_vere system_file:dir r_dir_perms;
 allow nativeplanet_vere system_file:file rx_file_perms;
+allow nativeplanet_vere proc_net:file r_file_perms;
 
 # Allow vere to fork/re-exec itself
 allow nativeplanet_vere nativeplanet_vere_exec:file { execute execute_no_trans };
