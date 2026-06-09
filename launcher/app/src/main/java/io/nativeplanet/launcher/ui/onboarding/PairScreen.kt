@@ -27,6 +27,7 @@ fun PairScreen(
     var hostUrl by remember { mutableStateOf("") }
     var accessCode by remember { mutableStateOf("") }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var statusIsError by remember { mutableStateOf(false) }
     var isConnecting by remember { mutableStateOf(false) }
     val canConnect = hostUrl.trim().isNotEmpty() && accessCode.trim().isNotEmpty() && !isConnecting
 
@@ -87,7 +88,7 @@ fun PairScreen(
             Text(
                 text = message,
                 style = NPType.caption,
-                color = colors.foregroundDim
+                color = if (statusIsError) colors.error else colors.foregroundDim
             )
         }
 
@@ -101,6 +102,7 @@ fun PairScreen(
                 val submittedCode = accessCode.trim()
                 accessCode = ""
                 statusMessage = "connecting..."
+                statusIsError = false
                 isConnecting = true
 
                 scope.launch {
@@ -108,6 +110,7 @@ fun PairScreen(
                     isConnecting = false
                     statusMessage = when (result) {
                         is ControlResult.Success -> {
+                            statusIsError = false
                             val pairedShip = result.shipName
                             if (pairedShip != null) {
                                 onPairComplete(pairedShip, result.parentName)
@@ -116,8 +119,14 @@ fun PairScreen(
                                 "connected"
                             }
                         }
-                        is ControlResult.AlreadyInState -> "already ${result.state.name.lowercase()}"
-                        is ControlResult.Failed -> "${result.code}: ${result.message}"
+                        is ControlResult.AlreadyInState -> {
+                            statusIsError = false
+                            "already ${result.state.name.lowercase()}"
+                        }
+                        is ControlResult.Failed -> {
+                            statusIsError = true
+                            friendlyPairingError(result)
+                        }
                     }
                 }
             }
@@ -147,5 +156,19 @@ fun PairScreen(
         )
 
         Spacer(modifier = Modifier.height(NPSpacing.lg))
+    }
+}
+
+private fun friendlyPairingError(result: ControlResult.Failed): String {
+    return when (result.code) {
+        "INVALID_HOST_URL" -> "Enter a valid HTTPS hosting URL."
+        "MISSING_ACCESS_CODE" -> "Enter your +code."
+        "PARENT_AUTH_FAILED" -> "Login failed. Check the hosting URL and +code."
+        "PARENT_NETWORK_FAILED" -> "Could not reach the planet hosting URL."
+        "PARENT_SERVICE_UNAVAILABLE",
+        "PARENT_PROTOCOL_UNSUPPORTED" -> "Your planet is reachable, but Artemis is not ready for mobile pairing yet. Use a moon key for now."
+        "PARENT_MOON_CREATE_FAILED" -> "Artemis did not accept the mobile moon request."
+        "PARENT_MOON_CREATE_TIMEOUT" -> "Artemis did not return a new mobile moon in time."
+        else -> result.message.ifBlank { "Pairing failed." }
     }
 }

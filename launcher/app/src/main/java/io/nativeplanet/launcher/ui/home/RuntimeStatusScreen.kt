@@ -54,8 +54,8 @@ fun RuntimeStatusScreen(
             )
 
             Text(
-                text = "⚙",
-                style = NPType.displaySm,
+                text = "identity",
+                style = NPType.caption,
                 color = colors.foregroundDim,
                 modifier = Modifier
                     .clickable(onClick = onNavigateToSettings)
@@ -191,27 +191,6 @@ fun RuntimeStatusScreen(
 
         // Diagnostics
         DiagnosticsPanel(diagnostics = uiState.diagnostics)
-
-        Spacer(modifier = Modifier.height(NPSpacing.xl))
-
-        // Debug status line
-        val runtimeLabel = uiState.runtimeStatus.state.name.lowercase()
-        val identityLabel = uiState.demoIdentity.modeLabel
-        val backendLabel = if (uiState.controllerAvailable) "provider" else "demo"
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
-                .background(colors.backgroundSecondary)
-                .padding(NPSpacing.sm)
-        ) {
-            Text(
-                text = "debug: $backendLabel · $identityLabel · $runtimeLabel",
-                style = NPType.nano,
-                color = colors.foregroundFaint
-            )
-        }
 
         Spacer(modifier = Modifier.height(NPSpacing.lg))
     }

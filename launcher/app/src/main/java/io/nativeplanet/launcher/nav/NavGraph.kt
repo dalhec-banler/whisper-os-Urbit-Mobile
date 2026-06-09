@@ -112,7 +112,8 @@ fun NavGraph(modifier: Modifier = Modifier) {
 
         composable(Routes.SETTINGS_IDENTITY) {
             IdentitySettingsScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onAddIdentity = { navController.navigate(Routes.WELCOME) }
             )
         }
     }

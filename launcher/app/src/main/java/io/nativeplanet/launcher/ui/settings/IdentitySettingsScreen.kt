@@ -14,6 +14,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.nativeplanet.launcher.theme.*
+import io.nativeplanet.launcher.ui.components.NPButton
+import io.nativeplanet.launcher.ui.components.NPButtonStyle
 import io.nativeplanet.launcher.ui.components.SectionHeader
 import io.nativeplanet.launcher.ui.components.SigilView
 import io.nativeplanet.launcher.ui.components.StatusChip
@@ -22,6 +24,7 @@ import io.nativeplanet.launcher.ui.home.RuntimeStatusViewModel
 @Composable
 fun IdentitySettingsScreen(
     onBack: () -> Unit,
+    onAddIdentity: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RuntimeStatusViewModel = hiltViewModel()
 ) {
@@ -151,21 +154,19 @@ fun IdentitySettingsScreen(
 
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
-        // Add identity button (disabled)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
-                .background(colors.backgroundSecondary)
-                .padding(vertical = NPSpacing.lg),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "add identity (coming soon)",
-                style = NPType.bodySm,
-                color = colors.foregroundFaint
-            )
-        }
+        NPButton(
+            text = "Add identity",
+            onClick = onAddIdentity,
+            style = NPButtonStyle.SECONDARY
+        )
+
+        Spacer(modifier = Modifier.height(NPSpacing.sm))
+
+        Text(
+            text = "Pair another moon or use a moon key.",
+            style = NPType.caption,
+            color = colors.foregroundDim
+        )
     }
 }
 
