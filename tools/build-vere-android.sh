@@ -2,13 +2,20 @@
 #
 # Build vere for Android ARM64
 #
-# Usage: ./build-vere-android.sh [path-to-vere-source] [path-to-zig]
+# Usage: VERE_SRC=/path/to/vere ZIG_PATH=/path/to/zig ./build-vere-android.sh
+#    or: ./build-vere-android.sh /path/to/vere /path/to/zig
 #
 
 set -euo pipefail
 
-VERE_SRC="${1:-$HOME/dev/mobile-vere/vere}"
-ZIG_PATH="${2:-$HOME/tools/zig}"
+VERE_SRC="${1:-${VERE_SRC:-}}"
+ZIG_PATH="${2:-${ZIG_PATH:-}}"
+
+if [[ -z "$VERE_SRC" || -z "$ZIG_PATH" ]]; then
+    echo "Usage: $0 [path-to-vere-source] [path-to-zig]"
+    echo "   or: VERE_SRC=/path/to/vere ZIG_PATH=/path/to/zig $0"
+    exit 1
+fi
 
 if [[ ! -d "$VERE_SRC" ]]; then
     echo "Error: Vere source directory not found: $VERE_SRC"
