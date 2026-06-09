@@ -11,12 +11,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import io.nativeplanet.launcher.domain.IdentityMode
 import io.nativeplanet.launcher.domain.model.RuntimeState
 import io.nativeplanet.launcher.theme.*
-import io.nativeplanet.launcher.ui.components.SectionHeader
+import io.nativeplanet.launcher.ui.components.NPButton
+import io.nativeplanet.launcher.ui.components.NPButtonStyle
 import io.nativeplanet.launcher.ui.components.SigilView
 import io.nativeplanet.launcher.ui.components.StatusChip
 
@@ -108,7 +110,9 @@ fun RuntimeStatusScreen(
                 Text(
                     text = displayShip ?: "no ship configured",
                     style = NPType.patp,
-                    color = colors.foreground
+                    color = colors.foreground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 when {
@@ -116,14 +120,18 @@ fun RuntimeStatusScreen(
                         Text(
                             text = "comet · temporary",
                             style = NPType.bodySm,
-                            color = colors.foregroundDim
+                            color = colors.foregroundDim,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                     displayParent != null -> {
                         Text(
                             text = "under $displayParent",
                             style = NPType.bodySm,
-                            color = colors.foregroundDim
+                            color = colors.foregroundDim,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -134,31 +142,34 @@ fun RuntimeStatusScreen(
 
         Spacer(modifier = Modifier.height(NPSpacing.md))
 
-        if (!isConfigured) {
-            Box(
+        NPButton(
+            text = if (isConfigured) "Add identity" else "Set up moon",
+            onClick = onNavigateToOnboarding,
+            style = if (isConfigured) NPButtonStyle.SECONDARY else NPButtonStyle.FILLED
+        )
+
+        Spacer(modifier = Modifier.height(NPSpacing.xs))
+
+        Text(
+            text = if (isConfigured) {
+                "Pair another moon or use a moon key."
+            } else {
+                "Pair with your parent ship or use a moon key."
+            },
+            style = NPType.caption,
+            color = colors.foregroundDim
+        )
+
+        if (uiState.demoIdentity.isConfigured) {
+            Spacer(modifier = Modifier.height(NPSpacing.sm))
+            Text(
+                text = "reset demo identity",
+                style = NPType.bodySm,
+                color = colors.foregroundFaint,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(colors.foreground)
-                    .clickable(onClick = onNavigateToOnboarding)
-                    .padding(NPSpacing.cardPadding)
-            ) {
-                Column {
-                    Text(
-                        text = "Set up moon",
-                        style = NPType.bodyLg,
-                        color = colors.background
-                    )
-
-                    Spacer(modifier = Modifier.height(NPSpacing.xs))
-
-                    Text(
-                        text = "Import a moon from your parent",
-                        style = NPType.bodySm,
-                        color = colors.background.copy(alpha = 0.72f)
-                    )
-                }
-            }
+                    .clickable { viewModel.resetDemo() }
+                    .padding(vertical = NPSpacing.sm)
+            )
         }
 
         Spacer(modifier = Modifier.height(NPSpacing.xl))
@@ -202,34 +213,6 @@ fun RuntimeStatusScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(NPSpacing.md))
-
-        // Dev actions
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(NPSpacing.md)
-        ) {
-            Text(
-                text = "→ onboarding",
-                style = NPType.bodySm,
-                color = colors.foregroundFaint,
-                modifier = Modifier
-                    .clickable(onClick = onNavigateToOnboarding)
-                    .padding(NPSpacing.sm)
-            )
-
-            if (uiState.demoIdentity.isConfigured) {
-                Text(
-                    text = "× reset",
-                    style = NPType.bodySm,
-                    color = colors.foregroundFaint,
-                    modifier = Modifier
-                        .clickable {
-                            viewModel.resetDemo()
-                        }
-                        .padding(NPSpacing.sm)
-                )
-            }
-        }
+        Spacer(modifier = Modifier.height(NPSpacing.lg))
     }
 }
