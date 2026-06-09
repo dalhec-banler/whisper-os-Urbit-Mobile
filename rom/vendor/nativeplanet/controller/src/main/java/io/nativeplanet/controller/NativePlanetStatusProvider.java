@@ -129,6 +129,9 @@ public class NativePlanetStatusProvider extends ContentProvider {
             case "stopRuntime":
                 result.putString("json", RuntimeControl.stopRuntimeAsync());
                 break;
+            case "provisionMoon":
+                result.putString("json", ProvisioningManager.provisionMoon(getRequestJson(arg, extras)));
+                break;
             default:
                 Log.w(TAG, "Unknown method: " + method);
         }
@@ -227,6 +230,11 @@ public class NativePlanetStatusProvider extends ContentProvider {
     }
 
     private String getBootPackageStatus() {
+        String managerStatus = ProvisioningManager.getBootPackageStatus();
+        if (managerStatus != null) {
+            return managerStatus;
+        }
+
         // Try boot-package-status.json first
         String statusRaw = readFile(BOOT_PACKAGE_STATUS_PATH);
         if (statusRaw != null) {
@@ -258,12 +266,9 @@ public class NativePlanetStatusProvider extends ContentProvider {
             status.put("pillPath", pillPath);
             status.put("pillExists", pillPath != null && new File(pillPath).exists());
 
-            // SECURITY: Redact key material reference to boolean only
-            // TODO: keyFileExists currently means "keyMaterialRef field is present",
-            // not that the referenced file actually exists. Acceptable for debug,
-            // but should verify file existence in production.
             String keyRef = pkg.optString("keyMaterialRef", null);
-            status.put("keyFileExists", keyRef != null && !keyRef.isEmpty() && !keyRef.equals("none"));
+            String keyPath = keyRef != null && keyRef.startsWith("file:") ? keyRef.substring(5) : null;
+            status.put("keyFileExists", keyPath != null && new File(keyPath).exists());
 
             status.put("validationErrors", new org.json.JSONArray());
 
@@ -287,6 +292,16 @@ public class NativePlanetStatusProvider extends ContentProvider {
         } catch (JSONException e) {
             return raw;
         }
+    }
+
+    private String getRequestJson(String arg, Bundle extras) {
+        if (extras != null) {
+            String json = extras.getString("json");
+            if (json != null) {
+                return json;
+            }
+        }
+        return arg;
     }
 
     private String buildNoBootPackage() {

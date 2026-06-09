@@ -2,7 +2,7 @@ on post-fs-data
     mkdir /data/nativeplanet 2770 system shell
     mkdir /data/nativeplanet/logs 0700 shell shell
     mkdir /data/nativeplanet/ships 2770 system shell
-    mkdir /data/nativeplanet/keys 0700 shell shell
+    mkdir /data/nativeplanet/keys 2770 system shell
     restorecon_recursive /data/nativeplanet
 
 service nativeplanet_vere /system_ext/bin/nativeplanet-vere-launch
