@@ -39,6 +39,13 @@ trap 'rm -rf "$tmp_dir"' EXIT
 cookie_jar="$tmp_dir/cookies.txt"
 headers="$tmp_dir/headers.txt"
 body="$tmp_dir/body.bin"
+login_form="$tmp_dir/login-form.txt"
+
+chmod 700 "$tmp_dir"
+printf '%s' "$NP_PAIRING_CODE" |
+  python3 -c 'import sys, urllib.parse; print("password=" + urllib.parse.quote_plus(sys.stdin.read()), end="")' \
+  > "$login_form"
+chmod 600 "$login_form"
 
 curl_common=(
   --silent
@@ -57,7 +64,7 @@ login_code="$(
   curl "${curl_common[@]}" \
     --request POST \
     --header 'content-type: application/x-www-form-urlencoded' \
-    --data-urlencode "password=$NP_PAIRING_CODE" \
+    --data-binary "@$login_form" \
     --dump-header "$headers" \
     --output "$body" \
     --write-out '%{http_code}' \

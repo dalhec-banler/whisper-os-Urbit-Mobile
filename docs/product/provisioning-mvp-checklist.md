@@ -91,7 +91,7 @@ import remains the advanced fallback.
 - [x] Implement the Urbit channel poke for Artemis `%mobile` moon creation.
 - [x] Return the created moon's ship, parent, and boot key to the controller.
 - [x] Chain the Artemis response into existing local `provisionMoon`.
-- [ ] Add a parent-pairing smoke test that does not print the `+code` or boot key.
+- [x] Add a parent-pairing smoke test that does not print the `+code` or boot key.
 - [ ] Verify end-to-end with a throwaway `%mobile` moon.
 
 ## Not In This Step
