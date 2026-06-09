@@ -159,15 +159,33 @@ Request JSON:
 }
 ```
 
-Current response until the parent-side provisioning service exists:
+Current behavior:
+
+1. Validate the hosting URL and `+code`.
+2. Authenticate to the parent ship's Eyre login endpoint.
+3. Probe for the future NativePlanet parent pairing service.
+4. Return a precise failure until that parent service exists.
+
+Successful Eyre login without the parent service:
 
 ```json
 {
   "accepted": false,
-  "code": "PARENT_PAIRING_UNAVAILABLE",
-  "message": "Parent pairing is not available in this build"
+  "code": "PARENT_SERVICE_UNAVAILABLE",
+  "message": "Planet login worked. NativePlanet parent pairing is not installed on the planet yet."
 }
 ```
+
+Other expected failure codes:
+
+| Code | Meaning |
+|------|---------|
+| `INVALID_HOST_URL` | Hosting URL is missing or is not HTTPS |
+| `MISSING_ACCESS_CODE` | `+code` was empty |
+| `PARENT_AUTH_FAILED` | Eyre login did not return an authenticated session cookie |
+| `PARENT_NETWORK_FAILED` | Parent hosting URL could not be reached |
+| `PARENT_SERVICE_UNAVAILABLE` | Login worked, but the parent-side NativePlanet app/API is not installed yet |
+| `PARENT_PROTOCOL_UNSUPPORTED` | Parent-side service responded, but this phone build cannot consume it yet |
 
 The `+code` must never be returned, logged, screenshotted, or written to
 diagnostics.

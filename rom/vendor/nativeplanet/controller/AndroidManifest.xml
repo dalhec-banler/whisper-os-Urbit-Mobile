@@ -5,6 +5,7 @@
 
     <!-- Network state observation -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Write to /data/nativeplanet (requires SELinux policy) -->
     <!-- Controller runs as system, writes to nativeplanet_data_file -->
