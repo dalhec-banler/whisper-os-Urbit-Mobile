@@ -133,6 +133,35 @@ fun RuntimeStatusScreen(
             StatusChip(state = if (isConfigured) uiState.runtimeStatus.state else RuntimeState.UNINITIALIZED)
         }
 
+        Spacer(modifier = Modifier.height(NPSpacing.md))
+
+        if (!isConfigured) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(colors.foreground)
+                    .clickable(onClick = onNavigateToOnboarding)
+                    .padding(NPSpacing.cardPadding)
+            ) {
+                Column {
+                    Text(
+                        text = "Set up moon",
+                        style = NPType.bodyLg,
+                        color = colors.background
+                    )
+
+                    Spacer(modifier = Modifier.height(NPSpacing.xs))
+
+                    Text(
+                        text = "Import a moon from your parent",
+                        style = NPType.bodySm,
+                        color = colors.background.copy(alpha = 0.72f)
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
         // Control buttons

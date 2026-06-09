@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.nativeplanet.launcher.domain.model.ControlResult
 import io.nativeplanet.launcher.theme.*
@@ -279,6 +281,11 @@ private fun ImportTextField(
             Text(text = placeholder, style = NPType.bodySm)
         },
         textStyle = NPType.bodySm,
+        visualTransformation = if (label == "Moon key") {
+            PasswordVisualTransformation()
+        } else {
+            VisualTransformation.None
+        },
         singleLine = label != "Moon key",
         minLines = if (label == "Moon key") 3 else 1,
         maxLines = if (label == "Moon key") 5 else 1
