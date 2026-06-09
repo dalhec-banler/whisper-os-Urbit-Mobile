@@ -118,6 +118,7 @@ Content Provider allows passive queries without holding service connection. Broa
 | start | `setprop nativeplanet.vere.enabled 1` | Binder `startRuntime()` |
 | stop | Provider `stopRuntime` call; controller sends Click-style graceful `%hood` `%drum-exit` over conn.sock, then clears desired-state property after exit | Binder `stopRuntime()` |
 | restart | graceful stop + start | Binder `restartRuntime()` |
+| pair with planet | Provider `pairWithPlanet` call with hosting URL and `+code`; returns unavailable until parent service exists | Binder `pairWithPlanet()` |
 | provision moon | Provider `provisionMoon` call with sanitized JSON request | Binder `provisionMoon()` |
 | refresh | re-read status files | Content Provider query |
 | clearTestData | `rm -rf /data/nativeplanet/ships/*` | Binder `clearTestData()` (gated) |
@@ -134,6 +135,42 @@ Content Provider allows passive queries without holding service connection. Broa
   "newState": "starting" | "stopped" | ...
 }
 ```
+
+### Pair With Planet Request
+
+This is the preferred user-facing onboarding path. The launcher sends the
+parent ship's hosting URL and `+code` to the controller. The controller will
+eventually use those credentials to ask the parent for a phone moon boot
+package, then provision it locally using the same storage path as manual moon
+import.
+
+Provider call:
+
+```text
+content://io.nativeplanet.controller call method=pairWithPlanet extras.json=<request>
+```
+
+Request JSON:
+
+```json
+{
+  "hostUrl": "https://parent.example",
+  "accessCode": "<+code>"
+}
+```
+
+Current response until the parent-side provisioning service exists:
+
+```json
+{
+  "accepted": false,
+  "code": "PARENT_PAIRING_UNAVAILABLE",
+  "message": "Parent pairing is not available in this build"
+}
+```
+
+The `+code` must never be returned, logged, screenshotted, or written to
+diagnostics.
 
 ### Provision Moon Request
 

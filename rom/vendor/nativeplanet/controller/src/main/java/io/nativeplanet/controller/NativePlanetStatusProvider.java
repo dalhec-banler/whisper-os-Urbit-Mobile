@@ -132,6 +132,9 @@ public class NativePlanetStatusProvider extends ContentProvider {
             case "provisionMoon":
                 result.putString("json", ProvisioningManager.provisionMoon(getRequestJson(arg, extras)));
                 break;
+            case "pairWithPlanet":
+                result.putString("json", ParentPairingManager.pairWithPlanet(getRequestJson(arg, extras)));
+                break;
             default:
                 Log.w(TAG, "Unknown method: " + method);
         }

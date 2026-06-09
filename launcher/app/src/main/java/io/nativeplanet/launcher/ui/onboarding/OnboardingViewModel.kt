@@ -34,4 +34,10 @@ class OnboardingViewModel @Inject constructor(
             client.provisionMoon(shipName, parentName, keyMaterial)
         }
     }
+
+    suspend fun pairWithPlanet(hostUrl: String, accessCode: String): ControlResult {
+        return withContext(Dispatchers.IO) {
+            client.pairWithPlanet(hostUrl, accessCode)
+        }
+    }
 }

@@ -67,7 +67,9 @@ fun NavGraph(modifier: Modifier = Modifier) {
         }
 
         composable(Routes.PAIR) {
+            val viewModel: OnboardingViewModel = hiltViewModel()
             PairScreen(
+                onPairWithPlanet = viewModel::pairWithPlanet,
                 onImportManually = { navController.navigate(Routes.IMPORT) },
                 onBack = { navController.popBackStack() }
             )

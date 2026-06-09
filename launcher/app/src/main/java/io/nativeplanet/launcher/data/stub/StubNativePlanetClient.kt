@@ -160,4 +160,12 @@ class StubNativePlanetClient @Inject constructor() : NativePlanetClient {
         )
         return ControlResult.Success
     }
+
+    override suspend fun pairWithPlanet(hostUrl: String, accessCode: String): ControlResult {
+        delay(500)
+        return ControlResult.Failed(
+            "PARENT_PAIRING_UNAVAILABLE",
+            "Parent pairing is not available in this build"
+        )
+    }
 }

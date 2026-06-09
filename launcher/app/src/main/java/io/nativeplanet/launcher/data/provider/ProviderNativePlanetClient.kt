@@ -95,6 +95,14 @@ class ProviderNativePlanetClient @Inject constructor(
         return callProviderControl("provisionMoon", request)
     }
 
+    override suspend fun pairWithPlanet(hostUrl: String, accessCode: String): ControlResult {
+        val request = JSONObject()
+            .put("hostUrl", hostUrl)
+            .put("accessCode", accessCode)
+            .toString()
+        return callProviderControl("pairWithPlanet", request)
+    }
+
     fun isControllerAvailable(): Boolean = controllerAvailable == true
 
     private fun fetchRuntimeStatus(): RuntimeStatus {

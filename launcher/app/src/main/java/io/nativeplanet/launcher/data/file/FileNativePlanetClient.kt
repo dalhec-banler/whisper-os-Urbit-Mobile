@@ -48,4 +48,8 @@ class FileNativePlanetClient @Inject constructor(
     ): ControlResult {
         return stubClient.provisionMoon(shipName, parentName, keyMaterial)
     }
+
+    override suspend fun pairWithPlanet(hostUrl: String, accessCode: String): ControlResult {
+        return stubClient.pairWithPlanet(hostUrl, accessCode)
+    }
 }

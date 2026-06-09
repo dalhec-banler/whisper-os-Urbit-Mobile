@@ -13,4 +13,5 @@ interface NativePlanetClient {
     suspend fun stopRuntime(): ControlResult
     suspend fun restartRuntime(): ControlResult
     suspend fun provisionMoon(shipName: String, parentName: String, keyMaterial: String): ControlResult
+    suspend fun pairWithPlanet(hostUrl: String, accessCode: String): ControlResult
 }
