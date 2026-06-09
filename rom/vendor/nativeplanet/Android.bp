@@ -25,6 +25,14 @@ cc_binary {
     ],
 }
 
+android_app_import {
+    name: "NativePlanetLauncher",
+    apk: "prebuilts/apk/NativePlanetLauncher.apk",
+    system_ext_specific: true,
+    privileged: true,
+    certificate: "platform",
+}
+
 prebuilt_etc {
     name: "nativeplanet-vere-rc",
     src: "init/nativeplanet-vere.rc",

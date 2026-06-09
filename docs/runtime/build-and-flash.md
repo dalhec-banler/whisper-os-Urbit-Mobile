@@ -66,6 +66,44 @@ strings out/target/product/husky/system_ext/priv-app/NativePlanetController/Nati
   | grep -E 'RuntimeControl|ConnSockClient|NounCodec|RuntimeStatusPoller'
 ```
 
+## Launcher ROM Prebuilt
+
+The launcher source lives in this repository under `launcher/`. Build it with
+Gradle, then copy the APK into the local GrapheneOS vendor tree before building
+the ROM.
+
+```bash
+# From this repository
+( cd launcher && ANDROID_HOME=$ANDROID_HOME ./gradlew assembleDebug )
+```
+
+Copy the APK into the active GrapheneOS checkout:
+
+```bash
+cp launcher/app/build/outputs/apk/debug/app-debug.apk \
+  $GRAPHENEOS/vendor/nativeplanet/prebuilts/apk/NativePlanetLauncher.apk
+```
+
+The ROM imports this APK as `NativePlanetLauncher`, installs it under
+`system_ext/priv-app`, and signs it with the ROM platform key. Do not commit the
+APK binary to this repository.
+
+Cheap module gate:
+
+```bash
+# From your GrapheneOS checkout
+source build/envsetup.sh
+lunch husky bp4a userdebug
+m NativePlanetLauncher -j10
+```
+
+Expected output includes:
+
+```text
+Install: out/target/product/husky/system_ext/priv-app/NativePlanetLauncher/NativePlanetLauncher.apk
+#### build completed successfully
+```
+
 ## Full Target-Files Build
 
 Only run after cheap gates pass and the queued change justifies a ROM build.

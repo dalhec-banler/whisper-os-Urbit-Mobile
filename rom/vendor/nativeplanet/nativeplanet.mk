@@ -2,6 +2,7 @@ PRODUCT_PACKAGES += \
     nativeplanet-hello \
     nativeplanet-vere \
     nativeplanet-vere-launch \
+    NativePlanetLauncher \
     nativeplanet-vere-rc \
     nativeplanet-satellite-pill \
     NativePlanetController \

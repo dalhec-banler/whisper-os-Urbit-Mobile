@@ -15,6 +15,7 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
 - Graceful shutdown through conn.sock works (Click-style `%hood %drum-exit`)
 - Reboot persistence restores the running ship
 - Launcher can provision a moon from manually entered moon name, parent, and moon key
+- Launcher ROM prebuilt is wired as `NativePlanetLauncher` and module-build verified
 
 Next step: Artemis-backed moon provisioning. The phone should ask for the
 ship's hosting URL and `+code`, then ask Artemis on the parent ship to create or
@@ -67,6 +68,7 @@ For the active checklist, see [docs/product/provisioning-mvp-checklist.md](produ
 - Runtime Console showing real status
 - Network panel from provider
 - Import moon flow wired to controller
+- Launcher bundled in ROM via `NativePlanetLauncher` prebuilt
 - Start/stop controls through graceful shutdown
 - No demo fallback unless controller is genuinely unavailable
 - First-run setup path when no ship is configured
