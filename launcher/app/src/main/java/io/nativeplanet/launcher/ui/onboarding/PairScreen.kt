@@ -77,7 +77,7 @@ fun PairScreen(
             value = accessCode,
             onValueChange = { accessCode = it },
             label = "+code",
-            placeholder = "lidlut-tabwed-pillex-ridrup",
+            placeholder = "xxxx-xxxx-xxxx-xxxx",
             isSecret = true
         )
 
