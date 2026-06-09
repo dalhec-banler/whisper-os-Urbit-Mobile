@@ -3,7 +3,9 @@ package io.nativeplanet.launcher.ui.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,6 +40,7 @@ fun IdentitySettingsScreen(
             .background(colors.background)
             .statusBarsPadding()
             .navigationBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(NPSpacing.screenGutter)
     ) {
         // Header
@@ -46,8 +49,8 @@ fun IdentitySettingsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "←",
-                style = NPType.displaySm,
+                text = "back",
+                style = NPType.caption,
                 color = colors.foregroundDim,
                 modifier = Modifier
                     .clickable(onClick = onBack)
@@ -154,6 +157,34 @@ fun IdentitySettingsScreen(
 
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
+        SectionHeader(text = "Other Identities")
+
+        Spacer(modifier = Modifier.height(NPSpacing.md))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(4.dp))
+                .background(colors.backgroundSecondary)
+                .padding(NPSpacing.cardPadding)
+        ) {
+            Text(
+                text = "Only this moon is on the phone right now.",
+                style = NPType.bodySm,
+                color = colors.foregroundDim
+            )
+
+            Spacer(modifier = Modifier.height(NPSpacing.xs))
+
+            Text(
+                text = "Add another identity when you want a second mobile moon or a recovery import.",
+                style = NPType.nano,
+                color = colors.foregroundFaint
+            )
+        }
+
+        Spacer(modifier = Modifier.height(NPSpacing.xl))
+
         NPButton(
             text = "Add identity",
             onClick = onAddIdentity,
@@ -167,6 +198,8 @@ fun IdentitySettingsScreen(
             style = NPType.caption,
             color = colors.foregroundDim
         )
+
+        Spacer(modifier = Modifier.height(NPSpacing.lg))
     }
 }
 
