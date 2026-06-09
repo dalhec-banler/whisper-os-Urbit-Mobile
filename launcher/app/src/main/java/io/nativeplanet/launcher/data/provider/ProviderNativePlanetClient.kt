@@ -230,25 +230,10 @@ class ProviderNativePlanetClient @Inject constructor(
             }
             val result: Bundle? = contentResolver.call(BASE_URI, method, null, extras)
             val json = result?.getString("json") ?: return ControlResult.Failed("NO_RESPONSE", "Controller did not respond")
-            parseControlResult(JSONObject(json))
+            ProviderControlResultParser.parse(JSONObject(json))
         } catch (e: Exception) {
             Log.w(TAG, "Provider control failed for $method: ${e.message}")
             ControlResult.Failed("PROVIDER_UNAVAILABLE", e.message ?: "Controller unavailable")
-        }
-    }
-
-    private fun parseControlResult(obj: JSONObject): ControlResult {
-        val accepted = obj.optBoolean("accepted", false)
-        val code = obj.optString("code", if (accepted) "OK" else "UNKNOWN")
-        val message = obj.optStringOrNull("message") ?: code
-        return if (accepted) {
-            val bootPackage = obj.optJSONObject("bootPackage")
-            ControlResult.Success(
-                shipName = bootPackage?.optStringOrNull("ship"),
-                parentName = bootPackage?.optStringOrNull("parent")
-            )
-        } else {
-            ControlResult.Failed(code, message)
         }
     }
 
