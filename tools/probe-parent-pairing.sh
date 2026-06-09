@@ -89,7 +89,7 @@ scry_code="$(
 printf 'HTTP %s\n' "$scry_code"
 
 printf 'Result: '
-if grep -q 'urbauth' "$cookie_jar"; then
+if grep -q 'urbauth' "$cookie_jar" && [[ "$scry_code" == "200" ]]; then
   printf 'authenticated transport available\n'
   exit 0
 fi
