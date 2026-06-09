@@ -1,166 +1,112 @@
-# Whisper OS Onboarding
+# NativePlanet Mobile Onboarding
 
-## User Journey
+Status: moon-first MVP flow.
 
-### Path A: Fresh Start (New User)
+The first-run product path is for an existing Urbit user with a hosted parent
+planet. The phone asks for the parent hosting URL and `+code`, then uses Artemis
+on the parent to create a `%mobile` moon for the phone.
 
-1. **Install Whisper OS ROM**
-   - Flash factory image to supported Pixel device
-   - Complete Android setup wizard
+Tlon signup and new-user identity creation are deferred.
 
-2. **Launch Whisper App**
-   - App prompts for identity choice
-   - Options: Generate new comet, Import planet, Scan BootPackage
+## Primary Flow: Pair With Planet
 
-3. **Generate Comet (Default)**
-   - Automatic comet generation
-   - No external dependencies
-   - Ready in ~90 seconds
+1. User flashes or receives a NativePlanet Mobile phone.
+2. User completes enough Android setup to join WiFi.
+3. Launcher opens to onboarding.
+4. User enters:
+   - parent ship hosting URL
+   - parent `+code`
+5. Controller authenticates to the parent ship through Eyre.
+6. Controller verifies Artemis is installed.
+7. Controller asks Artemis for a `%mobile` moon.
+8. Controller provisions the returned moon boot package locally.
+9. Vere starts under Android init.
+10. Launcher lands on truthful runtime status for the running moon.
 
-4. **First Run**
-   - Landscape UI loads in WebView
-   - Basic tutorial overlay
-   - Invite to connect with parent (optional)
+## Fallback Flow: Manual Moon Key
 
-### Path B: Import from Desktop
+Manual import remains available for developers and recovery:
 
-1. **On Desktop Urbit**
-   - Generate BootPackage for moon/comet
-   - Display QR code or export file
+1. User creates a moon from a parent ship manually.
+2. User enters:
+   - moon ship name
+   - parent ship name
+   - current moon boot key
+3. Controller validates the key format.
+4. Controller writes a local boot package and key file.
+5. Controller starts the runtime.
 
-2. **On Whisper Device**
-   - Scan QR or import file
-   - Enter encryption passphrase
-   - Boot from BootPackage
+This path is advanced and should not be the main user story.
 
-3. **Initial Sync**
-   - Connect to parent planet
-   - Sync recent messages
-   - Download essential desk updates
+## Screens
 
-### Path C: Existing Planet Owner
+### Welcome
 
-1. **Export Keys**
-   - Export planet keys from current host
-   - Create encrypted key bundle
+Primary action: **Pair with planet**
 
-2. **Import to Whisper**
-   - Import key bundle
-   - Provide passphrase
-   - Planet boots on device
+Secondary action: **Use moon key**
 
-3. **Considerations**
-   - Cannot run same planet in two places
-   - Recommended: Use moon instead
+Deferred action: **Start as comet**
 
-## Onboarding Screens
+### Pair With Planet
 
-### Screen 1: Welcome
-```
-┌─────────────────────────────┐
-│                             │
-│     [Whisper OS Logo]       │
-│                             │
-│   Your sovereign phone      │
-│                             │
-│     [Get Started →]         │
-│                             │
-└─────────────────────────────┘
-```
+Fields:
 
-### Screen 2: Identity Choice
-```
-┌─────────────────────────────┐
-│   How do you want to start? │
-│                             │
-│   ┌─────────────────────┐   │
-│   │ 🌟 New Identity     │   │
-│   │ Generate a comet    │   │
-│   └─────────────────────┘   │
-│                             │
-│   ┌─────────────────────┐   │
-│   │ 📱 Import Package   │   │
-│   │ Scan QR or file     │   │
-│   └─────────────────────┘   │
-│                             │
-│   ┌─────────────────────┐   │
-│   │ 🔑 Import Planet    │   │
-│   │ Advanced users      │   │
-│   └─────────────────────┘   │
-│                             │
-└─────────────────────────────┘
-```
+- Hosting URL
+- `+code`
 
-### Screen 3: Booting
-```
-┌─────────────────────────────┐
-│                             │
-│     Booting your urbit...   │
-│                             │
-│     [Progress animation]    │
-│                             │
-│     ~sampel-palnet          │
-│                             │
-│     This takes about        │
-│     90 seconds on first run │
-│                             │
-└─────────────────────────────┘
-```
+Behavior:
 
-### Screen 4: Ready
-```
-┌─────────────────────────────┐
-│                             │
-│     ✓ Ready to go!          │
-│                             │
-│     Your identity:          │
-│     ~sampel-palnet          │
-│                             │
-│     [Open Landscape →]      │
-│                             │
-│     [Connect to Parent]     │
-│     (optional)              │
-│                             │
-└─────────────────────────────┘
-```
+- The `+code` field is secret.
+- The `+code` is cleared from UI state after submit.
+- Errors come from the controller.
+- If Artemis is missing, the UI explains that the parent needs Artemis.
+- If Artemis exists but mobile provisioning is not implemented in this build,
+  the UI should say so plainly and offer manual moon-key import.
 
-## Technical Requirements
+### Manual Moon Key
 
-### First Boot Time Budget
-- Pill load: 5s
-- Kernel compile: 60s
-- Desk setup: 20s
-- Total: ~90s
+Fields:
 
-### Subsequent Boot
-- Pier load: 5s
-- Ready: 10s
+- Moon name
+- Parent name
+- Moon boot key
 
-### Storage Requirements
-- Fresh comet: ~500MB
-- After sync: 1-2GB typical
-- Maximum pier: Configurable
+Behavior:
+
+- The key is never displayed after submit.
+- Validation errors are shown without echoing key material.
+- Success navigates to the reveal/runtime flow.
+
+### Runtime Ready
+
+The launcher shows:
+
+- ship name
+- parent
+- runtime state
+- network state
+- boot package validity
+- conn.sock availability
+
+Runtime stop/restart controls stay hidden until graceful lifecycle management is
+safe enough for normal users.
 
 ## Error Handling
 
-### Boot Failure
-- Retry with fresh pier
-- Option to clear and restart
-- Link to troubleshooting docs
+| Error | User Meaning |
+| --- | --- |
+| `INVALID_HOST_URL` | The hosting URL is missing or not HTTPS |
+| `MISSING_ACCESS_CODE` | The `+code` field is empty |
+| `PARENT_AUTH_FAILED` | The hosting URL or `+code` did not log in |
+| `PARENT_NETWORK_FAILED` | The phone could not reach the parent |
+| `PARENT_SERVICE_UNAVAILABLE` | Login worked, but Artemis is not installed |
+| `PARENT_PROTOCOL_UNSUPPORTED` | Artemis exists, but this phone build cannot request a mobile moon yet |
 
-### Sync Failure
-- Continue in offline mode
-- Retry sync later
-- Show clear status indicator
+## Deferred
 
-### Import Failure
-- Validate package format
-- Check passphrase
-- Offer manual recovery
-
-## Metrics to Track
-
-- Time to first message sent
-- Onboarding completion rate
-- Path selection distribution
-- Error frequency by type
+- Tlon signup from the first-run flow
+- Comet-first onboarding
+- QR boot packages
+- Multi-ship switching
+- Planet key import

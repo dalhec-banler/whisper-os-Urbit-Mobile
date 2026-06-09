@@ -88,9 +88,23 @@ scry_code="$(
 )"
 printf 'HTTP %s\n' "$scry_code"
 
+printf 'Artemis app: '
+artemis_code="$(
+  curl "${curl_common[@]}" \
+    --output "$body" \
+    --write-out '%{http_code}' \
+    "$url/apps/artemis/" || true
+)"
+printf 'HTTP %s\n' "$artemis_code"
+
 printf 'Result: '
+if grep -q 'urbauth' "$cookie_jar" && [[ "$scry_code" == "200" && "$artemis_code" == "200" ]]; then
+  printf 'authenticated transport available, Artemis reachable\n'
+  exit 0
+fi
+
 if grep -q 'urbauth' "$cookie_jar" && [[ "$scry_code" == "200" ]]; then
-  printf 'authenticated transport available\n'
+  printf 'authenticated transport available, Artemis not confirmed\n'
   exit 0
 fi
 

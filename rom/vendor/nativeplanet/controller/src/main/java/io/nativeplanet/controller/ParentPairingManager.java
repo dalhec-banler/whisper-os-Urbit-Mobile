@@ -20,8 +20,8 @@ import java.util.Map;
  *
  * This validates the launcher/controller contract and performs the first real
  * remote checkpoint: authenticate to the parent ship's Eyre endpoint with the
- * supplied +code. It does not yet create or import a moon. That requires a
- * parent-side NativePlanet provisioning app/API.
+ * supplied +code and verify Artemis is installed. It does not yet create or
+ * import a moon. That requires implementing the Artemis mobile moon request.
  */
 public final class ParentPairingManager {
 
@@ -29,8 +29,7 @@ public final class ParentPairingManager {
     private static final int CONNECT_TIMEOUT_MS = 10000;
     private static final int READ_TIMEOUT_MS = 30000;
     private static final String AUTH_CONFIRM_SCRY = "/~/scry/hood/kiln/pikes.json";
-    private static final String PARENT_SERVICE_SCRY =
-            "/~/scry/nativeplanet-mobile/pairing/status.json";
+    private static final String ARTEMIS_APP_PATH = "/apps/artemis/";
 
     private ParentPairingManager() {
     }
@@ -64,11 +63,11 @@ public final class ParentPairingManager {
             ParentServiceProbe probe = probeParentService(normalizedUrl, session.cookie);
             if (probe.available) {
                 return response(false, "PARENT_PROTOCOL_UNSUPPORTED",
-                        "Planet login worked, but this phone build cannot use the parent pairing response yet.");
+                        "Planet login worked and Artemis is installed, but this phone build cannot request a mobile moon yet.");
             }
 
             return response(false, "PARENT_SERVICE_UNAVAILABLE",
-                    "Planet login worked. NativePlanet parent pairing is not installed on the planet yet.");
+                    "Planet login worked. Artemis is not installed on the planet yet.");
         } catch (JSONException e) {
             Log.w(TAG, "Pairing request JSON parse failed");
             return response(false, "REQUEST_PARSE_ERROR", "Pairing request is not valid JSON");
@@ -117,7 +116,7 @@ public final class ParentPairingManager {
     }
 
     private static ParentServiceProbe probeParentService(String hostUrl, String cookie) throws IOException {
-        URL url = URI.create(hostUrl + PARENT_SERVICE_SCRY).toURL();
+        URL url = URI.create(hostUrl + ARTEMIS_APP_PATH).toURL();
         HttpURLConnection connection = openConnection(url);
         connection.setRequestMethod("GET");
         connection.setRequestProperty("Cookie", cookie);

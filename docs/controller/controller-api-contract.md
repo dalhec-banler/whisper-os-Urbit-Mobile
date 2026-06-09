@@ -139,10 +139,10 @@ Content Provider allows passive queries without holding service connection. Broa
 ### Pair With Planet Request
 
 This is the preferred user-facing onboarding path. The launcher sends the
-parent ship's hosting URL and `+code` to the controller. The controller will
-eventually use those credentials to ask the parent for a phone moon boot
-package, then provision it locally using the same storage path as manual moon
-import.
+parent ship's hosting URL and `+code` to the controller. The controller
+authenticates to the parent and uses Artemis as the parent-side moon authority.
+Artemis creates or returns a `%mobile` moon, and the controller provisions it
+locally using the same storage path as manual moon import.
 
 Provider call:
 
@@ -163,16 +163,28 @@ Current behavior:
 
 1. Validate the hosting URL and `+code`.
 2. Authenticate to the parent ship's Eyre login endpoint.
-3. Probe for the future NativePlanet parent pairing service.
-4. Return a precise failure until that parent service exists.
+3. Confirm the authenticated session with a known scry.
+4. Check that Artemis is installed at `/apps/artemis/`.
+5. Return a precise failure until mobile moon creation is implemented.
 
-Successful Eyre login without the parent service:
+Successful Eyre login without Artemis:
 
 ```json
 {
   "accepted": false,
   "code": "PARENT_SERVICE_UNAVAILABLE",
-  "message": "Planet login worked. NativePlanet parent pairing is not installed on the planet yet."
+  "message": "Planet login worked. Artemis is not installed on the planet yet."
+}
+```
+
+Successful Eyre login with Artemis installed, before mobile provisioning is
+implemented:
+
+```json
+{
+  "accepted": false,
+  "code": "PARENT_PROTOCOL_UNSUPPORTED",
+  "message": "Planet login worked and Artemis is installed, but this phone build cannot request a mobile moon yet."
 }
 ```
 
@@ -184,8 +196,8 @@ Other expected failure codes:
 | `MISSING_ACCESS_CODE` | `+code` was empty |
 | `PARENT_AUTH_FAILED` | Eyre login did not return an authenticated session cookie |
 | `PARENT_NETWORK_FAILED` | Parent hosting URL could not be reached |
-| `PARENT_SERVICE_UNAVAILABLE` | Login worked, but the parent-side NativePlanet app/API is not installed yet |
-| `PARENT_PROTOCOL_UNSUPPORTED` | Parent-side service responded, but this phone build cannot consume it yet |
+| `PARENT_SERVICE_UNAVAILABLE` | Login worked, but Artemis is not installed on the parent |
+| `PARENT_PROTOCOL_UNSUPPORTED` | Artemis exists, but this phone build cannot request a mobile moon yet |
 
 The `+code` must never be returned, logged, screenshotted, or written to
 diagnostics.

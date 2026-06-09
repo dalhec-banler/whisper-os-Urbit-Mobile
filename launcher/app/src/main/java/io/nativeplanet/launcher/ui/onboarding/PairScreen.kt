@@ -49,9 +49,17 @@ fun PairScreen(
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
         Text(
-            text = "Connect your planet.",
+            text = "Create your phone moon.",
             style = NPType.displaySm,
             color = colors.foreground
+        )
+
+        Spacer(modifier = Modifier.height(NPSpacing.md))
+
+        Text(
+            text = "Use your parent ship's hosting URL and +code. Artemis on the parent will create a mobile moon for this phone.",
+            style = NPType.bodySm,
+            color = colors.foregroundDim
         )
 
         Spacer(modifier = Modifier.height(NPSpacing.xl))

@@ -16,9 +16,10 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
 - Reboot persistence restores the running ship
 - Launcher can provision a moon from manually entered moon name, parent, and moon key
 
-Next step: parent-assisted moon provisioning. The phone should ask for the
-ship's hosting URL and `+code`, then ask the parent ship to create or hand out a
-phone moon. Manual moon-key import stays available as an advanced fallback.
+Next step: Artemis-backed moon provisioning. The phone should ask for the
+ship's hosting URL and `+code`, then ask Artemis on the parent ship to create or
+hand out a `%mobile` moon. Manual moon-key import stays available as an advanced
+fallback.
 
 For detailed verification reports, see [docs/verification/](verification/).
 
@@ -61,7 +62,7 @@ For the active checklist, see [docs/product/provisioning-mvp-checklist.md](produ
 
 **Goal:** First shippable launcher surfaces against real backend data.
 
-**Status:** Moon-key import works; parent-assisted pairing is next.
+**Status:** Moon-key import works; Artemis-backed pairing is next.
 
 - Runtime Console showing real status
 - Network panel from provider
@@ -72,7 +73,7 @@ For the active checklist, see [docs/product/provisioning-mvp-checklist.md](produ
 
 **Next:**
 - Pairing screen asks for hosting URL and `+code`
-- Parent-side app/API creates or returns a device moon
+- Artemis creates or returns a `%mobile` moon
 - Phone provisions the returned boot package and starts Vere
 - Manual moon-key import remains available as an advanced path
 

@@ -1,8 +1,12 @@
 # Provisioning MVP Checklist
 
-Status: active tracker as of 2026-06-08
+Status: active tracker as of 2026-06-09
 
-This checklist tracks the next real product step after the verified ROM/runtime baseline: a user should be able to import a throwaway moon through the launcher, have the controller provision it, and land on truthful runtime status without manual adb-root file pushing.
+This checklist tracks the next real product step after the verified ROM/runtime
+baseline: a user should be able to pair the phone with a parent planet, have
+Artemis create a `%mobile` moon, have the controller provision it, and land on
+truthful runtime status without manual adb-root file pushing. Manual moon-key
+import remains the advanced fallback.
 
 ## Verified Baseline
 
@@ -69,12 +73,26 @@ This checklist tracks the next real product step after the verified ROM/runtime 
 
 ## Product Step 4: Documentation And Source Sync
 
-- [ ] Update controller API contract with final provisioning calls.
-- [ ] Update onboarding product doc to match moon-first import flow.
+- [x] Update controller API contract with current Artemis-backed pairing direction.
+- [x] Update onboarding product doc to match moon-first import flow.
+- [x] Document Artemis mobile provisioning architecture.
 - [ ] Update verification report after fresh-phone test.
 - [ ] Sync source-only GrapheneOS `vendor/nativeplanet` changes into this repo.
 - [ ] Sync launcher source changes into this repo.
 - [ ] Run git hygiene checks before commit.
+
+## Product Step 5: Artemis-Backed Parent Provisioning
+
+- [x] Identify Artemis as the parent-side moon authority.
+- [x] Confirm Artemis has a `%mobile` role.
+- [x] Confirm Artemis exposes moon boot keys as `%uw` JSON for its frontend.
+- [x] Update controller probe from a hypothetical parent service to Artemis.
+- [ ] Decide whether Android should use the Urbit channel API or a small Artemis mobile HTTP endpoint.
+- [ ] Implement the chosen Artemis mobile moon request.
+- [ ] Return the created moon's ship, parent, and boot key to the controller.
+- [ ] Chain the Artemis response into existing local `provisionMoon`.
+- [ ] Add a parent-pairing smoke test that does not print the `+code` or boot key.
+- [ ] Verify end-to-end with a throwaway `%mobile` moon.
 
 ## Not In This Step
 
@@ -82,4 +100,4 @@ This checklist tracks the next real product step after the verified ROM/runtime 
 - [ ] Multi-ship switching.
 - [ ] Lick bridge.
 - [ ] Global SystemUI replacement.
-- [ ] Production parent/satellite pairing protocol.
+- [ ] Parent/satellite sync beyond initial Artemis moon provisioning.
