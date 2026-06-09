@@ -62,6 +62,12 @@ This verifies the launcher is no longer only a debug APK installed after flashin
   - comet fallback
 - Pairing screen asked for the parent hosting URL and `+code`, with manual moon-key import available as a fallback.
 
+## Pairing Smoke Test
+
+- Provider method `pairWithPlanet` was callable from the ROM-bundled controller.
+- A safe dummy `+code` against the parent hosting URL returned `PARENT_AUTH_FAILED`.
+- No real access code was used and no new moon was created.
+
 ## Known Caveats
 
 - Real Artemis pairing still needs an end-to-end UI run with a live parent URL and access code.
