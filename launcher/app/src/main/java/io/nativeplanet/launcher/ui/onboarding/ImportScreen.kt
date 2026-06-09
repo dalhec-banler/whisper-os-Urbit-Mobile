@@ -5,38 +5,33 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import io.nativeplanet.launcher.domain.model.ControlResult
 import io.nativeplanet.launcher.theme.*
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun ImportScreen(
     onImportComplete: (shipName: String, parentName: String?) -> Unit,
     onBack: () -> Unit,
+    onProvisionMoon: suspend (shipName: String, parentName: String, keyMaterial: String) -> ControlResult,
     modifier: Modifier = Modifier
 ) {
     val colors = NativePlanetTheme.colors
+    val scope = rememberCoroutineScope()
 
     var importState by remember { mutableStateOf(ImportState.CHOOSE_SOURCE) }
     var statusMessage by remember { mutableStateOf("") }
-
-    LaunchedEffect(importState) {
-        if (importState == ImportState.IMPORTING) {
-            statusMessage = "reading key file…"
-            delay(1000)
-            statusMessage = "validating identity…"
-            delay(1000)
-            statusMessage = "importing ship…"
-            delay(1500)
-            importState = ImportState.COMPLETE
-            onImportComplete("~ridlur-figbud", "~marzod")
-        }
-    }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var shipName by remember { mutableStateOf("") }
+    var parentName by remember { mutableStateOf("") }
+    var keyMaterial by remember { mutableStateOf("") }
 
     Column(
         modifier = modifier
@@ -77,24 +72,102 @@ fun ImportScreen(
             ImportState.CHOOSE_SOURCE -> {
                 ImportOption(
                     title = "Scan QR code",
-                    description = "Scan a backup QR from another device",
-                    onClick = { importState = ImportState.IMPORTING }
+                    description = "Coming next; use manual import for now",
+                    onClick = { importState = ImportState.ENTER_MANUAL }
                 )
 
                 Spacer(modifier = Modifier.height(NPSpacing.md))
 
                 ImportOption(
                     title = "Select key file",
-                    description = "Import from .key or pier backup",
-                    onClick = { importState = ImportState.IMPORTING }
+                    description = "Coming next; use manual import for now",
+                    onClick = { importState = ImportState.ENTER_MANUAL }
                 )
 
                 Spacer(modifier = Modifier.height(NPSpacing.md))
 
                 ImportOption(
                     title = "Enter manually",
-                    description = "Type your master ticket or seed phrase",
-                    onClick = { importState = ImportState.IMPORTING }
+                    description = "Paste a throwaway moon key from your parent",
+                    onClick = { importState = ImportState.ENTER_MANUAL }
+                )
+            }
+
+            ImportState.ENTER_MANUAL -> {
+                ImportTextField(
+                    value = shipName,
+                    onValueChange = { shipName = it },
+                    label = "Moon",
+                    placeholder = "~sample-moon-parent"
+                )
+
+                Spacer(modifier = Modifier.height(NPSpacing.md))
+
+                ImportTextField(
+                    value = parentName,
+                    onValueChange = { parentName = it },
+                    label = "Parent",
+                    placeholder = "~parent-planet"
+                )
+
+                Spacer(modifier = Modifier.height(NPSpacing.md))
+
+                ImportTextField(
+                    value = keyMaterial,
+                    onValueChange = { keyMaterial = it },
+                    label = "Moon key",
+                    placeholder = "0w..."
+                )
+
+                errorMessage?.let { message ->
+                    Spacer(modifier = Modifier.height(NPSpacing.md))
+                    Text(
+                        text = message,
+                        style = NPType.caption,
+                        color = NPColors.accentAmber
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(NPSpacing.lg))
+
+                ImportOption(
+                    title = "Import moon",
+                    description = "Provision this moon on the device",
+                    onClick = {
+                        val submittedShip = shipName.trim()
+                        val submittedParent = parentName.trim()
+                        val submittedKey = keyMaterial.trim()
+                        keyMaterial = ""
+                        errorMessage = null
+                        statusMessage = "validating identity…"
+                        importState = ImportState.IMPORTING
+
+                        scope.launch {
+                            val result = onProvisionMoon(submittedShip, submittedParent, submittedKey)
+                            when (result) {
+                                is ControlResult.Success -> {
+                                    statusMessage = "starting moon…"
+                                    importState = ImportState.COMPLETE
+                                    onImportComplete(
+                                        normalizeShip(submittedShip),
+                                        normalizeShip(submittedParent)
+                                    )
+                                }
+                                is ControlResult.AlreadyInState -> {
+                                    statusMessage = "already ${result.state.name.lowercase()}"
+                                    importState = ImportState.COMPLETE
+                                    onImportComplete(
+                                        normalizeShip(submittedShip),
+                                        normalizeShip(submittedParent)
+                                    )
+                                }
+                                is ControlResult.Failed -> {
+                                    errorMessage = "${result.code}: ${result.message}"
+                                    importState = ImportState.ENTER_MANUAL
+                                }
+                            }
+                        }
+                    }
                 )
             }
 
@@ -187,8 +260,39 @@ private fun ImportOption(
     }
 }
 
+@Composable
+private fun ImportTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    modifier: Modifier = Modifier
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.fillMaxWidth(),
+        label = {
+            Text(text = label, style = NPType.caption)
+        },
+        placeholder = {
+            Text(text = placeholder, style = NPType.bodySm)
+        },
+        textStyle = NPType.bodySm,
+        singleLine = label != "Moon key",
+        minLines = if (label == "Moon key") 3 else 1,
+        maxLines = if (label == "Moon key") 5 else 1
+    )
+}
+
+private fun normalizeShip(ship: String): String {
+    val trimmed = ship.trim()
+    return if (trimmed.startsWith("~")) trimmed else "~$trimmed"
+}
+
 private enum class ImportState {
     CHOOSE_SOURCE,
+    ENTER_MANUAL,
     IMPORTING,
     COMPLETE
 }

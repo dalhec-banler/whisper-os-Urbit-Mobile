@@ -64,15 +64,35 @@ class ProviderNativePlanetClient @Inject constructor(
     }
 
     override suspend fun startRuntime(): ControlResult {
-        return stubClient.startRuntime()
+        return callProviderControl("startRuntime")
     }
 
     override suspend fun stopRuntime(): ControlResult {
-        return stubClient.stopRuntime()
+        return callProviderControl("stopRuntime")
     }
 
     override suspend fun restartRuntime(): ControlResult {
-        return stubClient.restartRuntime()
+        val stop = callProviderControl("stopRuntime")
+        if (stop is ControlResult.Failed) {
+            return stop
+        }
+        delay(3000)
+        return callProviderControl("startRuntime")
+    }
+
+    override suspend fun provisionMoon(
+        shipName: String,
+        parentName: String,
+        keyMaterial: String
+    ): ControlResult {
+        val request = JSONObject()
+            .put("bootMode", "MOON")
+            .put("ship", shipName)
+            .put("parent", parentName)
+            .put("keyMaterial", keyMaterial)
+            .put("replaceExisting", true)
+            .toString()
+        return callProviderControl("provisionMoon", request)
     }
 
     fun isControllerAvailable(): Boolean = controllerAvailable == true
@@ -191,6 +211,32 @@ class ProviderNativePlanetClient @Inject constructor(
         } catch (e: Exception) {
             Log.w(TAG, "Provider query failed for $method: ${e.message}")
             null
+        }
+    }
+
+    private fun callProviderControl(method: String, requestJson: String? = null): ControlResult {
+        return try {
+            val extras = Bundle()
+            if (requestJson != null) {
+                extras.putString("json", requestJson)
+            }
+            val result: Bundle? = contentResolver.call(BASE_URI, method, null, extras)
+            val json = result?.getString("json") ?: return ControlResult.Failed("NO_RESPONSE", "Controller did not respond")
+            parseControlResult(JSONObject(json))
+        } catch (e: Exception) {
+            Log.w(TAG, "Provider control failed for $method: ${e.message}")
+            ControlResult.Failed("PROVIDER_UNAVAILABLE", e.message ?: "Controller unavailable")
+        }
+    }
+
+    private fun parseControlResult(obj: JSONObject): ControlResult {
+        val accepted = obj.optBoolean("accepted", false)
+        val code = obj.optString("code", if (accepted) "OK" else "UNKNOWN")
+        val message = obj.optStringOrNull("message") ?: code
+        return if (accepted) {
+            ControlResult.Success
+        } else {
+            ControlResult.Failed(code, message)
         }
     }
 

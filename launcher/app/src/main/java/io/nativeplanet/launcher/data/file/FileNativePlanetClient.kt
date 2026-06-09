@@ -40,4 +40,12 @@ class FileNativePlanetClient @Inject constructor(
     override suspend fun restartRuntime(): ControlResult {
         return stubClient.restartRuntime()
     }
+
+    override suspend fun provisionMoon(
+        shipName: String,
+        parentName: String,
+        keyMaterial: String
+    ): ControlResult {
+        return stubClient.provisionMoon(shipName, parentName, keyMaterial)
+    }
 }

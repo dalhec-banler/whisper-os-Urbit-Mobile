@@ -47,11 +47,13 @@ fun NavGraph(modifier: Modifier = Modifier) {
         }
 
         composable(Routes.IMPORT) {
+            val viewModel: OnboardingViewModel = hiltViewModel()
             ImportScreen(
                 onImportComplete = { shipName, parentName ->
                     navController.navigate(Routes.reveal(shipName, parentName, IdentityMode.IMPORTED))
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onProvisionMoon = viewModel::provisionMoon
             )
         }
 

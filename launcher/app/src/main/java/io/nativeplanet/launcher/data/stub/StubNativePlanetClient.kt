@@ -128,4 +128,36 @@ class StubNativePlanetClient @Inject constructor() : NativePlanetClient {
         delay(500)
         return startRuntime()
     }
+
+    override suspend fun provisionMoon(
+        shipName: String,
+        parentName: String,
+        keyMaterial: String
+    ): ControlResult {
+        val normalizedShip = if (shipName.startsWith("~")) shipName else "~$shipName"
+        val normalizedParent = if (parentName.startsWith("~")) parentName else "~$parentName"
+        _bootPackageStatus.value = _bootPackageStatus.value.copy(
+            exists = true,
+            valid = true,
+            ship = normalizedShip,
+            parent = normalizedParent,
+            bootMode = BootMode.MOON,
+            keyFileExists = keyMaterial.isNotBlank(),
+            pierExists = false,
+            validationErrors = emptyList()
+        )
+        _runtimeStatus.value = _runtimeStatus.value.copy(
+            state = RuntimeState.STARTING,
+            shipName = normalizedShip,
+            bootMode = BootMode.MOON
+        )
+        delay(1500)
+        _runtimeStatus.value = _runtimeStatus.value.copy(
+            state = RuntimeState.RUNNING,
+            shipName = normalizedShip,
+            bootMode = BootMode.MOON,
+            lastStartTime = Instant.now()
+        )
+        return ControlResult.Success
+    }
 }
