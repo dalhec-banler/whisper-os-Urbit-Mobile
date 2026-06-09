@@ -53,6 +53,11 @@ import remains the advanced fallback.
 - [x] Ensure demo/fallback banner only appears when controller is unavailable.
 - [x] Build launcher APK.
 - [x] Install launcher APK on device.
+- [x] Bundle launcher APK in ROM and verify it after no-wipe flash.
+- [x] Add runtime home entry into onboarding.
+- [x] Add hosting URL and `+code` pairing screen.
+- [x] Add Identity settings entry back into onboarding for adding another identity.
+- [x] Humanize parent-pairing failures instead of showing raw backend codes.
 - [ ] Verify import UI with a throwaway moon.
 
 ## Product Step 3: Fresh-Phone End-To-End Test
@@ -92,6 +97,9 @@ import remains the advanced fallback.
 - [x] Return the created moon's ship, parent, and boot key to the controller.
 - [x] Chain the Artemis response into existing local `provisionMoon`.
 - [x] Add a parent-pairing smoke test that does not print the `+code` or boot key.
+- [x] Confirm parent login, webterm, and hood scry work with a real parent URL and access code.
+- [x] Confirm phone-side Artemis contract matches the current Artemis GitHub source.
+- [ ] Confirm the parent ship is serving the updated Artemis desk.
 - [ ] Verify end-to-end with a throwaway `%mobile` moon.
 
 ## Not In This Step

@@ -63,7 +63,7 @@ For the active checklist, see [docs/product/provisioning-mvp-checklist.md](produ
 
 **Goal:** First shippable launcher surfaces against real backend data.
 
-**Status:** Moon-key import works; Artemis-backed pairing is next.
+**Status:** Moon-key import works; Artemis-backed pairing UI is in place.
 
 - Runtime Console showing real status
 - Network panel from provider
@@ -72,9 +72,11 @@ For the active checklist, see [docs/product/provisioning-mvp-checklist.md](produ
 - Start/stop controls through graceful shutdown
 - No demo fallback unless controller is genuinely unavailable
 - First-run setup path when no ship is configured
+- Pairing screen asks for hosting URL and `+code`
+- Identity settings can route back into onboarding to add another identity
 
 **Next:**
-- Pairing screen asks for hosting URL and `+code`
+- Parent ship serves the updated Artemis mobile provisioning surface
 - Artemis creates or returns a `%mobile` moon
 - Phone provisions the returned boot package and starts Vere
 - Manual moon-key import remains available as an advanced path
