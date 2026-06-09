@@ -7,6 +7,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.nativeplanet.launcher.domain.model.RuntimeState
 import io.nativeplanet.launcher.domain.model.RuntimeStatus
@@ -41,6 +43,14 @@ fun RuntimeDetailsPanel(
             valueColor = runtimeStatus.state.color()
         )
 
+        runtimeStatus.shipName?.let { ship ->
+            DetailRow(label = "Ship", value = ship)
+        }
+
+        runtimeStatus.version?.let { version ->
+            DetailRow(label = "Vere", value = version)
+        }
+
         runtimeStatus.bootMode?.let { mode ->
             DetailRow(label = "Boot Mode", value = mode.name)
         }
@@ -60,6 +70,16 @@ fun RuntimeDetailsPanel(
         runtimeStatus.lastStopTime?.let { time ->
             DetailRow(label = "Stopped", value = formatTimestamp(time))
         }
+
+        runtimeStatus.lastSuccessfulPoll?.let { pollMs ->
+            DetailRow(label = "Last Poll", value = formatEpochMillis(pollMs))
+        }
+
+        DetailRow(
+            label = "conn.sock",
+            value = if (runtimeStatus.connSockAvailable) "available" else "unavailable",
+            valueColor = if (runtimeStatus.connSockAvailable) NPColors.accentSage else colors.foregroundDim
+        )
 
         runtimeStatus.exitCode?.let { code ->
             DetailRow(
@@ -116,7 +136,11 @@ private fun DetailRow(
         Text(
             text = value,
             style = NPType.caption,
-            color = valueColor
+            color = valueColor,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 210.dp)
         )
     }
 }
@@ -160,4 +184,10 @@ private fun formatTimestamp(instant: Instant): String {
     val formatter = DateTimeFormatter.ofPattern("MMM d HH:mm")
         .withZone(ZoneId.systemDefault())
     return formatter.format(instant)
+}
+
+private fun formatEpochMillis(epochMs: Long): String {
+    val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+        .withZone(ZoneId.systemDefault())
+    return formatter.format(Instant.ofEpochMilli(epochMs))
 }
