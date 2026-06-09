@@ -56,7 +56,7 @@ fun WelcomeScreen(
         Spacer(modifier = Modifier.height(NPSpacing.md))
 
         NPButton(
-            text = "Import existing ship",
+            text = "Use moon key",
             onClick = onImportShip,
             style = NPButtonStyle.GHOST
         )

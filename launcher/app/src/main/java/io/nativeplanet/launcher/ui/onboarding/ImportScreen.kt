@@ -3,16 +3,15 @@ package io.nativeplanet.launcher.ui.onboarding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import io.nativeplanet.launcher.domain.model.ControlResult
 import io.nativeplanet.launcher.theme.*
+import io.nativeplanet.launcher.ui.components.NPButton
 import io.nativeplanet.launcher.ui.components.NPTextField
 import io.nativeplanet.launcher.ui.components.NPTextFieldMultiline
 import kotlinx.coroutines.launch
@@ -27,7 +26,7 @@ fun ImportScreen(
     val colors = NativePlanetTheme.colors
     val scope = rememberCoroutineScope()
 
-    var importState by remember { mutableStateOf(ImportState.CHOOSE_SOURCE) }
+    var importState by remember { mutableStateOf(ImportState.ENTER_MANUAL) }
     var statusMessage by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var shipName by remember { mutableStateOf("") }
@@ -46,7 +45,7 @@ fun ImportScreen(
         Spacer(modifier = Modifier.height(NPSpacing.xxxl))
 
         Text(
-            text = "IMPORT SHIP",
+            text = "MOON KEY",
             style = NPType.micro,
             color = colors.foregroundDim
         )
@@ -54,7 +53,7 @@ fun ImportScreen(
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
         Text(
-            text = "Bring your identity.",
+            text = "Manual import.",
             style = NPType.displaySm,
             color = colors.foreground
         )
@@ -62,7 +61,7 @@ fun ImportScreen(
         Spacer(modifier = Modifier.height(NPSpacing.lg))
 
         Text(
-            text = "Import an existing Urbit ship from a backup or key file. Your ship's data and identity will be restored.",
+            text = "Enter a throwaway moon key from your parent planet. Generate one with |moon in your planet's dojo.",
             style = NPType.bodySm,
             color = colors.foregroundDim
         )
@@ -70,30 +69,6 @@ fun ImportScreen(
         Spacer(modifier = Modifier.height(NPSpacing.xxl))
 
         when (importState) {
-            ImportState.CHOOSE_SOURCE -> {
-                ImportOption(
-                    title = "Scan QR code",
-                    description = "Coming next; use manual import for now",
-                    onClick = { importState = ImportState.ENTER_MANUAL }
-                )
-
-                Spacer(modifier = Modifier.height(NPSpacing.md))
-
-                ImportOption(
-                    title = "Select key file",
-                    description = "Coming next; use manual import for now",
-                    onClick = { importState = ImportState.ENTER_MANUAL }
-                )
-
-                Spacer(modifier = Modifier.height(NPSpacing.md))
-
-                ImportOption(
-                    title = "Enter manually",
-                    description = "Paste a throwaway moon key from your parent",
-                    onClick = { importState = ImportState.ENTER_MANUAL }
-                )
-            }
-
             ImportState.ENTER_MANUAL -> {
                 NPTextField(
                     value = shipName,
@@ -130,11 +105,15 @@ fun ImportScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(NPSpacing.lg))
+                Spacer(modifier = Modifier.height(NPSpacing.xl))
 
-                ImportOption(
-                    title = "Import moon",
-                    description = "Provision this moon on the device",
+                val canImport = shipName.trim().isNotEmpty() &&
+                    parentName.trim().isNotEmpty() &&
+                    keyMaterial.trim().isNotEmpty()
+
+                NPButton(
+                    text = "Import moon",
+                    enabled = canImport,
                     onClick = {
                         val submittedShip = shipName.trim()
                         val submittedParent = parentName.trim()
@@ -214,7 +193,7 @@ fun ImportScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        if (importState == ImportState.CHOOSE_SOURCE) {
+        if (importState == ImportState.ENTER_MANUAL) {
             Text(
                 text = "← back",
                 style = NPType.bodySm,
@@ -229,46 +208,12 @@ fun ImportScreen(
     }
 }
 
-@Composable
-private fun ImportOption(
-    title: String,
-    description: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val colors = NativePlanetTheme.colors
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(4.dp))
-            .background(colors.backgroundSecondary)
-            .clickable(onClick = onClick)
-            .padding(NPSpacing.cardPadding)
-    ) {
-        Text(
-            text = title,
-            style = NPType.bodyLg,
-            color = colors.foreground
-        )
-
-        Spacer(modifier = Modifier.height(NPSpacing.xs))
-
-        Text(
-            text = description,
-            style = NPType.bodySm,
-            color = colors.foregroundDim
-        )
-    }
-}
-
 private fun normalizeShip(ship: String): String {
     val trimmed = ship.trim()
     return if (trimmed.startsWith("~")) trimmed else "~$trimmed"
 }
 
 private enum class ImportState {
-    CHOOSE_SOURCE,
     ENTER_MANUAL,
     IMPORTING,
     COMPLETE
