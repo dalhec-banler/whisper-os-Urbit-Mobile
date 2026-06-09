@@ -38,7 +38,9 @@ import remains the advanced fallback.
 - [x] Start runtime after successful provisioning.
 - [x] Surface provisioning failures as actionable codes.
 - [x] Add module-level build gate for controller changes.
-- [ ] Add adb/provider-level provisioning smoke test. *(blocked until signed ROM includes new controller API)*
+- [x] Add adb/provider-level provisioning smoke test.
+  - `tools/smoke-controller-provider.sh` verifies runtime, boot package,
+    network, and the safe empty-request guard for `provisionMoon`.
 
 ## Product Step 2: Launcher Import Flow
 
