@@ -88,6 +88,7 @@ Historical May docs live in `docs/archive/2026-05/` and must not be treated as c
 - Launcher reads provider data. It should not poke pier internals directly.
 - Controller owns provisioning, runtime status, and lifecycle operations.
 - Graceful shutdown should follow Native Planet GroundSeg's Click `|exit` pattern and allow minutes, not seconds.
+- Urbit MCP is development tooling for parent/distro ships, not a phone runtime dependency. See [runtime/urbit-mcp.md](runtime/urbit-mcp.md).
 
 ## Commit Hygiene
 
