@@ -165,7 +165,10 @@ Current behavior:
 2. Authenticate to the parent ship's Eyre login endpoint.
 3. Confirm the authenticated session with a known scry.
 4. Check that Artemis is installed at `/apps/artemis/`.
-5. Return a precise failure until mobile moon creation is implemented.
+5. Fetch the existing Artemis moon list from `/~/scry/artemis/mons.json`.
+6. Poke Artemis over the Urbit channel API to create a `%mobile` moon.
+7. Poll the Artemis moon list until the new mobile moon appears.
+8. Provision the returned moon locally and request runtime start.
 
 Successful Eyre login without Artemis:
 
@@ -177,14 +180,14 @@ Successful Eyre login without Artemis:
 }
 ```
 
-Successful Eyre login with Artemis installed, before mobile provisioning is
-implemented:
+Successful Eyre login with Artemis installed, before the required Artemis scry
+is available:
 
 ```json
 {
   "accepted": false,
   "code": "PARENT_PROTOCOL_UNSUPPORTED",
-  "message": "Planet login worked and Artemis is installed, but this phone build cannot request a mobile moon yet."
+  "message": "Artemis is installed, but its mobile provisioning scry is not available yet."
 }
 ```
 
@@ -197,7 +200,9 @@ Other expected failure codes:
 | `PARENT_AUTH_FAILED` | Eyre login did not return an authenticated session cookie |
 | `PARENT_NETWORK_FAILED` | Parent hosting URL could not be reached |
 | `PARENT_SERVICE_UNAVAILABLE` | Login worked, but Artemis is not installed on the parent |
-| `PARENT_PROTOCOL_UNSUPPORTED` | Artemis exists, but this phone build cannot request a mobile moon yet |
+| `PARENT_PROTOCOL_UNSUPPORTED` | Artemis exists, but the required mobile provisioning surface is missing |
+| `PARENT_MOON_CREATE_FAILED` | Artemis did not accept the mobile moon request |
+| `PARENT_MOON_CREATE_TIMEOUT` | Artemis did not return a new mobile moon in time |
 
 The `+code` must never be returned, logged, screenshotted, or written to
 diagnostics.

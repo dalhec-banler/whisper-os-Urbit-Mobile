@@ -35,24 +35,16 @@ The existing Artemis frontend uses the Urbit HTTP channel API to poke
 
 For MVP, keep this in Artemis rather than creating a separate parent app.
 
-There are two viable integration paths:
+The controller speaks the same Urbit channel API used by the Artemis frontend:
 
-1. **Controller speaks the Urbit channel API.**
-   - No Artemis changes required.
-   - Android sends a poke to `app=artemis`, `mark=artemis-action`.
-   - Android subscribes to `/moons` and selects the newly created `%mobile`
-     moon.
-   - More Java code, but it uses the same public API as the Artemis UI.
+1. Fetch `/~/scry/artemis/mons.json` to capture the existing moon set.
+2. PUT a channel poke to `app=artemis`, `mark=artemis-action`.
+3. Poke body: `{ "make-moon": { "nam": "...", "rol": "mobile" } }`.
+4. Poll `/~/scry/artemis/mons.json` until a new `%mobile` moon appears.
+5. Use that moon's `who` and `sed` fields for local provisioning.
 
-2. **Artemis adds a small mobile HTTP endpoint.**
-   - Simpler Android code.
-   - Endpoint can create a `%mobile` moon and return exactly the boot package
-     fields the phone needs.
-   - Requires a small Gall HTTP mutation path in Artemis.
-
-Preferred direction: add the smallest clean Artemis mobile endpoint if it can
-be implemented without distorting Artemis. Otherwise, implement the channel
-client in the controller.
+This avoids a separate phone-specific parent app and keeps Artemis' existing
+poke API as the product contract.
 
 ## Security Rules
 
@@ -71,11 +63,6 @@ Current controller behavior:
 - Authenticates to Eyre.
 - Confirms the session with a known scry.
 - Checks `/apps/artemis/`.
-- Returns `PARENT_PROTOCOL_UNSUPPORTED` when Artemis exists but the mobile moon
-  request is not implemented yet.
-
-Next controller behavior:
-
 - Request/create a `%mobile` moon from Artemis.
 - Parse the returned moon identity and boot key.
 - Call the existing local `provisionMoon` path.

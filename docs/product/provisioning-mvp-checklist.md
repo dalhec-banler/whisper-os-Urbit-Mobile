@@ -87,10 +87,10 @@ import remains the advanced fallback.
 - [x] Confirm Artemis has a `%mobile` role.
 - [x] Confirm Artemis exposes moon boot keys as `%uw` JSON for its frontend.
 - [x] Update controller probe from a hypothetical parent service to Artemis.
-- [ ] Decide whether Android should use the Urbit channel API or a small Artemis mobile HTTP endpoint.
-- [ ] Implement the chosen Artemis mobile moon request.
-- [ ] Return the created moon's ship, parent, and boot key to the controller.
-- [ ] Chain the Artemis response into existing local `provisionMoon`.
+- [x] Decide whether Android should use the Urbit channel API or a small Artemis mobile HTTP endpoint.
+- [x] Implement the Urbit channel poke for Artemis `%mobile` moon creation.
+- [x] Return the created moon's ship, parent, and boot key to the controller.
+- [x] Chain the Artemis response into existing local `provisionMoon`.
 - [ ] Add a parent-pairing smoke test that does not print the `+code` or boot key.
 - [ ] Verify end-to-end with a throwaway `%mobile` moon.
 

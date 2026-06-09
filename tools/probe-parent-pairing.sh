@@ -97,9 +97,23 @@ artemis_code="$(
 )"
 printf 'HTTP %s\n' "$artemis_code"
 
+printf 'Artemis moons scry: '
+artemis_moons_code="$(
+  curl "${curl_common[@]}" \
+    --output "$body" \
+    --write-out '%{http_code}' \
+    "$url/~/scry/artemis/mons.json" || true
+)"
+printf 'HTTP %s\n' "$artemis_moons_code"
+
 printf 'Result: '
+if grep -q 'urbauth' "$cookie_jar" && [[ "$scry_code" == "200" && "$artemis_code" == "200" && "$artemis_moons_code" == "200" ]]; then
+  printf 'authenticated transport available, Artemis mobile provisioning surface reachable\n'
+  exit 0
+fi
+
 if grep -q 'urbauth' "$cookie_jar" && [[ "$scry_code" == "200" && "$artemis_code" == "200" ]]; then
-  printf 'authenticated transport available, Artemis reachable\n'
+  printf 'authenticated transport available, Artemis app reachable, moons scry not confirmed\n'
   exit 0
 fi
 
