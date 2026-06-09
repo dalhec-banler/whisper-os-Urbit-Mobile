@@ -5,17 +5,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.nativeplanet.launcher.domain.model.ControlResult
 import io.nativeplanet.launcher.theme.*
+import io.nativeplanet.launcher.ui.components.NPTextField
+import io.nativeplanet.launcher.ui.components.NPTextFieldMultiline
 import kotlinx.coroutines.launch
 
 @Composable
@@ -96,7 +95,7 @@ fun ImportScreen(
             }
 
             ImportState.ENTER_MANUAL -> {
-                ImportTextField(
+                NPTextField(
                     value = shipName,
                     onValueChange = { shipName = it },
                     label = "Moon",
@@ -105,7 +104,7 @@ fun ImportScreen(
 
                 Spacer(modifier = Modifier.height(NPSpacing.md))
 
-                ImportTextField(
+                NPTextField(
                     value = parentName,
                     onValueChange = { parentName = it },
                     label = "Parent",
@@ -114,11 +113,12 @@ fun ImportScreen(
 
                 Spacer(modifier = Modifier.height(NPSpacing.md))
 
-                ImportTextField(
+                NPTextFieldMultiline(
                     value = keyMaterial,
                     onValueChange = { keyMaterial = it },
                     label = "Moon key",
-                    placeholder = "0w..."
+                    placeholder = "0w...",
+                    isSecret = true
                 )
 
                 errorMessage?.let { message ->
@@ -126,7 +126,7 @@ fun ImportScreen(
                     Text(
                         text = message,
                         style = NPType.caption,
-                        color = NPColors.accentAmber
+                        color = colors.error
                     )
                 }
 
@@ -260,36 +260,6 @@ private fun ImportOption(
             color = colors.foregroundDim
         )
     }
-}
-
-@Composable
-private fun ImportTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    placeholder: String,
-    modifier: Modifier = Modifier
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
-        label = {
-            Text(text = label, style = NPType.caption)
-        },
-        placeholder = {
-            Text(text = placeholder, style = NPType.bodySm)
-        },
-        textStyle = NPType.bodySm,
-        visualTransformation = if (label == "Moon key") {
-            PasswordVisualTransformation()
-        } else {
-            VisualTransformation.None
-        },
-        singleLine = label != "Moon key",
-        minLines = if (label == "Moon key") 3 else 1,
-        maxLines = if (label == "Moon key") 5 else 1
-    )
 }
 
 private fun normalizeShip(ship: String): String {

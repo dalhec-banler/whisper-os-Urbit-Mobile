@@ -3,15 +3,14 @@ package io.nativeplanet.launcher.ui.onboarding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import io.nativeplanet.launcher.theme.*
+import io.nativeplanet.launcher.ui.components.NPButton
 import kotlinx.coroutines.delay
 
 @Composable
@@ -83,21 +82,10 @@ fun CometScreen(
 
         when (bootState) {
             CometBootState.READY -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(colors.foreground)
-                        .clickable { bootState = CometBootState.BOOTING }
-                        .padding(vertical = NPSpacing.lg),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Boot comet",
-                        style = NPType.bodyLg,
-                        color = colors.background
-                    )
-                }
+                NPButton(
+                    text = "Boot comet",
+                    onClick = { bootState = CometBootState.BOOTING }
+                )
             }
 
             CometBootState.BOOTING -> {

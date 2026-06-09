@@ -17,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import io.nativeplanet.launcher.domain.IdentityMode
 import io.nativeplanet.launcher.domain.model.RuntimeState
 import io.nativeplanet.launcher.theme.*
+import io.nativeplanet.launcher.ui.components.NPButtonSmall
 import io.nativeplanet.launcher.ui.components.SectionHeader
 import io.nativeplanet.launcher.ui.components.SigilView
 import io.nativeplanet.launcher.ui.components.StatusChip
@@ -173,21 +174,21 @@ fun RuntimeStatusScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(NPSpacing.md)
         ) {
-            ControlButton(
+            NPButtonSmall(
                 text = "Start",
                 enabled = uiState.runtimeStatus.state == RuntimeState.STOPPED && !uiState.isLoading,
                 onClick = { viewModel.startRuntime() },
                 modifier = Modifier.weight(1f)
             )
 
-            ControlButton(
+            NPButtonSmall(
                 text = "Stop",
                 enabled = uiState.runtimeStatus.state == RuntimeState.RUNNING && !uiState.isLoading,
                 onClick = { viewModel.stopRuntime() },
                 modifier = Modifier.weight(1f)
             )
 
-            ControlButton(
+            NPButtonSmall(
                 text = "Restart",
                 enabled = uiState.runtimeStatus.state == RuntimeState.RUNNING && !uiState.isLoading,
                 onClick = { viewModel.restartRuntime() },
@@ -289,30 +290,5 @@ fun RuntimeStatusScreen(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ControlButton(
-    text: String,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val colors = NativePlanetTheme.colors
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(if (enabled) colors.foreground else colors.backgroundSecondary)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = NPSpacing.md),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = NPType.bodySm,
-            color = if (enabled) colors.background else colors.foregroundFaint
-        )
     }
 }
