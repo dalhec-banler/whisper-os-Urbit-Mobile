@@ -5,12 +5,15 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -36,9 +39,7 @@ public final class ParentPairingManager {
     private static final int READ_TIMEOUT_MS = 30000;
     private static final String AUTH_CONFIRM_SCRY = "/~/scry/hood/kiln/pikes.json";
     private static final String ARTEMIS_APP_PATH = "/apps/artemis/";
-    private static final String ARTEMIS_MOONS_SCRY = "/~/scry/artemis/mons.json";
     private static final int MOON_CREATE_TIMEOUT_MS = 30000;
-    private static final int MOON_CREATE_POLL_INTERVAL_MS = 2000;
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private ParentPairingManager() {
@@ -82,25 +83,32 @@ public final class ParentPairingManager {
                         "Planet login worked, but the parent ship name could not be confirmed.");
             }
 
-            MoonList before = fetchArtemisMoons(normalizedUrl, session.cookie);
+            String channelId = buildChannelId();
+            MoonList before = subscribeArtemisMoons(normalizedUrl, session.cookie,
+                    channelId, parentShip);
             if (!before.available) {
                 return response(false, "PARENT_PROTOCOL_UNSUPPORTED",
-                        "Artemis is installed, but its mobile provisioning scry is not available yet.");
+                        "Artemis is installed, but its mobile provisioning channel is not available yet.");
             }
 
             String label = buildMobileMoonLabel();
-            if (!requestMobileMoon(normalizedUrl, session.cookie, parentShip, label)) {
+            if (!requestMobileMoon(normalizedUrl, session.cookie, channelId, parentShip, label)) {
                 return response(false, "PARENT_MOON_CREATE_FAILED",
                         "Artemis did not accept the mobile moon request.");
             }
 
-            MobileMoon moon = waitForCreatedMobileMoon(normalizedUrl, session.cookie, before.knownShips);
-            if (moon == null) {
-                return response(false, "PARENT_MOON_CREATE_TIMEOUT",
-                        "Artemis did not return a new mobile moon in time.");
-            }
+            try {
+                MobileMoon moon = waitForCreatedMobileMoon(normalizedUrl, session.cookie,
+                        channelId, before.knownShips);
+                if (moon == null) {
+                    return response(false, "PARENT_MOON_CREATE_TIMEOUT",
+                            "Artemis did not return a new mobile moon in time.");
+                }
 
-            return ProvisioningManager.provisionMoon(buildProvisioningRequest(moon, parentShip));
+                return ProvisioningManager.provisionMoon(buildProvisioningRequest(moon, parentShip));
+            } finally {
+                deleteChannelQuietly(normalizedUrl, session.cookie, channelId);
+            }
         } catch (JSONException e) {
             Log.w(TAG, "Pairing request JSON parse failed");
             return response(false, "REQUEST_PARSE_ERROR", "Pairing request is not valid JSON");
@@ -184,22 +192,23 @@ public final class ParentPairingManager {
         return new ParentServiceProbe(status == HttpURLConnection.HTTP_OK, status);
     }
 
-    private static MoonList fetchArtemisMoons(String hostUrl, String cookie) throws IOException, JSONException {
-        URL url = URI.create(hostUrl + ARTEMIS_MOONS_SCRY).toURL();
-        HttpURLConnection connection = openConnection(url);
-        connection.setRequestMethod("GET");
-        connection.setRequestProperty("Cookie", cookie);
-
-        int status = connection.getResponseCode();
-        if (status != HttpURLConnection.HTTP_OK) {
-            connection.disconnect();
+    private static MoonList subscribeArtemisMoons(String hostUrl, String cookie,
+                                                  String channelId, String parentShip)
+            throws IOException, JSONException {
+        JSONObject event = new JSONObject()
+                .put("id", 1)
+                .put("action", "subscribe")
+                .put("ship", parentShip)
+                .put("app", "artemis")
+                .put("path", "/moons");
+        org.json.JSONArray events = new org.json.JSONArray().put(event);
+        if (!sendChannelEvents(hostUrl, cookie, channelId, events)) {
             return MoonList.unavailable();
         }
+        return readMoonListFromChannel(hostUrl, cookie, channelId, READ_TIMEOUT_MS);
+    }
 
-        String body = readResponseBody(connection);
-        connection.disconnect();
-
-        JSONObject json = new JSONObject(body);
+    private static MoonList moonListFromJson(JSONObject json) {
         MoonList result = new MoonList(true);
         org.json.JSONArray moons = json.optJSONArray("moons");
         if (moons == null) {
@@ -223,16 +232,9 @@ public final class ParentPairingManager {
         return result;
     }
 
-    private static boolean requestMobileMoon(String hostUrl, String cookie, String parentShip,
-                                             String label) throws IOException, JSONException {
-        String channelId = buildChannelId();
-        URL url = URI.create(hostUrl + "/~/channel/" + channelId).toURL();
-        HttpURLConnection connection = openConnection(url);
-        connection.setRequestMethod("PUT");
-        connection.setDoOutput(true);
-        connection.setRequestProperty("Cookie", cookie);
-        connection.setRequestProperty("Content-Type", "application/json");
-
+    private static boolean requestMobileMoon(String hostUrl, String cookie, String channelId,
+                                             String parentShip, String label)
+            throws IOException, JSONException {
         JSONObject makeMoon = new JSONObject()
                 .put("nam", label)
                 .put("rol", "mobile");
@@ -246,6 +248,18 @@ public final class ParentPairingManager {
                 .put("mark", "artemis-action")
                 .put("json", json);
         org.json.JSONArray events = new org.json.JSONArray().put(event);
+        return sendChannelEvents(hostUrl, cookie, channelId, events);
+    }
+
+    private static boolean sendChannelEvents(String hostUrl, String cookie, String channelId,
+                                             org.json.JSONArray events) throws IOException {
+        URL url = URI.create(hostUrl + "/~/channel/" + channelId).toURL();
+        HttpURLConnection connection = openConnection(url);
+        connection.setRequestMethod("PUT");
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Cookie", cookie);
+        connection.setRequestProperty("Content-Type", "application/json");
+
         byte[] body = events.toString().getBytes(StandardCharsets.UTF_8);
         connection.setFixedLengthStreamingMode(body.length);
 
@@ -259,11 +273,12 @@ public final class ParentPairingManager {
     }
 
     private static MobileMoon waitForCreatedMobileMoon(String hostUrl, String cookie,
-                                                       Set<String> knownShips)
-            throws IOException, JSONException, InterruptedException {
+                                                       String channelId, Set<String> knownShips)
+            throws IOException, JSONException {
         long deadline = System.currentTimeMillis() + MOON_CREATE_TIMEOUT_MS;
         while (System.currentTimeMillis() < deadline) {
-            MoonList list = fetchArtemisMoons(hostUrl, cookie);
+            int remainingMs = (int) Math.max(1000, deadline - System.currentTimeMillis());
+            MoonList list = readMoonListFromChannel(hostUrl, cookie, channelId, remainingMs);
             if (list.available) {
                 for (MobileMoon moon : list.mobileMoons) {
                     if (!knownShips.contains(moon.ship)) {
@@ -271,9 +286,94 @@ public final class ParentPairingManager {
                     }
                 }
             }
-            Thread.sleep(MOON_CREATE_POLL_INTERVAL_MS);
         }
         return null;
+    }
+
+    private static MoonList readMoonListFromChannel(String hostUrl, String cookie,
+                                                    String channelId, int timeoutMs)
+            throws IOException, JSONException {
+        URL url = URI.create(hostUrl + "/~/channel/" + channelId).toURL();
+        HttpURLConnection connection = openConnection(url);
+        connection.setReadTimeout(timeoutMs);
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Cookie", cookie);
+        connection.setRequestProperty("Accept", "text/event-stream");
+
+        try {
+            int status = connection.getResponseCode();
+            if (status != HttpURLConnection.HTTP_OK) {
+                return MoonList.unavailable();
+            }
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    connection.getInputStream(), StandardCharsets.UTF_8))) {
+                StringBuilder data = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.isEmpty()) {
+                        MoonList list = moonListFromSseData(data.toString());
+                        data.setLength(0);
+                        if (list != null) {
+                            return list;
+                        }
+                        continue;
+                    }
+                    if (line.startsWith("data:")) {
+                        if (data.length() > 0) {
+                            data.append('\n');
+                        }
+                        data.append(line.substring(5).trim());
+                    }
+                }
+            }
+        } catch (SocketTimeoutException e) {
+            return MoonList.unavailable();
+        } finally {
+            connection.disconnect();
+        }
+        return MoonList.unavailable();
+    }
+
+    private static MoonList moonListFromSseData(String data) throws JSONException {
+        if (data == null || data.trim().isEmpty()) {
+            return null;
+        }
+
+        JSONObject event = new JSONObject(data);
+        String response = event.optString("response", "");
+        if ("diff".equals(response) && event.optJSONObject("json") != null) {
+            return moonListFromJson(event.optJSONObject("json"));
+        }
+        if ("subscribe".equals(response) && event.has("err")) {
+            return MoonList.unavailable();
+        }
+        return null;
+    }
+
+    private static void deleteChannelQuietly(String hostUrl, String cookie, String channelId) {
+        try {
+            JSONObject event = new JSONObject()
+                    .put("id", 3)
+                    .put("action", "delete");
+            org.json.JSONArray events = new org.json.JSONArray().put(event);
+            URL url = URI.create(hostUrl + "/~/channel/" + channelId).toURL();
+            HttpURLConnection connection = openConnection(url);
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Cookie", cookie);
+            connection.setRequestProperty("Content-Type", "application/json");
+
+            byte[] body = events.toString().getBytes(StandardCharsets.UTF_8);
+            connection.setFixedLengthStreamingMode(body.length);
+            try (OutputStream stream = connection.getOutputStream()) {
+                stream.write(body);
+            }
+            connection.getResponseCode();
+            connection.disconnect();
+        } catch (Exception e) {
+            Log.d(TAG, "Channel cleanup failed: " + e.getClass().getSimpleName());
+        }
     }
 
     private static MobileMoon mobileMoonFromJson(JSONObject item) {

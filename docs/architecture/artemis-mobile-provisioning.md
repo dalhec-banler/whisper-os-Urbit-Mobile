@@ -37,11 +37,12 @@ For MVP, keep this in Artemis rather than creating a separate parent app.
 
 The controller speaks the same Urbit channel API used by the Artemis frontend:
 
-1. Fetch `/~/scry/artemis/mons.json` to capture the existing moon set.
-2. PUT a channel poke to `app=artemis`, `mark=artemis-action`.
-3. Poke body: `{ "make-moon": { "nam": "...", "rol": "mobile" } }`.
-4. Poll `/~/scry/artemis/mons.json` until a new `%mobile` moon appears.
-5. Use that moon's `who` and `sed` fields for local provisioning.
+1. Subscribe to Artemis `/moons` over `/~/channel/<id>`.
+2. Read the first `%artemis-update` fact to capture the existing moon set.
+3. PUT a channel poke to `app=artemis`, `mark=artemis-action`.
+4. Poke body: `{ "make-moon": { "nam": "...", "rol": "mobile" } }`.
+5. Read the next `/moons` fact until a new `%mobile` moon appears.
+6. Use that moon's `who` and `sed` fields for local provisioning.
 
 This avoids a separate phone-specific parent app and keeps Artemis' existing
 poke API as the product contract.

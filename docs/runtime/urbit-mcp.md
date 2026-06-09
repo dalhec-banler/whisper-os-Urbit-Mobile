@@ -63,7 +63,7 @@ Keep real cookie values in local ignored config only.
 Once `%mcp` is installed on the parent/distro ship, agents can:
 
 1. inspect the installed Artemis desk,
-2. run an Artemis scry such as `/mons/json`,
+2. subscribe to Artemis `/moons` facts over the channel API,
 3. poke Artemis with an `artemis-action`,
 4. commit or install desk changes,
 5. verify the parent-side API before a phone ROM build.

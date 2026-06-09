@@ -165,10 +165,11 @@ Current behavior:
 2. Authenticate to the parent ship's Eyre login endpoint.
 3. Confirm the authenticated session with a known scry.
 4. Check that Artemis is installed at `/apps/artemis/`.
-5. Fetch the existing Artemis moon list from `/~/scry/artemis/mons.json`.
-6. Poke Artemis over the Urbit channel API to create a `%mobile` moon.
-7. Poll the Artemis moon list until the new mobile moon appears.
-8. Provision the returned moon locally and request runtime start.
+5. Subscribe to Artemis `/moons` over the Urbit channel API.
+6. Read the first `/moons` fact to capture the existing moon list.
+7. Poke Artemis over the same channel to create a `%mobile` moon.
+8. Read the next `/moons` facts until the new mobile moon appears.
+9. Provision the returned moon locally and request runtime start.
 
 Successful Eyre login without Artemis:
 
@@ -180,14 +181,14 @@ Successful Eyre login without Artemis:
 }
 ```
 
-Successful Eyre login with Artemis installed, before the required Artemis scry
-is available:
+Successful Eyre login with Artemis installed, before the required Artemis
+channel facts are available:
 
 ```json
 {
   "accepted": false,
   "code": "PARENT_PROTOCOL_UNSUPPORTED",
-  "message": "Artemis is installed, but its mobile provisioning scry is not available yet."
+  "message": "Artemis is installed, but its mobile provisioning channel is not available yet."
 }
 ```
 
