@@ -4,7 +4,7 @@ A mobile-first Urbit runtime for Android, built on GrapheneOS.
 
 ## Current Status
 
-**Phase 0.5: Runtime Truth** — in progress
+**Phase 1: Moon Onboarding** — in progress
 
 The device boots, runs a real Urbit moon, and reports truthful status. Core infrastructure is verified:
 
@@ -14,8 +14,11 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
 - Provider exposes real network/runtime/boot-package state to the launcher
 - Graceful shutdown through conn.sock works (Click-style `%hood %drum-exit`)
 - Reboot persistence restores the running ship
+- Launcher can provision a moon from manually entered moon name, parent, and moon key
 
-Next step: controller-owned moon provisioning so users can import a ship through the launcher without manual adb work.
+Next step: parent-assisted moon provisioning. The phone should ask for the
+ship's hosting URL and `+code`, then ask the parent ship to create or hand out a
+phone moon. Manual moon-key import stays available as an advanced fallback.
 
 For detailed verification reports, see [docs/verification/](verification/).
 
@@ -39,15 +42,13 @@ For detailed verification reports, see [docs/verification/](verification/).
 
 **Goal:** The system tells the truth and manages a moon without manual adb work.
 
-**Status:** In progress.
+**Status:** Complete for the current MVP baseline.
 
 **Done:**
 - Controller conn.sock client with jam/cue/newt support
 - Runtime status polling (`%peel %live`, `%who`, `%v`)
 - Provider exposes runtime state to launcher
 - Graceful stop/start through controller
-
-**Remaining:**
 - Controller provisioning API (key import, boot-package write, start runtime)
 - Launcher import flow wired to provisioning
 - Fresh-phone end-to-end test
@@ -60,13 +61,23 @@ For the active checklist, see [docs/product/provisioning-mvp-checklist.md](produ
 
 **Goal:** First shippable launcher surfaces against real backend data.
 
-**Status:** Scaffolded, not product-complete.
+**Status:** Moon-key import works; parent-assisted pairing is next.
 
 - Runtime Console showing real status
 - Network panel from provider
 - Import moon flow wired to controller
 - Start/stop controls through graceful shutdown
 - No demo fallback unless controller is genuinely unavailable
+- First-run setup path when no ship is configured
+
+**Next:**
+- Pairing screen asks for hosting URL and `+code`
+- Parent-side app/API creates or returns a device moon
+- Phone provisions the returned boot package and starts Vere
+- Manual moon-key import remains available as an advanced path
+
+Tlon signup can be linked from onboarding later, but it is not part of the
+current MVP.
 
 ---
 

@@ -68,9 +68,7 @@ fun NavGraph(modifier: Modifier = Modifier) {
 
         composable(Routes.PAIR) {
             PairScreen(
-                onPairingComplete = {
-                    navController.navigate(Routes.reveal("~lislys-hinnyt-dalhec-banler", "~dalhec-banler", IdentityMode.PAIRED_MOON))
-                },
+                onImportManually = { navController.navigate(Routes.IMPORT) },
                 onBack = { navController.popBackStack() }
             )
         }
