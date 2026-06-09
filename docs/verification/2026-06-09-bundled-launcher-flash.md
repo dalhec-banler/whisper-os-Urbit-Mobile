@@ -71,4 +71,5 @@ This verifies the launcher is no longer only a debug APK installed after flashin
 ## Known Caveats
 
 - Real Artemis pairing still needs an end-to-end UI run with a live parent URL and access code.
+- After reboot, provider runtime status can briefly report `stopped` before the next conn.sock poll observes the running ship. A source fix is queued to keep the poller on the fast interval whenever a boot package exists.
 - Known non-blocking `nativeplanet_vere` denial for `/dev/kmsg_debug` still appears.

@@ -30,7 +30,7 @@ public class RuntimeStatusPoller {
     private static final String CONN_SOCK_SUFFIX = "/.urb/conn.sock";
 
     private static final long POLL_INTERVAL_MS = 5000; // 5 seconds
-    private static final long SLOW_POLL_INTERVAL_MS = 30000; // 30 seconds when stopped
+    private static final long SLOW_POLL_INTERVAL_MS = 30000; // 30 seconds when unconfigured
     private static final int FILE_MODE_0640 = 0640;
 
     private HandlerThread handlerThread;
@@ -43,6 +43,7 @@ public class RuntimeStatusPoller {
     private String lastVersion = null;
     private long lastSuccessfulPollMs = 0;
     private String lastError = null;
+    private boolean lastBootPackagePresent = false;
 
     private final Runnable pollRunnable = new Runnable() {
         @Override
@@ -56,7 +57,8 @@ public class RuntimeStatusPoller {
             }
 
             // Schedule next poll
-            long interval = "stopped".equals(lastState) ? SLOW_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+            long interval = ("stopped".equals(lastState) && !lastBootPackagePresent)
+                    ? SLOW_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
             if (running) {
                 handler.postDelayed(this, interval);
             }
@@ -97,9 +99,11 @@ public class RuntimeStatusPoller {
         // Read boot-package.json to find pier path
         String pierPath = readPierPath();
         if (pierPath == null) {
+            lastBootPackagePresent = false;
             writeStatus("stopped", null, null, null, "no boot-package");
             return;
         }
+        lastBootPackagePresent = true;
 
         // Check if conn.sock exists
         String connSockPath = pierPath + CONN_SOCK_SUFFIX;
