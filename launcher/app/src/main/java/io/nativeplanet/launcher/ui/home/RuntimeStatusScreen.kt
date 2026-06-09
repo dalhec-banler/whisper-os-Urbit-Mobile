@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,7 +16,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import io.nativeplanet.launcher.domain.IdentityMode
 import io.nativeplanet.launcher.domain.model.RuntimeState
 import io.nativeplanet.launcher.theme.*
-import io.nativeplanet.launcher.ui.components.NPButtonSmall
 import io.nativeplanet.launcher.ui.components.SectionHeader
 import io.nativeplanet.launcher.ui.components.SigilView
 import io.nativeplanet.launcher.ui.components.StatusChip
@@ -161,63 +159,6 @@ fun RuntimeStatusScreen(
                     )
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.height(NPSpacing.xl))
-
-        // Control buttons
-        SectionHeader(text = "Controls")
-
-        Spacer(modifier = Modifier.height(NPSpacing.md))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(NPSpacing.md)
-        ) {
-            NPButtonSmall(
-                text = "Start",
-                enabled = uiState.runtimeStatus.state == RuntimeState.STOPPED && !uiState.isLoading,
-                onClick = { viewModel.startRuntime() },
-                modifier = Modifier.weight(1f)
-            )
-
-            NPButtonSmall(
-                text = "Stop",
-                enabled = uiState.runtimeStatus.state == RuntimeState.RUNNING && !uiState.isLoading,
-                onClick = { viewModel.stopRuntime() },
-                modifier = Modifier.weight(1f)
-            )
-
-            NPButtonSmall(
-                text = "Restart",
-                enabled = uiState.runtimeStatus.state == RuntimeState.RUNNING && !uiState.isLoading,
-                onClick = { viewModel.restartRuntime() },
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        if (uiState.isLoading) {
-            Spacer(modifier = Modifier.height(NPSpacing.md))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = colors.accent,
-                    strokeWidth = 2.dp
-                )
-            }
-        }
-
-        uiState.actionResult?.let { result ->
-            Spacer(modifier = Modifier.height(NPSpacing.sm))
-            Text(
-                text = result,
-                style = NPType.caption,
-                color = colors.accentSoft,
-                modifier = Modifier.clickable { viewModel.clearActionResult() }
-            )
         }
 
         Spacer(modifier = Modifier.height(NPSpacing.xl))
