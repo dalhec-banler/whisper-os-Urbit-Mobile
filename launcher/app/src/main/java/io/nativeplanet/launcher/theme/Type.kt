@@ -18,7 +18,7 @@ object NPType {
         fontWeight = FontWeight.Light,
         fontSize = 110.sp,
         lineHeight = (110 * 0.85).sp,
-        letterSpacing = (-2).sp
+        letterSpacing = 0.sp
     )
 
     val displayLg = TextStyle(
@@ -26,7 +26,7 @@ object NPType {
         fontWeight = FontWeight.Light,
         fontSize = 56.sp,
         lineHeight = (56 * 0.90).sp,
-        letterSpacing = (-1.5).sp
+        letterSpacing = 0.sp
     )
 
     val displayMd = TextStyle(
@@ -34,7 +34,7 @@ object NPType {
         fontWeight = FontWeight.Normal,
         fontSize = 38.sp,
         lineHeight = (38 * 1.05).sp,
-        letterSpacing = (-1).sp
+        letterSpacing = 0.sp
     )
 
     val displaySm = TextStyle(
@@ -42,7 +42,7 @@ object NPType {
         fontWeight = FontWeight.Normal,
         fontSize = 28.sp,
         lineHeight = (28 * 1.10).sp,
-        letterSpacing = (-0.5).sp
+        letterSpacing = 0.sp
     )
 
     // Body (Inter)
@@ -80,7 +80,7 @@ object NPType {
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = (11 * 1.50).sp,
-        letterSpacing = 1.5.sp
+        letterSpacing = 0.sp
     )
 
     val nano = TextStyle(
