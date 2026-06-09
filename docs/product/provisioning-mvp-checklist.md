@@ -19,7 +19,7 @@ import remains the advanced fallback.
 - [x] Provider `stopRuntime` performs graceful conn.sock shutdown.
 - [x] Provider `startRuntime` brings the moon back.
 - [x] Reboot persistence restores the running moon.
-- [x] Launcher debug APK renders real provider data.
+- [x] Launcher is bundled in the ROM and renders real provider data.
 
 ## Product Step 1: Controller Provisioning API
 
@@ -52,7 +52,7 @@ import remains the advanced fallback.
 - [x] Land on Runtime Console with real provider state.
 - [x] Ensure demo/fallback banner only appears when controller is unavailable.
 - [x] Build launcher APK.
-- [ ] Install launcher APK on device.
+- [x] Install launcher APK on device.
 - [ ] Verify import UI with a throwaway moon.
 
 ## Product Step 3: Fresh-Phone End-To-End Test
