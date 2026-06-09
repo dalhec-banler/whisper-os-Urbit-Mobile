@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-mapfile -t tracked_files < <(
-  git ls-files \
+mapfile -t scan_files < <(
+  git ls-files --cached --others --exclude-standard \
     ':!:tools/check-repo-hygiene.sh' \
     ':!:launcher/gradle/wrapper/gradle-wrapper.jar' \
     ':!:**/*.png' \
@@ -16,8 +16,8 @@ mapfile -t tracked_files < <(
     ':!:**/*.pill'
 )
 
-if [[ "${#tracked_files[@]}" -eq 0 ]]; then
-  echo "No tracked files found"
+if [[ "${#scan_files[@]}" -eq 0 ]]; then
+  echo "No files found"
   exit 0
 fi
 
@@ -26,7 +26,7 @@ status=0
 check_pattern() {
   local label="$1"
   local pattern="$2"
-  if grep -nE "$pattern" -- "${tracked_files[@]}" >/tmp/nativeplanet-hygiene-matches.$$ 2>/dev/null; then
+  if grep -nE "$pattern" -- "${scan_files[@]}" >/tmp/nativeplanet-hygiene-matches.$$ 2>/dev/null; then
     echo "FAIL: $label"
     cat /tmp/nativeplanet-hygiene-matches.$$
     status=1
