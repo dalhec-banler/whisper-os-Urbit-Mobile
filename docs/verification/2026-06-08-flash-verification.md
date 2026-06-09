@@ -1,6 +1,6 @@
 # 2026-06-08 Flash Verification
 
-ROM: `eng.anoffice.20260528.112643`
+ROM: userdebug build 20260528
 
 Device: husky / Pixel 8 Pro
 

@@ -103,12 +103,10 @@ Not added (not proven necessary):
 
 Command used:
 ```bash
-cd /home/anoffice/grapheneos-2026040800
-bash --norc -c '
-  source build/envsetup.sh
-  lunch husky bp4a userdebug
-  m NativePlanetController -j10
-'
+# From GrapheneOS checkout
+source build/envsetup.sh
+lunch husky bp4a userdebug
+m NativePlanetController -j10
 ```
 
 Module build has passed with the current Android.bp configuration

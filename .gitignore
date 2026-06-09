@@ -46,6 +46,10 @@ bootpackage-*.zip
 *.swo
 *~
 
+# AI assistant working directories
+.claude/
+.codex/
+
 # OS
 .DS_Store
 Thumbs.db

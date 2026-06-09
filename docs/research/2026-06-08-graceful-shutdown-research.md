@@ -39,7 +39,7 @@ GroundSeg still has Docker stop fallbacks, but those are fallbacks after the Urb
 
 Device state before test:
 
-- ROM: `eng.anoffice.20260528.112643`
+- ROM: userdebug build 20260528
 - dev moon: `~namfeb-rossyp-palrum-roclur`
 - `nativeplanet_vere`: running
 - king PID: `3236`

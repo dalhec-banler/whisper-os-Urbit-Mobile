@@ -50,13 +50,7 @@ Does not own:
 
 ### Local GrapheneOS Checkout
 
-Build workspace.
-
-Path currently used:
-
-```text
-/home/anoffice/grapheneos-2026040800
-```
+Build workspace. Clone GrapheneOS and check out the appropriate tag.
 
 Owns:
 
@@ -73,15 +67,7 @@ Does not own:
 
 ### Local Launcher Checkout
 
-Current working app checkout.
-
-Path currently used:
-
-```text
-/home/anoffice/dev/mobile-vere/whisper-launcher
-```
-
-The source should be periodically copied into this repo's `launcher/` directory, excluding build output and local machine config.
+Current working app checkout. The source should be periodically copied into this repo's `launcher/` directory, excluding build output and local machine config.
 
 ## Current Source Of Truth
 

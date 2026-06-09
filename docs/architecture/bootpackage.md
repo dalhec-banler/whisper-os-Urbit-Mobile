@@ -210,23 +210,6 @@ Mobile Device
 
 ---
 
-## Implementation Status
-
-### Runtime BootPackage v0
-- [x] JSON schema defined
-- [x] Parser implemented in C
-- [x] Path validation
-- [x] Security checks
-- [x] Test coverage
-- [ ] Integration testing on device
-
-### Distribution BootPackage (Future)
-- [ ] Package format specification
-- [ ] Key encryption scheme
-- [ ] Signing implementation
-- [ ] QR encoding/decoding
-- [ ] Launcher import flow
-
 ## Security Considerations
 
 - BootPackages may contain sensitive identity material

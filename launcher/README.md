@@ -19,8 +19,4 @@ cd launcher
 
 Output APKs are build artifacts and must not be committed.
 
-Current source snapshot was copied from:
-
-```text
-/home/anoffice/dev/mobile-vere/whisper-launcher
-```
+Source is periodically synced from the working whisper-launcher checkout.

@@ -81,17 +81,14 @@ Build details move quickly, so prefer the current guide:
 
 - [docs/runtime/build-and-flash.md](docs/runtime/build-and-flash.md)
 
-Useful current commands:
+Useful commands (from your GrapheneOS checkout):
 
 ```bash
-cd /home/anoffice/grapheneos-2026040800
 source build/envsetup.sh
 lunch husky bp4a userdebug
 m NativePlanetController -j10
 m vendorbootimage vendorkernelbootimage target-files-package -j10
 ```
-
-Do not generate a release or flash unless target-files verification passes and the user explicitly approves.
 
 ## Security
 
