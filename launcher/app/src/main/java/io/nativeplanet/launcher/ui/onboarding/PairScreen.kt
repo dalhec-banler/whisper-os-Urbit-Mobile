@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun PairScreen(
     onPairWithPlanet: suspend (hostUrl: String, accessCode: String) -> ControlResult,
+    onPairComplete: (shipName: String, parentName: String?) -> Unit,
     onImportManually: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -106,7 +107,15 @@ fun PairScreen(
                     val result = onPairWithPlanet(submittedHost, submittedCode)
                     isConnecting = false
                     statusMessage = when (result) {
-                        is ControlResult.Success -> "connected"
+                        is ControlResult.Success -> {
+                            val pairedShip = result.shipName
+                            if (pairedShip != null) {
+                                onPairComplete(pairedShip, result.parentName)
+                                "connected"
+                            } else {
+                                "connected"
+                            }
+                        }
                         is ControlResult.AlreadyInState -> "already ${result.state.name.lowercase()}"
                         is ControlResult.Failed -> "${result.code}: ${result.message}"
                     }

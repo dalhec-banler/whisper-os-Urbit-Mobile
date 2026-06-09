@@ -242,7 +242,11 @@ class ProviderNativePlanetClient @Inject constructor(
         val code = obj.optString("code", if (accepted) "OK" else "UNKNOWN")
         val message = obj.optStringOrNull("message") ?: code
         return if (accepted) {
-            ControlResult.Success
+            val bootPackage = obj.optJSONObject("bootPackage")
+            ControlResult.Success(
+                shipName = bootPackage?.optStringOrNull("ship"),
+                parentName = bootPackage?.optStringOrNull("parent")
+            )
         } else {
             ControlResult.Failed(code, message)
         }

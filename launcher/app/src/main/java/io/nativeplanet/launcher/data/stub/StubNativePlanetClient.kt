@@ -103,7 +103,7 @@ class StubNativePlanetClient @Inject constructor() : NativePlanetClient {
             uptimeMs = 0,
             lastStartTime = Instant.now()
         )
-        return ControlResult.Success
+        return ControlResult.Success()
     }
 
     override suspend fun stopRuntime(): ControlResult {
@@ -120,7 +120,7 @@ class StubNativePlanetClient @Inject constructor() : NativePlanetClient {
             uptimeMs = null,
             lastStopTime = Instant.now()
         )
-        return ControlResult.Success
+        return ControlResult.Success()
     }
 
     override suspend fun restartRuntime(): ControlResult {
@@ -158,7 +158,7 @@ class StubNativePlanetClient @Inject constructor() : NativePlanetClient {
             bootMode = BootMode.MOON,
             lastStartTime = Instant.now()
         )
-        return ControlResult.Success
+        return ControlResult.Success(normalizedShip, normalizedParent)
     }
 
     override suspend fun pairWithPlanet(hostUrl: String, accessCode: String): ControlResult {

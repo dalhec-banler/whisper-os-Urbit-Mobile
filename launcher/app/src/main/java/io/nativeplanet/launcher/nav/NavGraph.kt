@@ -70,6 +70,9 @@ fun NavGraph(modifier: Modifier = Modifier) {
             val viewModel: OnboardingViewModel = hiltViewModel()
             PairScreen(
                 onPairWithPlanet = viewModel::pairWithPlanet,
+                onPairComplete = { shipName, parentName ->
+                    navController.navigate(Routes.reveal(shipName, parentName, IdentityMode.PAIRED_MOON))
+                },
                 onImportManually = { navController.navigate(Routes.IMPORT) },
                 onBack = { navController.popBackStack() }
             )
