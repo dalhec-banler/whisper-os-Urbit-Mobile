@@ -223,7 +223,7 @@ Request JSON:
   "bootMode": "MOON",
   "ship": "~sample-moon-parent",
   "parent": "~parent-planet",
-  "keyMaterial": "0w...0w3i5",
+  "keyMaterial": "0w...3i5",
   "replaceExisting": true
 }
 ```

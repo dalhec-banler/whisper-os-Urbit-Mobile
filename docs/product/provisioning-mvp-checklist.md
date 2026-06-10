@@ -105,8 +105,13 @@ import remains the advanced fallback.
 - [x] Confirm Artemis can create a new `%mobile` moon for the phone.
 - [x] Provision an Artemis-created `%mobile` moon through the controller fallback path.
 - [x] Patch controller source to fall back to Artemis scry when the channel fact is missed.
-- [ ] Verify end-to-end with a throwaway `%mobile` moon.
-  - Blocked until the scry fallback patch is included in the next ROM build.
+- [x] Include the Artemis scry fallback in a signed no-wipe OTA.
+- [x] Patch controller validation for current Artemis `%uw` mobile moon seed suffixes.
+- [x] Verify direct `pairWithPlanet` end-to-end with a throwaway `%mobile` moon.
+  - Verified with `~wacpeg-hodpel-palrum-roclur` from `~palrum-roclur`.
+  - Provider runtime reached `running` with `connSockAvailable=true`.
+  - Provider and launcher smokes passed after pairing.
+  - Plain reboot persistence passed.
 
 ## Not In This Step
 
