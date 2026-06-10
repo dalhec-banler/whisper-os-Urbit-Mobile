@@ -184,10 +184,10 @@ public final class ProvisioningManager {
             }
         }
 
-        // Current moon keys exported by modern Urbit for Vere 4.x have a short
-        // jammed terminator tail. This catches known old @uw exports before we
-        // write them to disk, while keeping the raw key out of logs.
-        return trimmed.endsWith("0w3i5");
+        // Modern Artemis emits the moon seed as @uw. The concrete suffix varies
+        // by key, but current mobile moon seeds consistently terminate with the
+        // jammed atom tail "3i5".
+        return trimmed.endsWith("3i5");
     }
 
     private static String normalizeShip(String ship) {
