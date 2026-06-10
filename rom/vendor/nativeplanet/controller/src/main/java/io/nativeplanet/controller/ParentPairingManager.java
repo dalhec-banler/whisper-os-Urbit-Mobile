@@ -39,6 +39,7 @@ public final class ParentPairingManager {
     private static final int READ_TIMEOUT_MS = 30000;
     private static final String AUTH_CONFIRM_SCRY = "/~/scry/hood/kiln/pikes.json";
     private static final String ARTEMIS_APP_PATH = "/apps/artemis/";
+    private static final String ARTEMIS_MOONS_SCRY = "/~/scry/artemis/mons.json";
     private static final int MOON_CREATE_TIMEOUT_MS = 30000;
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -100,6 +101,10 @@ public final class ParentPairingManager {
             try {
                 MobileMoon moon = waitForCreatedMobileMoon(normalizedUrl, session.cookie,
                         channelId, before.knownShips);
+                if (moon == null) {
+                    moon = findCreatedMobileMoon(fetchArtemisMoonsScry(normalizedUrl, session.cookie),
+                            before.knownShips);
+                }
                 if (moon == null) {
                     return response(false, "PARENT_MOON_CREATE_TIMEOUT",
                             "Artemis did not return a new mobile moon in time.");
@@ -208,6 +213,23 @@ public final class ParentPairingManager {
         return readMoonListFromChannel(hostUrl, cookie, channelId, READ_TIMEOUT_MS);
     }
 
+    private static MoonList fetchArtemisMoonsScry(String hostUrl, String cookie)
+            throws IOException, JSONException {
+        URL url = URI.create(hostUrl + ARTEMIS_MOONS_SCRY).toURL();
+        HttpURLConnection connection = openConnection(url);
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Cookie", cookie);
+
+        int status = connection.getResponseCode();
+        String body = status == HttpURLConnection.HTTP_OK ? readResponseBody(connection) : null;
+        connection.disconnect();
+
+        if (body == null) {
+            return MoonList.unavailable();
+        }
+        return moonListFromJson(new JSONObject(body));
+    }
+
     private static MoonList moonListFromJson(JSONObject json) {
         MoonList result = new MoonList(true);
         org.json.JSONArray moons = json.optJSONArray("moons");
@@ -280,11 +302,22 @@ public final class ParentPairingManager {
             int remainingMs = (int) Math.max(1000, deadline - System.currentTimeMillis());
             MoonList list = readMoonListFromChannel(hostUrl, cookie, channelId, remainingMs);
             if (list.available) {
-                for (MobileMoon moon : list.mobileMoons) {
-                    if (!knownShips.contains(moon.ship)) {
-                        return moon;
-                    }
+                MobileMoon moon = findCreatedMobileMoon(list, knownShips);
+                if (moon != null) {
+                    return moon;
                 }
+            }
+        }
+        return null;
+    }
+
+    private static MobileMoon findCreatedMobileMoon(MoonList list, Set<String> knownShips) {
+        if (list == null || !list.available) {
+            return null;
+        }
+        for (MobileMoon moon : list.mobileMoons) {
+            if (!knownShips.contains(moon.ship)) {
+                return moon;
             }
         }
         return null;

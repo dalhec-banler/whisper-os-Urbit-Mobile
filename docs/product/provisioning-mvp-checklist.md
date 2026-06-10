@@ -101,8 +101,12 @@ import remains the advanced fallback.
 - [x] Add a parent-pairing smoke test that does not print the `+code` or boot key.
 - [x] Confirm parent login, webterm, and hood scry work with a real parent URL and access code.
 - [x] Confirm phone-side Artemis contract matches the current Artemis GitHub source.
-- [ ] Confirm the parent ship is serving the updated Artemis desk.
+- [x] Confirm the parent ship is serving the updated Artemis desk.
+- [x] Confirm Artemis can create a new `%mobile` moon for the phone.
+- [x] Provision an Artemis-created `%mobile` moon through the controller fallback path.
+- [x] Patch controller source to fall back to Artemis scry when the channel fact is missed.
 - [ ] Verify end-to-end with a throwaway `%mobile` moon.
+  - Blocked until the scry fallback patch is included in the next ROM build.
 
 ## Not In This Step
 
