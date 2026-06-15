@@ -36,6 +36,8 @@
   ?+  path  ~
       [%x %apps ~]
     ``json+!>(apps-json)
+      [%x %apps %json ~]
+    ``json+!>(apps-json)
   ==
 ::
 ++  on-agent

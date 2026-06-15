@@ -19,6 +19,11 @@ over Docket metadata when present, while preserving Docket as the fallback.
 
 ## Status
 
-Source draft only. The Gall app passes a host `urbit eval` parse/type smoke,
-but the desk has not yet been installed on a ship or built into
-`satellite.pill`.
+The Gall app passes a host `urbit eval` parse/type smoke and installs on a
+disposable local ship when the desk is initialized from `%base`.
+
+`desk.docket-0` is intentionally omitted for now. The fake-ship base used for
+smoke testing does not include a `%docket-0` mark, so Docket metadata belongs in
+a later packaging pass with the correct mark layer.
+
+The desk has not yet been built into `satellite.pill`.
