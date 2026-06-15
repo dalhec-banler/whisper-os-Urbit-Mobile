@@ -156,3 +156,8 @@ The controller should:
 - Do not require comets for validation.
 - Do not make the browser address bar the default user experience for hosted
   Urbit apps.
+
+## References
+
+- [Urbit Docket File](https://docs.urbit.org/build-on-urbit/userspace/dist/docket)
+- [Urbit Software Distribution Guide](https://docs.urbit.org/build-on-urbit/userspace/dist/software-distribution)
