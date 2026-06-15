@@ -1123,10 +1123,10 @@ index 0000000000..c629d91553
 +}
 diff --git a/src/com/android/launcher3/WhisperHostedAppsActivity.java b/src/com/android/launcher3/WhisperHostedAppsActivity.java
 new file mode 100644
-index 0000000000..472a7cc3fe
+index 0000000000..63e2c347c3
 --- /dev/null
 +++ b/src/com/android/launcher3/WhisperHostedAppsActivity.java
-@@ -0,0 +1,604 @@
+@@ -0,0 +1,593 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -1351,9 +1351,9 @@ index 0000000000..472a7cc3fe
 +    }
 +
 +    private void addEmptyState(LinearLayout root) {
-+        TextView empty = text("No hosted app inventory yet. Keep the moon running; the controller "
-+                + "will populate this surface from Docket/Landscape metadata.", 16, PAPER_DIM,
-+                Typeface.NORMAL);
++        TextView empty = text("No mobile app inventory yet. Your moon is running; apps will appear "
++                + "here after the controller can read Docket/Landscape metadata from the ship.",
++                16, PAPER_DIM, Typeface.NORMAL);
 +        empty.setPadding(dp(16), dp(16), dp(16), dp(16));
 +        empty.setBackground(box(INK, HAIRLINE, dp(8)));
 +        root.addView(empty, new LinearLayout.LayoutParams(
@@ -1375,18 +1375,7 @@ index 0000000000..472a7cc3fe
 +    }
 +
 +    private List<HostedApp> loadHostedApps() {
-+        List<HostedApp> apps = readHostedAppsFromProvider();
-+        if (!apps.isEmpty()) {
-+            return apps;
-+        }
-+
-+        ArrayList<HostedApp> fallback = new ArrayList<>();
-+        fallback.add(new HostedApp("tlon", "Tlon", "waiting for ship inventory", null,
-+                null, null, AMBER));
-+        fallback.add(new HostedApp("dojo", "Dojo", "waiting for ship inventory", null,
-+                null, null,
-+                Color.rgb(93, 85, 71)));
-+        return fallback;
++        return readHostedAppsFromProvider();
 +    }
 +
 +    private List<HostedApp> readHostedAppsFromProvider() {
