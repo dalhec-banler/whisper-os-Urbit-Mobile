@@ -60,10 +60,17 @@ mobile app-surface work began.
 - `%nativeplanet-mobile` installed from the pill as an essential desk.
 - `+vats %nativeplanet-mobile` reported `app status: running`.
 - Direct Gall scry returned the expected `/apps/json` metadata.
+- Android package build for `nativeplanet-satellite-pill` passed.
+- A fresh target-files build contains the v1 `satellite.pill` at
+  `SYSTEM_EXT/etc/nativeplanet/satellite.pill`.
+- The Pixel booted a disposable fake ship from the v1 pill with Android Vere.
+- Android boot logs showed `%nativeplanet-mobile` installing during bootstrap,
+  `conn.sock` coming up, and Eyre binding on the alternate test port.
 
 ## Remaining
 
-- Package the host-verified Satellite Pill v1 into the ROM prebuilt path.
-- Build and flash a ROM containing Satellite Pill v1.
-- Verify fresh moon boot on device using the v1 pill.
+- Generate flashable images or choose a dev fastboot path for the v1 target-files.
+- Flash a ROM containing Satellite Pill v1.
+- Verify fresh moon boot through the production BootPackage path using the v1
+  pill from `/system_ext/etc/nativeplanet/satellite.pill`.
 - Validate Tlon, Terminal, Landscape, Grove, and Kin as mobile app surfaces.
