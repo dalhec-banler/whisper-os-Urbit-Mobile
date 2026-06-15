@@ -2,11 +2,15 @@
 #
 # Build Satellite Pill for Whisper OS
 #
-# Usage: ./build-satellite-pill.sh [version]
+# Usage:
+#   ./build-satellite-pill.sh v0
+#   ./build-satellite-pill.sh v1
+#   ./build-satellite-pill.sh v1-copy /path/to/pier
 #
 # Versions:
 #   v0 - Copy known-good brass pill (default)
-#   v1 - Build with %base + %nativeplanet-mobile
+#   v1 - Show build steps for %base + %nativeplanet-mobile
+#   v1-copy - Copy a completed .satellite output from a build pier
 #
 
 set -euo pipefail
@@ -33,17 +37,58 @@ case "$VERSION" in
         echo "=== Satellite Pill v1 ==="
         echo "v1 requires %nativeplanet-mobile desk."
         echo ""
-        echo "Build steps (manual for now):"
-        echo "1. Boot a fake ship with the required desks"
-        echo "2. Run: .brass/pill +brass %base %nativeplanet-mobile"
-        echo "3. Copy the resulting pill to $OUT_DIR/satellite.pill"
+        cat <<'EOF'
+Build steps:
+
+1. Boot a disposable fake ship.
+2. In Dojo:
+     |merge %nativeplanet-mobile our %base
+     |mount %nativeplanet-mobile
+3. In another shell, overlay the desk source into the mounted desk:
+     cp satellite-pill/desks/nativeplanet-mobile/desk.bill <pier>/nativeplanet-mobile/desk.bill
+     cp satellite-pill/desks/nativeplanet-mobile/sys.kelvin <pier>/nativeplanet-mobile/sys.kelvin
+     cp satellite-pill/desks/nativeplanet-mobile/app/nativeplanet-mobile.hoon <pier>/nativeplanet-mobile/app/nativeplanet-mobile.hoon
+4. In Dojo:
+     |commit %nativeplanet-mobile
+     |install our %nativeplanet-mobile
+     .satellite +pill/brass %base %nativeplanet-mobile
+5. Copy the generated jamfile:
+     ./satellite-pill/build-satellite-pill.sh v1-copy <pier>
+
+The Dojo dot sink writes the pill jamfile to:
+  <pier>/.urb/put/.satellite
+EOF
         echo ""
-        echo "Automated build coming in future versions."
+        echo "Output after v1-copy: $OUT_DIR/satellite.pill"
+        ;;
+
+    v1-copy)
+        PIER="${2:-}"
+        if [[ -z "$PIER" ]]; then
+            echo "Usage: $0 v1-copy /path/to/pier" >&2
+            exit 1
+        fi
+
+        SRC="$PIER/.urb/put/.satellite"
+        DEST="$OUT_DIR/satellite.pill"
+        if [[ ! -f "$SRC" ]]; then
+            echo "Missing generated pill output: $SRC" >&2
+            echo "Run this in Dojo first:" >&2
+            echo "  .satellite +pill/brass %base %nativeplanet-mobile" >&2
+            exit 1
+        fi
+
+        cp "$SRC" "$DEST"
+        echo "Copied $SRC"
+        echo "to     $DEST"
+        echo ""
+        wc -c "$DEST"
+        sha256sum "$DEST"
         ;;
 
     *)
         echo "Unknown version: $VERSION"
-        echo "Usage: $0 [v0|v1]"
+        echo "Usage: $0 [v0|v1|v1-copy]"
         exit 1
         ;;
 esac

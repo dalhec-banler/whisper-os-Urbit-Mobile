@@ -25,11 +25,15 @@ cp urbit-v4.3.pill satellite.pill
 
 This validates the runtime infrastructure before building custom pills.
 
-### Satellite Pill v1 (Planned)
+### Satellite Pill v1 (Host Verified)
 
 Built from `+brass` with:
 - `%base` desk (core urbit)
 - `%nativeplanet-mobile` desk (mobile-specific agents)
+
+Host verification passed on a disposable fake ship: the generated pill boots,
+installs `%nativeplanet-mobile` as an essential desk, reports the app as
+running, and serves mobile app metadata from `/apps/json`.
 
 ### Satellite Pill v2+ (Future)
 
@@ -48,7 +52,7 @@ The Satellite Pill is built using `+brass` from `pkg/arvo/gen/pill/brass.hoon`.
 ```hoon
 :: Generate pill from desk list
 :: First desk becomes base, others installed via Kiln
-.brass/pill +brass %base %nativeplanet-mobile
+.satellite +pill/brass %base %nativeplanet-mobile
 ```
 
 Key facts about `+brass`:
@@ -56,6 +60,8 @@ Key facts about `+brass`:
 - First desk becomes the pill's base desk
 - Remaining desks are installed through Kiln
 - Default is `%base` only
+- The Dojo dot sink writes the generated pill jamfile to
+  `<pier>/.urb/put/.satellite`
 
 See `satellite-pill/README.md` for build instructions.
 
@@ -128,24 +134,15 @@ The Satellite Pill:
 
 The pill is generic. Identity is provisioned through the BootPackage at runtime.
 
-## Implementation Status
+## Current Status
 
-### v0 (Current)
-- [x] Define canonical path (`/system_ext/etc/nativeplanet/satellite.pill`)
-- [x] Alias to known-good brass pill
-- [x] Document brass.hoon builder
-- [x] BootPackage integration
+v0 validated the runtime and BootPackage path with the known-good brass pill.
+v1 has now been host-built and boot-tested with `%nativeplanet-mobile`.
 
-### v1 (Next)
-- [ ] Create `%nativeplanet-mobile` desk
-- [ ] Build custom pill with brass
-- [ ] Integration testing
-
-### v2+ (Future)
-- [ ] Parent sync protocol desks
-- [ ] Delegation desks
-- [ ] Lick bridge desks
-- [ ] Launcher API desks
+The remaining v1 work is product integration: copy the generated
+`satellite.pill` into the ROM prebuilt path, build a ROM with it, and verify a
+fresh moon boot on device. v2+ adds parent sync, delegation, Lick bridge, and
+launcher API desks.
 
 ## Next Steps
 

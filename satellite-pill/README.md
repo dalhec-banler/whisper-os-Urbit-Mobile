@@ -14,13 +14,16 @@ The Satellite Pill is built using `+brass` from `pkg/arvo/gen/pill/brass.hoon`. 
 - Purpose: Runtime validation, BootPackage testing
 - Source: Known-good brass pill renamed to `satellite.pill`
 
-### Satellite Pill v1 (Planned)
+### Satellite Pill v1 (Host Verified)
 
 - Desks: `%base`, `%nativeplanet-mobile`
 - Purpose: Mobile-specific agents and marks
-- Status: `%nativeplanet-mobile` source draft exists under
-  `desks/nativeplanet-mobile/`; the Gall app passes a host `urbit eval`
-  parse/type smoke, but it has not yet been pill-built.
+- Status: builds with Brass and boots on a disposable local fake ship.
+  `%nativeplanet-mobile` installs as an essential desk, reports
+  `app status: running`, and serves `/apps/json`.
+
+The generated pill artifact is intentionally ignored by git. Build it locally
+and copy it into the ROM prebuilt path when preparing a ROM build.
 
 ### Satellite Pill v2+ (Future)
 
@@ -39,13 +42,32 @@ cp /path/to/urbit-v4.3.pill satellite.pill
 
 ### v1+ (Custom Build)
 
-```bash
-# From an Urbit ship with the required desks installed
-|merge %base our %base
-|merge %nativeplanet-mobile our %nativeplanet-mobile
+```hoon
+:: From a disposable fake ship
+|merge %nativeplanet-mobile our %base
+|mount %nativeplanet-mobile
+```
 
-# Generate pill
-.brass/pill +brass %base %nativeplanet-mobile
+Overlay the source files into the mounted desk:
+
+```bash
+cp satellite-pill/desks/nativeplanet-mobile/desk.bill <pier>/nativeplanet-mobile/desk.bill
+cp satellite-pill/desks/nativeplanet-mobile/sys.kelvin <pier>/nativeplanet-mobile/sys.kelvin
+cp satellite-pill/desks/nativeplanet-mobile/app/nativeplanet-mobile.hoon <pier>/nativeplanet-mobile/app/nativeplanet-mobile.hoon
+```
+
+Commit, install, and export the pill:
+
+```hoon
+|commit %nativeplanet-mobile
+|install our %nativeplanet-mobile
+.satellite +pill/brass %base %nativeplanet-mobile
+```
+
+Copy the generated jamfile:
+
+```bash
+./satellite-pill/build-satellite-pill.sh v1-copy <pier>
 ```
 
 Or use the build script:
@@ -53,6 +75,10 @@ Or use the build script:
 ```bash
 ./build-satellite-pill.sh v1
 ```
+
+The Dojo dot sink writes the pill jamfile to
+`<pier>/.urb/put/.satellite`; the helper copies it to
+`satellite-pill/out/satellite.pill`.
 
 Before attempting a pill build, run the desk smoke check:
 

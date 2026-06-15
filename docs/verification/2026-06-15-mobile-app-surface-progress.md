@@ -54,8 +54,16 @@ mobile app-surface work began.
   Grove, and Kin.
 - `NativePlanetController` module build passed after adding controller-side
   `%nativeplanet-mobile` metadata merge support.
+- Satellite Pill v1 built with:
+  `.satellite +pill/brass %base %nativeplanet-mobile`.
+- The generated pill booted on a fresh disposable fake ship.
+- `%nativeplanet-mobile` installed from the pill as an essential desk.
+- `+vats %nativeplanet-mobile` reported `app status: running`.
+- Direct Gall scry returned the expected `/apps/json` metadata.
 
 ## Remaining
 
-- Build a real Satellite Pill v1 containing `%nativeplanet-mobile`.
+- Package the host-verified Satellite Pill v1 into the ROM prebuilt path.
+- Build and flash a ROM containing Satellite Pill v1.
+- Verify fresh moon boot on device using the v1 pill.
 - Validate Tlon, Terminal, Landscape, Grove, and Kin as mobile app surfaces.
