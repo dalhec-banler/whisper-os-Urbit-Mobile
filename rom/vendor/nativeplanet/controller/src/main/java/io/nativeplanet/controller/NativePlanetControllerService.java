@@ -49,6 +49,7 @@ public class NativePlanetControllerService extends Service {
     private ConnectivityManager connectivityManager;
     private ConnectivityManager.NetworkCallback networkCallback;
     private RuntimeStatusPoller runtimeStatusPoller;
+    private HostedAppsPoller hostedAppsPoller;
 
     @Override
     public void onCreate() {
@@ -65,6 +66,9 @@ public class NativePlanetControllerService extends Service {
 
         // Start runtime status polling
         startRuntimeStatusPoller();
+
+        // Start hosted Urbit app inventory polling
+        startHostedAppsPoller();
 
         // Start init-managed vere automatically when a boot package exists.
         // The explicit "0" state is respected so manual stop remains possible.
@@ -83,6 +87,7 @@ public class NativePlanetControllerService extends Service {
         Log.i(TAG, "NativePlanet Controller Service stopping");
         stopNetworkObserver();
         stopRuntimeStatusPoller();
+        stopHostedAppsPoller();
     }
 
     @Override
@@ -186,6 +191,19 @@ public class NativePlanetControllerService extends Service {
         if (runtimeStatusPoller != null) {
             runtimeStatusPoller.stop();
             runtimeStatusPoller = null;
+        }
+    }
+
+    private void startHostedAppsPoller() {
+        Log.i(TAG, "Starting hosted apps poller");
+        hostedAppsPoller = new HostedAppsPoller();
+        hostedAppsPoller.start();
+    }
+
+    private void stopHostedAppsPoller() {
+        if (hostedAppsPoller != null) {
+            hostedAppsPoller.stop();
+            hostedAppsPoller = null;
         }
     }
 
