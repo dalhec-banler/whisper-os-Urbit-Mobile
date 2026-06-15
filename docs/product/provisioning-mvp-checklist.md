@@ -1,6 +1,6 @@
 # Provisioning MVP Checklist
 
-Status: active tracker as of 2026-06-09
+Status: active tracker as of 2026-06-15
 
 This checklist tracks the next real product step after the verified ROM/runtime
 baseline: a user should be able to pair the phone with a parent planet, have
@@ -20,6 +20,7 @@ import remains the advanced fallback.
 - [x] Provider `startRuntime` brings the moon back.
 - [x] Reboot persistence restores the running moon.
 - [x] Launcher is bundled in the ROM and renders real provider data.
+- [x] Hosted Urbit apps open through authenticated local WebView sessions.
 
 ## Product Step 1: Controller Provisioning API
 
@@ -132,8 +133,11 @@ import remains the advanced fallback.
 - [x] Open pinned hosted apps in the Whisper-hosted WebView shell.
 - [x] Avoid Android broken-page placeholder for unsupported mobile surfaces.
 - [x] Add hosted app unpin and open-in-browser actions.
-  - Source queued in `rom/patches/launcher3-whisper-os.patch`.
-  - `Launcher3QuickStep` module build passed; not flashed yet.
+  - Included in the 2026-06-15 no-wipe OTA.
+- [x] Authenticate hosted app WebView launches without exposing web login codes.
+- [x] Verify Landscape, Tlon/Groups, and Terminal/Webterm open from local Vere.
+- [x] Pin hosted apps to the Launcher3 workspace and relaunch them after reboot.
+- [x] Define the mobile app surface contract for native/PWA/local-web fallback.
 - [ ] Build the mobile desk/moon pill so hosted apps expose phone-ready
   entrypoints.
 - [ ] Wire Docket tile images into Launcher3 icons where available.
