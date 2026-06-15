@@ -1123,10 +1123,10 @@ index 0000000000..c629d91553
 +}
 diff --git a/src/com/android/launcher3/WhisperHostedAppsActivity.java b/src/com/android/launcher3/WhisperHostedAppsActivity.java
 new file mode 100644
-index 0000000000..63e2c347c3
+index 0000000000..77ea03dbc3
 --- /dev/null
 +++ b/src/com/android/launcher3/WhisperHostedAppsActivity.java
-@@ -0,0 +1,593 @@
+@@ -0,0 +1,594 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -1211,6 +1211,9 @@ index 0000000000..63e2c347c3
 +    private static final int AMBER = Color.rgb(199, 147, 56);
 +    private static final int HAIRLINE = Color.rgb(58, 52, 40);
 +
++    private boolean mHostedListMode;
++    private boolean mFirstResume = true;
++
 +    @Override
 +    protected void onCreate(Bundle savedInstanceState) {
 +        super.onCreate(savedInstanceState);
@@ -1232,7 +1235,17 @@ index 0000000000..63e2c347c3
 +        setTitle(R.string.whisper_hosted_apps_title);
 +        getWindow().setStatusBarColor(BLACK);
 +        getWindow().setNavigationBarColor(BLACK);
++        mHostedListMode = true;
 +        setContentView(createContentView());
++    }
++
++    @Override
++    protected void onResume() {
++        super.onResume();
++        if (mHostedListMode && !mFirstResume) {
++            setContentView(createContentView());
++        }
++        mFirstResume = false;
 +    }
 +
 +    private View createContentView() {
@@ -1478,18 +1491,6 @@ index 0000000000..63e2c347c3
 +            Toast.makeText(this, app.title + " is already on Home", Toast.LENGTH_SHORT).show();
 +            recreate();
 +            return;
-+        }
-+
-+        Launcher launcher = Launcher.ACTIVITY_TRACKER.getCreatedContext();
-+        if (launcher != null) {
-+            WorkspaceItemInfo info = createWorkspaceItem(this, app);
-+            boolean added = launcher.getAccessibilityDelegate().addToWorkspace(info,
-+                    false /* accessibility */, success -> Toast.makeText(this,
-+                            success ? app.title + " pinned to Home" : "No room on Home",
-+                            Toast.LENGTH_SHORT).show());
-+            if (added) {
-+                return;
-+            }
 +        }
 +
 +        savePendingPin(app);

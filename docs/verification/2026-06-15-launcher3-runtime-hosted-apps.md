@@ -8,6 +8,8 @@ Whisper OS shell, not the earlier custom launcher prototype.
 This preserves native Android home, recents, app drawer, drag/drop, widgets, and
 gesture behavior while adding first-party NativePlanet runtime surfaces.
 
+Current verified build: `2026061504`.
+
 ## Verified
 
 - HOME resolves to `com.android.launcher3/.uioverrides.QuickstepLauncher`.
@@ -21,12 +23,21 @@ gesture behavior while adding first-party NativePlanet runtime surfaces.
   - WiFi validated through `wlan0`
 - `My Urbit Apps` opens as a Launcher3 activity.
 - The hosted-apps status strip respects the Android status bar inset.
-- The hosted-apps provider returns `{"apps":[]}` when no inventory exists.
-- The hosted-apps screen shows an honest empty state instead of fake Tlon/Dojo
-  tiles.
-- Local HTTP guesses such as `/apps`, `/apps/dojo`, and `/apps/groups` currently
-  return `500 hosed`; hosted app inventory must come from ship metadata rather
-  than hardcoded URL guesses.
+- The hosted-apps provider discovers real installed app metadata from Docket
+  through Click/conn.sock.
+- The current inventory includes Landscape, Terminal, and Tlon.
+- `My Urbit Apps` shows pinned state for apps already on the workspace and does
+  not offer duplicate pins.
+- Pinning Landscape from `My Urbit Apps` returns to the home workspace and
+  creates a normal Launcher3 workspace item.
+- Reopening `My Urbit Apps` refreshes pinned state on resume, so newly pinned
+  apps immediately show as pinned.
+- Tapping the pinned Landscape icon opens the Whisper-hosted app shell without
+  the Android broken-page placeholder.
+- The hosted web shell shows an honest fallback message when the moon does not
+  provide a usable mobile app surface.
+- No Launcher3 or NativePlanet `AndroidRuntime` crashes were observed during the
+  post-flash verification pass.
 
 ## Source State
 
@@ -37,8 +48,9 @@ gesture behavior while adding first-party NativePlanet runtime surfaces.
 
 ## Next
 
-- Discover installed app metadata from the running ship through Click/conn.sock.
-- Normalize Docket/Landscape metadata into `/data/nativeplanet/hosted-apps.json`.
-- Use Tlon and Dojo as first real validation apps once their metadata and mobile
-  entrypoints are discovered from the ship.
-- Keep the launcher empty state honest until that inventory exists.
+- Build the mobile desk/moon pill so hosted apps expose phone-ready entrypoints.
+- Wire Docket tile images into Launcher3 icons instead of generated letter
+  glyphs where possible.
+- Add richer hosted app actions: pin, unpin, open locally, and open in browser.
+- Continue Whisper OS skinning for deeper system surfaces: notification shade,
+  quick settings, lock screen, and status bar treatment.
