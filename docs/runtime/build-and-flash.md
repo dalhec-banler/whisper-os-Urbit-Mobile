@@ -202,9 +202,17 @@ conn.sock health:
 
 ```bash
 adb forward tcp:12321 localfilesystem:/data/nativeplanet/ships/<ship>/.urb/conn.sock
-node conn-client.js 12321 live
-node conn-client.js 12321 who
-node conn-client.js 12321 v
+node tools/conn-client.js --port 12321 peel live
+node tools/conn-client.js --port 12321 peel who
+node tools/conn-client.js --port 12321 peel v
+```
+
+Or let the tool find the current pier from the controller provider and create
+the adb forward automatically:
+
+```bash
+node tools/conn-client.js --adb peel live
+node tools/conn-client.js --adb mobile-apps
 ```
 
 Graceful shutdown:

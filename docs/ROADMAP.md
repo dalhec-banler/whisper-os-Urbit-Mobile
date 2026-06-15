@@ -27,12 +27,15 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
 - Satellite Pill v1 now builds with `%nativeplanet-mobile`, boots on host,
   boots on Android Vere, and is live-installed on the current userdebug phone
   through adb remount
+- A fresh moon pier created from Satellite Pill v1 exposes
+  `%nativeplanet-mobile` app metadata over Click/conn.sock
 
-Next step: mobile app surfaces. The phone can now discover and pin Urbit apps,
-and the v1 pill path exists, but a freshly provisioned moon still needs to be
-tested from the production BootPackage flow before those surfaces can replace
-generic hosted shells. Manual moon-key import stays available as an advanced
-fallback.
+Next step: package and flash the signed ROM that contains both Satellite Pill
+v1 and the current controller. The current test phone proves the fresh-pier
+runtime path, but the installed controller APK predates the
+`HostedAppsPoller` merge code, so provider-level `docket+nativeplanet-mobile`
+verification waits on the signed controller flash. Manual moon-key import stays
+available as an advanced fallback.
 
 For detailed verification reports, see [docs/verification/](verification/).
 
@@ -98,20 +101,13 @@ home-screen behavior stay production-grade.
   direct Launcher3 access to `/data/nativeplanet`
 
 **Next:**
-- Parent ship serves the updated Artemis mobile provisioning surface
-- Artemis creates or returns a `%mobile` moon
-- Phone provisions the returned boot package and starts Vere
-- Manual moon-key import remains available as an advanced path
-- Controller-generated hosted app inventory from the running ship's Docket
-  metadata
-- Pin-to-home flow for hosted Urbit apps
-
-**Next:**
 - Flash or otherwise package the v1 `satellite.pill` without relying on adb
   remount.
-- Provision a fresh moon through the production BootPackage path and verify it
-  starts from Satellite Pill v1.
-- Find the correct mobile entrypoints for Tlon, Dojo, Grove, and Kin.
+- Verify the current controller's hosted-app merge after a properly signed
+  flash.
+- Keep Artemis-backed parent provisioning current and use manual moon-key
+  import as the advanced fallback.
+- Find the final mobile entrypoints for Tlon, Dojo, Grove, and Kin.
 - Use Grove and Kin as candidate paths for installing or syncing Urbit web apps
   after the first mobile app surfaces are stable.
 - Add richer Launcher3 actions for hosted apps: pin, unpin, open locally, and
