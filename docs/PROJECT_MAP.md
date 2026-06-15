@@ -13,7 +13,8 @@ Owns:
 - Product roadmap and current project memory
 - Controller/provider contracts
 - ROM overlay source under `rom/vendor/nativeplanet`
-- Launcher source under `launcher`
+- Launcher3/Quickstep patch sets under `rom/patches`
+- Companion/onboarding launcher source under `launcher`
 - Verification reports
 - Research notes
 - Safe examples and test fixtures
@@ -67,7 +68,12 @@ Does not own:
 
 ### Local Launcher Checkout
 
-Current working app checkout. The source should be periodically copied into this repo's `launcher/` directory, excluding build output and local machine config.
+Companion/onboarding app checkout. The source should be periodically copied into
+this repo's `launcher/` directory, excluding build output and local machine
+config.
+
+The product HOME shell is Launcher3/Quickstep, not this Compose app. Launcher3
+changes should be preserved as patch sets under `rom/patches`.
 
 ## Current Source Of Truth
 
@@ -112,9 +118,10 @@ Reject the commit if it includes:
 When the local GrapheneOS tree changes:
 
 1. Copy source-only `vendor/nativeplanet` changes into `rom/vendor/nativeplanet`.
-2. Exclude `prebuilts/bin/*`, `prebuilts/pill/*.pill`, `out/`, and release artifacts.
-3. Update roadmap or verification docs if behavior changed.
-4. Build `NativePlanetController` module if controller code changed.
+2. Preserve Launcher3/Quickstep changes as a patch under `rom/patches`.
+3. Exclude `prebuilts/bin/*`, `prebuilts/pill/*.pill`, `out/`, and release artifacts.
+4. Update roadmap or verification docs if behavior changed.
+5. Build `NativePlanetController` or `Launcher3QuickStep` if those modules changed.
 
 When launcher changes:
 

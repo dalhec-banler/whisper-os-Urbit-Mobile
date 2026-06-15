@@ -8,14 +8,17 @@ This repository is the project home for NativePlanet Mobile work: roadmap, ROM o
 
 Source of truth: [docs/ROADMAP.md](docs/ROADMAP.md)
 
-As of 2026-06-08:
+Current baseline:
 
 - Pixel 8 Pro / husky ROM boots as userdebug with SELinux enforcing.
 - `vere64` runs as an init-managed Android service.
-- Dev moon `~namfeb-rossyp-palrum-roclur` boots through `nativeplanet_vere`.
+- A Palrum child moon boots through `nativeplanet_vere`.
 - `conn.sock` works and replaces Lens for runtime health.
 - `NativePlanetController` polls conn.sock and exposes provider status to the launcher.
-- Launcher debug app consumes provider data and launches without crashing.
+- Whisper OS uses Launcher3/Quickstep as HOME, with native Android gestures,
+  recents, drag/drop, app drawer, widgets, and workspace behavior preserved.
+- Launcher3 includes a first-party My Urbit Apps surface for Urbit-hosted app
+  inventory.
 - Reboot auto-start from a healthy pier is verified.
 - GroundSeg-compatible graceful shutdown through Click/conn.sock `%hood %drum-exit` is verified on device and queued in controller source.
 
@@ -31,6 +34,7 @@ docs/
   archive/                   Historical docs that are no longer current
 
 rom/vendor/nativeplanet/     Source overlay for GrapheneOS vendor/nativeplanet
+rom/patches/                 Patch sets for GrapheneOS projects outside vendor/nativeplanet
 launcher/                    Whisper Launcher Android project
 controller/                  Historical placeholder; controller now lives under rom/vendor/nativeplanet/controller
 examples/                    Safe fixtures only

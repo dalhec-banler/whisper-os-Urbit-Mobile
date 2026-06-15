@@ -1,0 +1,3001 @@
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 80a6b299eb..37d5cb760f 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -21,6 +21,8 @@
+     xmlns:android="http://schemas.android.com/apk/res/android"
+     package="com.android.launcher3">
+     <uses-sdk android:targetSdkVersion="33" android:minSdkVersion="30"/>
++    <uses-permission android:name="android.permission.INTERNET"/>
++    <uses-permission android:name="io.nativeplanet.permission.READ_STATUS"/>
+     <!--
+     Manifest entries specific to Launcher3. This is merged with AndroidManifest-common.xml.
+     Refer comments around specific entries on how to extend individual components.
+@@ -41,11 +43,12 @@
+         android:theme="@style/AppTheme"
+         android:largeHeap="@bool/config_largeHeap"
+         android:restoreAnyVersion="true"
+-        android:supportsRtl="true" >
++        android:supportsRtl="true"
++        android:networkSecurityConfig="@xml/network_security_config" >
+ 
+         <!--
+-        Main launcher activity. When extending only change the name, and keep all the
+-        attributes and intent filters the same
++        Main Launcher activity with Whisper OS styling
++        All gestures, drag-drop, and standard launcher functionality
+         -->
+         <activity
+             android:name="com.android.launcher3.Launcher"
+@@ -62,18 +65,39 @@
+             android:enabled="true">
+             <intent-filter>
+                 <action android:name="android.intent.action.MAIN" />
+-                <action android:name="android.intent.action.SHOW_WORK_APPS" />
+-                <action android:name="android.intent.action.ALL_APPS" />
+                 <category android:name="android.intent.category.HOME" />
+                 <category android:name="android.intent.category.DEFAULT" />
+                 <category android:name="android.intent.category.MONKEY"/>
+                 <category android:name="android.intent.category.LAUNCHER_APP" />
+             </intent-filter>
++            <intent-filter>
++                <action android:name="android.intent.action.SHOW_WORK_APPS" />
++                <action android:name="android.intent.action.ALL_APPS" />
++            </intent-filter>
+             <meta-data
+                 android:name="com.android.launcher3.grid.control"
+                 android:value="${packageName}.grid_control" />
+         </activity>
+ 
++        <activity
++            android:name="com.android.launcher3.WhisperHostedAppsActivity"
++            android:label="@string/whisper_hosted_apps_title"
++            android:icon="@drawable/ic_whisper_hosted_apps"
++            android:theme="@style/AppTheme"
++            android:exported="true"
++            android:resizeableActivity="true">
++            <intent-filter>
++                <action android:name="android.intent.action.MAIN" />
++                <category android:name="android.intent.category.LAUNCHER" />
++            </intent-filter>
++        </activity>
++
++        <activity
++            android:name="com.android.launcher3.WhisperHostedWebActivity"
++            android:theme="@style/AppTheme"
++            android:exported="false"
++            android:resizeableActivity="true" />
++
+         <activity android:name="com.android.launcher3.widgetpicker.WidgetPickerActivity"
+             android:theme="@style/WidgetPickerActivityTheme"
+             android:excludeFromRecents="true"
+diff --git a/quickstep/AndroidManifest-launcher.xml b/quickstep/AndroidManifest-launcher.xml
+index 080c4d6048..35ef948b3e 100644
+--- a/quickstep/AndroidManifest-launcher.xml
++++ b/quickstep/AndroidManifest-launcher.xml
+@@ -35,11 +35,12 @@
+         android:theme="@style/AppTheme"
+         android:largeHeap="@bool/config_largeHeap"
+         android:restoreAnyVersion="true"
+-        android:supportsRtl="true" >
++        android:supportsRtl="true"
++        android:networkSecurityConfig="@xml/network_security_config" >
+ 
+         <!--
+-        Main launcher activity. When extending only change the name, and keep all the
+-        attributes and intent filters the same
++        Main Quickstep launcher with Whisper OS styling - The primary home screen
++        All gestures, drag-drop, and standard launcher functionality preserved
+         -->
+         <activity
+             android:name="com.android.launcher3.uioverrides.QuickstepLauncher"
+@@ -56,13 +57,15 @@
+             android:enabled="true">
+             <intent-filter>
+                 <action android:name="android.intent.action.MAIN" />
+-                <action android:name="android.intent.action.SHOW_WORK_APPS" />
+-                <action android:name="android.intent.action.ALL_APPS" />
+                 <category android:name="android.intent.category.HOME" />
+                 <category android:name="android.intent.category.DEFAULT" />
+                 <category android:name="android.intent.category.MONKEY"/>
+                 <category android:name="android.intent.category.LAUNCHER_APP" />
+             </intent-filter>
++            <intent-filter>
++                <action android:name="android.intent.action.SHOW_WORK_APPS" />
++                <action android:name="android.intent.action.ALL_APPS" />
++            </intent-filter>
+             <meta-data
+                 android:name="com.android.launcher3.grid.control"
+                 android:value="${packageName}.grid_control" />
+diff --git a/quickstep/AndroidManifest.xml b/quickstep/AndroidManifest.xml
+index 727f24a290..a2807918c2 100644
+--- a/quickstep/AndroidManifest.xml
++++ b/quickstep/AndroidManifest.xml
+@@ -25,6 +25,7 @@
+     <uses-permission android:name="android.permission.BROADCAST_CLOSE_SYSTEM_DIALOGS" />
+     <uses-permission android:name="android.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIONS"/>
+     <uses-permission android:name="android.permission.VIBRATE"/>
++    <uses-permission android:name="android.permission.INTERNET"/>
+     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
+     <uses-permission android:name="android.permission.START_TASKS_FROM_RECENTS"/>
+     <uses-permission android:name="android.permission.REMOVE_TASKS"/>
+@@ -42,6 +43,7 @@
+     <uses-permission android:name="android.permission.ACCESS_SHORTCUTS"/>
+     <uses-permission android:name="android.permission.READ_REMOTE_TASKS"/>
+     <uses-permission android:name="android.permission.REQUEST_TASK_HANDOFF"/>
++    <uses-permission android:name="io.nativeplanet.permission.READ_STATUS"/>
+ 
+     <uses-permission android:name="android.permission.SYSTEM_APPLICATION_OVERLAY" />
+ 
+@@ -93,6 +95,25 @@
+              android:enableOnBackInvokedCallback="false"
+              android:taskAffinity=""/>
+ 
++        <activity
++            android:name="com.android.launcher3.WhisperHostedAppsActivity"
++            android:label="@string/whisper_hosted_apps_title"
++            android:icon="@drawable/ic_whisper_hosted_apps"
++            android:theme="@style/AppTheme"
++            android:exported="true"
++            android:resizeableActivity="true">
++            <intent-filter>
++                <action android:name="android.intent.action.MAIN" />
++                <category android:name="android.intent.category.LAUNCHER" />
++            </intent-filter>
++        </activity>
++
++        <activity
++            android:name="com.android.launcher3.WhisperHostedWebActivity"
++            android:theme="@style/AppTheme"
++            android:exported="false"
++            android:resizeableActivity="true" />
++
+         <!-- Content provider to settings search. The autority should be same as the packageName -->
+         <provider android:name="com.android.quickstep.LauncherSearchIndexablesProvider"
+              android:authorities="${applicationId}"
+diff --git a/quickstep/res/drawable/overview_action_button_background.xml b/quickstep/res/drawable/overview_action_button_background.xml
+index b12fcd1505..42b8446c9f 100644
+--- a/quickstep/res/drawable/overview_action_button_background.xml
++++ b/quickstep/res/drawable/overview_action_button_background.xml
+@@ -18,7 +18,10 @@
+     <item>
+         <shape android:shape="rectangle">
+             <corners android:radius="@dimen/overview_actions_button_radius" />
+-            <solid android:color="@color/materialColorSurfaceBright"/>
++            <solid android:color="@color/whisper_ink_high" />
++            <stroke
++                android:width="1dp"
++                android:color="@color/whisper_hairline" />
+         </shape>
+     </item>
+-</ripple>
+\ No newline at end of file
++</ripple>
+diff --git a/quickstep/res/drawable/overview_action_button_background_blur.xml b/quickstep/res/drawable/overview_action_button_background_blur.xml
+index b1e4001f27..42b8446c9f 100644
+--- a/quickstep/res/drawable/overview_action_button_background_blur.xml
++++ b/quickstep/res/drawable/overview_action_button_background_blur.xml
+@@ -18,7 +18,10 @@
+     <item>
+         <shape android:shape="rectangle">
+             <corners android:radius="@dimen/overview_actions_button_radius" />
+-            <solid android:color="@*android:color/surface_effect_1" />
++            <solid android:color="@color/whisper_ink_high" />
++            <stroke
++                android:width="1dp"
++                android:color="@color/whisper_hairline" />
+         </shape>
+     </item>
+-</ripple>
+\ No newline at end of file
++</ripple>
+diff --git a/quickstep/res/values/colors.xml b/quickstep/res/values/colors.xml
+index 819988b7f7..8306a9e173 100644
+--- a/quickstep/res/values/colors.xml
++++ b/quickstep/res/values/colors.xml
+@@ -18,12 +18,12 @@
+     <color name="chip_hint_foreground_color">#fff</color>
+     <color name="chip_scrim_start_color">#39000000</color>
+ 
+-    <color name="all_apps_label_text">#61000000</color>
+-    <color name="all_apps_label_text_dark">#61FFFFFF</color>
+-    <color name="all_apps_prediction_row_separator">#3c000000</color>
+-    <color name="all_apps_prediction_row_separator_dark">#3cffffff</color>
+-    <color name="blur_shade_panel_fg">@androidprv:color/shade_panel_fg</color>
+-    <color name="blur_shade_panel_bg">@androidprv:color/shade_panel_bg</color>
++    <color name="all_apps_label_text">#F5EFE2</color>
++    <color name="all_apps_label_text_dark">#F5EFE2</color>
++    <color name="all_apps_prediction_row_separator">#3A3428</color>
++    <color name="all_apps_prediction_row_separator_dark">#3A3428</color>
++    <color name="blur_shade_panel_fg">#00000000</color>
++    <color name="blur_shade_panel_bg">#000000</color>
+ 
+     <!-- Taskbar -->
+     <color name="taskbar_nav_icon_selection_ripple">#E0E0E0</color>
+@@ -80,7 +80,7 @@
+     <color name="all_set_page_background">@android:color/system_neutral1_50</color>
+ 
+     <!-- Recents overview -->
+-    <color name="recents_filter_icon">#333333</color>
++    <color name="recents_filter_icon">#F5EFE2</color>
+ 
+     <!-- Lottie light theme colors. -->
+     <color name="lottie_blue400">#669df6</color>
+@@ -101,4 +101,4 @@
+     <color name="nudge_pill_color2">#7430E2</color>
+     <color name="nudge_pill_color3">#2A7EC8</color>
+     <color name="nudge_pill_color4">#2DB8BD</color>
+-</resources>
+\ No newline at end of file
++</resources>
+diff --git a/quickstep/res/values/strings.xml b/quickstep/res/values/strings.xml
+index 0693e78c32..143f70cdf9 100644
+--- a/quickstep/res/values/strings.xml
++++ b/quickstep/res/values/strings.xml
+@@ -19,7 +19,7 @@
+ <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+ 
+     <!-- Application name -->
+-    <string name="derived_app_name" translatable="false">Launcher</string>
++    <string name="derived_app_name" translatable="false">Whisper OS</string>
+ 
+     <!-- Options for recent tasks -->
+     <!-- Title for an option to keep an app pinned to the screen until it is unpinned -->
+diff --git a/quickstep/res/values/styles.xml b/quickstep/res/values/styles.xml
+index 2e4567a055..47b29a3cb6 100644
+--- a/quickstep/res/values/styles.xml
++++ b/quickstep/res/values/styles.xml
+@@ -263,7 +263,7 @@
+         <item name="android:gravity">center</item>
+         <item name="android:layout_gravity">center</item>
+         <item name="android:includeFontPadding">false</item>
+-        <item name="android:colorControlHighlight">?attr/workspaceTextColor</item>
++        <item name="android:colorControlHighlight">@color/whisper_amber_soft</item>
+         <item name="android:maxLines">1</item>
+         <item name="android:singleLine">true</item>
+         <item name="android:ellipsize">end</item>
+@@ -384,16 +384,16 @@
+     </style>
+ 
+     <style name="AllAppsBlurStyle">
+-        <item name="allAppsScrimColor">@androidprv:color/shade_panel_scrim_color</item>
+-        <item name="groupHighlight">@androidprv:color/surface_effect_1</item>
+-        <item name="focusHighlight">@androidprv:color/surface_effect_2</item>
+-        <item name="allAppsSurfaceLow">@androidprv:color/surface_effect_0</item>
+-        <item name="allAppsSurfaceHighest">@androidprv:color/surface_effect_2</item>
+-        <item name="allAppsUnselectedTab">@androidprv:color/surface_effect_2</item>
+-        <item name="allappsHeaderProtectionColor">@androidprv:color/surface_effect_1</item>
+-        <item name="privateSpaceSettingsColor">@androidprv:color/surface_effect_2</item>
+-        <item name="privateSpaceDividerColor">@androidprv:color/surface_effect_3</item>
+-        <item name="bottomSheetDragHandleColor">@color/materialColorOnSurface</item>
++        <item name="allAppsScrimColor">#000000</item>
++        <item name="groupHighlight">#3A2813</item>
++        <item name="focusHighlight">#3A2813</item>
++        <item name="allAppsSurfaceLow">#11100D</item>
++        <item name="allAppsSurfaceHighest">#1B1914</item>
++        <item name="allAppsUnselectedTab">#11100D</item>
++        <item name="allappsHeaderProtectionColor">#000000</item>
++        <item name="privateSpaceSettingsColor">#1B1914</item>
++        <item name="privateSpaceDividerColor">#3A3428</item>
++        <item name="bottomSheetDragHandleColor">#3A3428</item>
+     </style>
+ 
+     <!-- Currently All Apps fallback should only change the panel background color, but not
+diff --git a/res/color-v31/overview_scrim.xml b/res/color-v31/overview_scrim.xml
+index 212518ff65..17a3feed41 100644
+--- a/res/color-v31/overview_scrim.xml
++++ b/res/color-v31/overview_scrim.xml
+@@ -14,5 +14,5 @@
+      limitations under the License.
+ -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-  <item android:color="@android:color/system_neutral2_200" />
++  <item android:color="@color/whisper_black" />
+ </selector>
+diff --git a/res/color-v31/overview_scrim_dark.xml b/res/color-v31/overview_scrim_dark.xml
+index 2ab8ecdec9..17a3feed41 100644
+--- a/res/color-v31/overview_scrim_dark.xml
++++ b/res/color-v31/overview_scrim_dark.xml
+@@ -14,5 +14,5 @@
+      limitations under the License.
+ -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-  <item android:color="@android:color/system_neutral1_500" android:lStar="35" />
++  <item android:color="@color/whisper_black" />
+ </selector>
+diff --git a/res/color-v33/overview_scrim.xml b/res/color-v33/overview_scrim.xml
+index b9cda980b7..26c66b51b6 100644
+--- a/res/color-v33/overview_scrim.xml
++++ b/res/color-v33/overview_scrim.xml
+@@ -14,7 +14,5 @@
+      limitations under the License.
+ -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-    <item
+-        android:color="@android:color/system_neutral2_500"
+-        android:lStar="80"/>
++    <item android:color="@color/whisper_black" />
+ </selector>
+diff --git a/res/color-v33/overview_scrim_dark.xml b/res/color-v33/overview_scrim_dark.xml
+index 84d22e6515..26c66b51b6 100644
+--- a/res/color-v33/overview_scrim_dark.xml
++++ b/res/color-v33/overview_scrim_dark.xml
+@@ -14,7 +14,5 @@
+      limitations under the License.
+ -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-    <item
+-        android:color="@android:color/system_neutral2_500"
+-        android:lStar="35"/>
++    <item android:color="@color/whisper_black" />
+ </selector>
+diff --git a/res/color/overview_button.xml b/res/color/overview_button.xml
+index aa6c618ef7..0d68d030fc 100644
+--- a/res/color/overview_button.xml
++++ b/res/color/overview_button.xml
+@@ -2,10 +2,10 @@
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+     <item
+         android:alpha="1"
+-        android:color="@color/materialColorOnSurface"
++        android:color="@color/whisper_paper"
+         android:state_enabled="true" />
+     <item
+         android:alpha="?android:disabledAlpha"
+-        android:color="@color/materialColorOnSurface"
++        android:color="@color/whisper_paper_dim"
+         android:state_enabled="false" />
+-</selector>
+\ No newline at end of file
++</selector>
+diff --git a/res/color/overview_scrim.xml b/res/color/overview_scrim.xml
+index 48cf5763a1..17a3feed41 100644
+--- a/res/color/overview_scrim.xml
++++ b/res/color/overview_scrim.xml
+@@ -14,5 +14,5 @@
+      limitations under the License.
+ -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-  <item android:color="#30000000" />
++  <item android:color="@color/whisper_black" />
+ </selector>
+diff --git a/res/color/overview_scrim_dark.xml b/res/color/overview_scrim_dark.xml
+index 48cf5763a1..17a3feed41 100644
+--- a/res/color/overview_scrim_dark.xml
++++ b/res/color/overview_scrim_dark.xml
+@@ -14,5 +14,5 @@
+      limitations under the License.
+ -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-  <item android:color="#30000000" />
++  <item android:color="@color/whisper_black" />
+ </selector>
+diff --git a/res/color/overview_scrim_foreground_primary.xml b/res/color/overview_scrim_foreground_primary.xml
+index 68be32d4fa..da797ad9d5 100644
+--- a/res/color/overview_scrim_foreground_primary.xml
++++ b/res/color/overview_scrim_foreground_primary.xml
+@@ -14,5 +14,5 @@
+   ~ limitations under the License.
+   -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-    <item android:alpha="0.10" android:color="@android:color/system_accent1_100"/>
++    <item android:color="@android:color/transparent" />
+ </selector>
+diff --git a/res/color/overview_scrim_foreground_primary_dark.xml b/res/color/overview_scrim_foreground_primary_dark.xml
+index 2b46edc191..da797ad9d5 100644
+--- a/res/color/overview_scrim_foreground_primary_dark.xml
++++ b/res/color/overview_scrim_foreground_primary_dark.xml
+@@ -14,5 +14,5 @@
+   ~ limitations under the License.
+   -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-    <item android:alpha="0.32" android:color="@android:color/system_accent1_800" />
++    <item android:color="@android:color/transparent" />
+ </selector>
+diff --git a/res/color/overview_scrim_foreground_secondary.xml b/res/color/overview_scrim_foreground_secondary.xml
+index f2555ccc0e..da797ad9d5 100644
+--- a/res/color/overview_scrim_foreground_secondary.xml
++++ b/res/color/overview_scrim_foreground_secondary.xml
+@@ -14,5 +14,5 @@
+   ~ limitations under the License.
+   -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-    <item android:alpha="0.20" android:color="@android:color/system_neutral1_500" android:lStar="98" />
++    <item android:color="@android:color/transparent" />
+ </selector>
+diff --git a/res/color/overview_scrim_foreground_secondary_dark.xml b/res/color/overview_scrim_foreground_secondary_dark.xml
+index 79e8d8b4ec..da797ad9d5 100644
+--- a/res/color/overview_scrim_foreground_secondary_dark.xml
++++ b/res/color/overview_scrim_foreground_secondary_dark.xml
+@@ -14,5 +14,5 @@
+   ~ limitations under the License.
+   -->
+ <selector xmlns:android="http://schemas.android.com/apk/res/android">
+-    <item android:alpha="0.32" android:color="@android:color/system_neutral1_500" android:lStar="98" />
++    <item android:color="@android:color/transparent" />
+ </selector>
+diff --git a/res/drawable/bg_all_apps_searchbox.xml b/res/drawable/bg_all_apps_searchbox.xml
+index 3c321e4c49..765f4ab1ab 100644
+--- a/res/drawable/bg_all_apps_searchbox.xml
++++ b/res/drawable/bg_all_apps_searchbox.xml
+@@ -14,7 +14,7 @@
+      limitations under the License.
+ -->
+ <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+-    <solid android:color="?attr/popupColorPrimary" />
++    <solid android:color="@color/whisper_paper" />
+     <corners android:radius="@dimen/rounded_button_radius" />
+-    <stroke android:color="?attr/allappsHeaderProtectionColor" android:width=".5dp" />
+-</shape>
+\ No newline at end of file
++    <stroke android:color="@color/whisper_hairline" android:width=".5dp" />
++</shape>
+diff --git a/res/drawable/ic_whisper_hosted_apps.xml b/res/drawable/ic_whisper_hosted_apps.xml
+new file mode 100644
+index 0000000000..bf51a450ec
+--- /dev/null
++++ b/res/drawable/ic_whisper_hosted_apps.xml
+@@ -0,0 +1,33 @@
++<?xml version="1.0" encoding="utf-8"?>
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="48dp"
++    android:height="48dp"
++    android:viewportWidth="48"
++    android:viewportHeight="48">
++    <path
++        android:fillColor="#00000000"
++        android:pathData="M24,6 L39,14.5 L39,31.5 L24,40 L9,31.5 L9,14.5 Z"
++        android:strokeColor="#F5EFE2"
++        android:strokeWidth="3"
++        android:strokeLineJoin="round" />
++    <path
++        android:fillColor="#00000000"
++        android:pathData="M24,6 L24,22.5 L39,14.5"
++        android:strokeColor="#C79338"
++        android:strokeWidth="2.5"
++        android:strokeLineCap="round"
++        android:strokeLineJoin="round" />
++    <path
++        android:fillColor="#00000000"
++        android:pathData="M24,22.5 L9,14.5"
++        android:strokeColor="#C79338"
++        android:strokeWidth="2.5"
++        android:strokeLineCap="round"
++        android:strokeLineJoin="round" />
++    <path
++        android:fillColor="#00000000"
++        android:pathData="M24,22.5 L24,40"
++        android:strokeColor="#F5EFE2"
++        android:strokeWidth="2.5"
++        android:strokeLineCap="round" />
++</vector>
+diff --git a/res/layout/search_container_all_apps.xml b/res/layout/search_container_all_apps.xml
+index db218c3d4b..c1b19270b0 100644
+--- a/res/layout/search_container_all_apps.xml
++++ b/res/layout/search_container_all_apps.xml
+@@ -32,6 +32,6 @@
+     android:saveEnabled="false"
+     android:scrollHorizontally="true"
+     android:singleLine="true"
+-    android:textColor="?android:attr/textColorSecondary"
++    android:textColor="@color/whisper_ink"
+     android:textColorHint="@drawable/all_apps_search_hint"
+-    android:textSize="16sp" />
+\ No newline at end of file
++    android:textSize="16sp" />
+diff --git a/res/values/colors.xml b/res/values/colors.xml
+index c23ddb2db7..33b098b25f 100644
+--- a/res/values/colors.xml
++++ b/res/values/colors.xml
+@@ -27,6 +27,21 @@
+ 
+     <color name="default_shadow_color_no_alpha">#FF000000</color>
+ 
++    <!-- Whisper OS skin tokens. Keep these plain colors so Launcher3 resource overlays remain
++         predictable across light/dark wallpaper-derived themes. -->
++    <color name="whisper_black">#000000</color>
++    <color name="whisper_ink">#11100D</color>
++    <color name="whisper_ink_high">#1B1914</color>
++    <color name="whisper_hairline">#3A3428</color>
++    <color name="whisper_paper">#F5EFE2</color>
++    <color name="whisper_paper_dim">#CFC5B2</color>
++    <color name="whisper_amber">#C79338</color>
++    <color name="whisper_amber_soft">#3A2813</color>
++    <color name="whisper_system">#5D5547</color>
++    <color name="whisper_store">#C79338</color>
++    <color name="whisper_sandboxed">#9B7A43</color>
++    <color name="whisper_urbit">#F5EFE2</color>
++
+     <color name="spring_loaded_panel_color">#40FFFFFF</color>
+     <color name="spring_loaded_highlighted_panel_border_color">#FFF</color>
+ 
+@@ -35,45 +50,45 @@
+ 
+     <color name="icon_background">#E0E0E0</color> <!-- Gray 300 -->
+ 
+-    <color name="popup_color_primary_light">#FFF</color>
+-    <color name="popup_color_secondary_light">#F1F3F4</color>
+-    <color name="popup_color_tertiary_light">#E0E0E0</color> <!-- Gray 300 -->
+-    <color name="popup_text_color_light">#1F1F1F</color>
+-    <color name="popup_color_neutral_dark">#3C4043</color> <!-- Gray 800 -->
+-    <color name="popup_color_primary_dark">#3C4043</color> <!-- Gray 800 -->
+-    <color name="popup_color_secondary_dark">#202124</color>
+-    <color name="popup_color_tertiary_dark">#757575</color> <!-- Gray 600 -->
+-    <color name="popup_text_color_dark">#E3E3E3</color>
+-
+-    <color name="popup_shade_first_light">#F9F9F9</color>
+-    <color name="popup_shade_second_light">#F1F1F1</color>
+-    <color name="popup_shade_third_light">#E2E2E2</color>
+-    <color name="popup_shade_first_dark">#303030</color>
+-    <color name="popup_shade_second_dark">#262626</color>
+-    <color name="popup_shade_third_dark">#1B1B1B</color>
+-
+-    <color name="popup_notification_dot_light">#FFF</color>
+-    <color name="popup_notification_dot_dark">#757575</color>
+-
+-    <color name="notification_dot_color_light">#6DD58C</color>
+-    <color name="notification_dot_color_dark">#C4EED0</color>
++    <color name="popup_color_primary_light">@color/whisper_ink_high</color>
++    <color name="popup_color_secondary_light">@color/whisper_ink</color>
++    <color name="popup_color_tertiary_light">@color/whisper_hairline</color>
++    <color name="popup_text_color_light">@color/whisper_paper</color>
++    <color name="popup_color_neutral_dark">@color/whisper_ink_high</color>
++    <color name="popup_color_primary_dark">@color/whisper_ink_high</color>
++    <color name="popup_color_secondary_dark">@color/whisper_ink</color>
++    <color name="popup_color_tertiary_dark">@color/whisper_hairline</color>
++    <color name="popup_text_color_dark">@color/whisper_paper</color>
++
++    <color name="popup_shade_first_light">@color/whisper_ink_high</color>
++    <color name="popup_shade_second_light">@color/whisper_ink</color>
++    <color name="popup_shade_third_light">@color/whisper_black</color>
++    <color name="popup_shade_first_dark">@color/whisper_ink_high</color>
++    <color name="popup_shade_second_dark">@color/whisper_ink</color>
++    <color name="popup_shade_third_dark">@color/whisper_black</color>
++
++    <color name="popup_notification_dot_light">@color/whisper_amber</color>
++    <color name="popup_notification_dot_dark">@color/whisper_amber</color>
++
++    <color name="notification_dot_color_light">@color/whisper_amber</color>
++    <color name="notification_dot_color_dark">@color/whisper_amber</color>
+ 
+     <color name="workspace_text_color_light">#FFF</color>
+     <color name="workspace_text_color_dark">#FF000000</color>
+ 
+-    <color name="folder_text_color_light">#1F1F1F</color>
+-    <color name="folder_text_color_dark">#E3E3E3</color>
+-    <color name="folder_hint_text_color_light">#444746</color>
+-    <color name="folder_hint_text_color_dark">#C4C7C5</color>
++    <color name="folder_text_color_light">@color/whisper_paper</color>
++    <color name="folder_text_color_dark">@color/whisper_paper</color>
++    <color name="folder_hint_text_color_light">@color/whisper_paper_dim</color>
++    <color name="folder_hint_text_color_dark">@color/whisper_paper_dim</color>
+ 
+-    <color name="folder_background_light">#EFEDED</color>
+-    <color name="folder_background_dark">#1F2020</color>
++    <color name="folder_background_light">@color/whisper_ink</color>
++    <color name="folder_background_dark">@color/whisper_ink</color>
+ 
+-    <color name="folder_preview_light">#7FCFFF</color>
+-    <color name="folder_preview_dark">#1E1F20</color>
++    <color name="folder_preview_light">@color/whisper_ink_high</color>
++    <color name="folder_preview_dark">@color/whisper_ink_high</color>
+ 
+-    <color name="pagination_indicator_dot_color_light">#0B57D0</color>
+-    <color name="pagination_indicator_dot_color_dark">#A8C7FA</color>
++    <color name="pagination_indicator_dot_color_light">@color/whisper_amber</color>
++    <color name="pagination_indicator_dot_color_dark">@color/whisper_amber</color>
+ 
+     <color name="page_indicator_arrow_bg_light">#000000</color>
+     <color name="page_indicator_arrow_bg_dark">#FFFFFF</color>
+@@ -84,13 +99,13 @@
+ 
+     <color name="wallpaper_popup_scrim">?android:attr/colorAccent</color>
+ 
+-    <color name="workspace_accent_color_light">#D3E3FD</color>
+-    <color name="workspace_accent_color_dark">#041E49</color>
+-    <color name="workspace_surface_color">#D3E3FD</color>
+-    <color name="drop_target_hover_text_color_light">#041E49</color>
+-    <color name="drop_target_hover_text_color_dark">#D3E3FD</color>
+-    <color name="drop_target_hover_button_color_light">#D3E3FD</color>
+-    <color name="drop_target_hover_button_color_dark">#0842A0</color>
++    <color name="workspace_accent_color_light">@color/whisper_amber_soft</color>
++    <color name="workspace_accent_color_dark">@color/whisper_amber_soft</color>
++    <color name="workspace_surface_color">@color/whisper_ink</color>
++    <color name="drop_target_hover_text_color_light">@color/whisper_paper</color>
++    <color name="drop_target_hover_text_color_dark">@color/whisper_paper</color>
++    <color name="drop_target_hover_button_color_light">@color/whisper_amber_soft</color>
++    <color name="drop_target_hover_button_color_dark">@color/whisper_amber_soft</color>
+ 
+     <color name="taskbar_running_app_indicator_color">#000000</color>
+     <color name="taskbar_minimized_app_indicator_color">#000000</color>
+@@ -100,8 +115,8 @@
+     <color name="preload_icon_accent_color_dark">#4BB6E8</color>
+     <color name="preload_icon_background_color_dark">#40484D</color>
+ 
+-    <color name="blur_shade_panel_fg">#66D9E2FF</color>
+-    <color name="blur_shade_panel_bg">#1AFFFFFF</color>
++    <color name="blur_shade_panel_fg">#00000000</color>
++    <color name="blur_shade_panel_bg">@color/whisper_black</color>
+     <color name="work_turn_on_stroke">?android:attr/colorAccent</color>
+ 
+     <color name="widget_picker_focus_outline_color_light">@color/system_secondary_light</color>
+diff --git a/res/values/config.xml b/res/values/config.xml
+index c9a9b70617..7bed25cc80 100644
+--- a/res/values/config.xml
++++ b/res/values/config.xml
+@@ -129,7 +129,10 @@
+         <item>@dimen/swipe_up_max_velocity</item>
+     </array>
+ 
+-    <string-array name="filtered_components" ></string-array>
++    <string-array name="filtered_components">
++        <!-- NativePlanet is an OS surface, not a user-launchable Android app. -->
++        <item>io.nativeplanet.launcher/.MainActivity</item>
++    </string-array>
+     <string-array name="default_featured_widget_apps" translatable="false">
+     </string-array>
+ 
+diff --git a/res/values/dimens.xml b/res/values/dimens.xml
+index 5cee3ae5f0..416506c829 100644
+--- a/res/values/dimens.xml
++++ b/res/values/dimens.xml
+@@ -16,6 +16,9 @@
+ 
+ <resources>
+ 
++    <!-- Whisper OS status strip padding below system status bar -->
++    <dimen name="status_bar_extra_padding">24dp</dimen>
++
+     <dimen name="click_shadow_elevation">4dp</dimen>
+ 
+     <!-- Dynamic Grid -->
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+index 4d95e4ae2f..d87e85ca0c 100644
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -21,7 +21,8 @@
+     <skip />
+ 
+     <!-- Application name -->
+-    <string name="app_name">Launcher3</string>
++    <string name="app_name">Whisper OS</string>
++    <string name="whisper_hosted_apps_title">My Urbit Apps</string>
+     <!-- Work folder name -->
+     <string name="work_folder_name">Work</string>
+     <!-- Displayed when user selects a shortcut for an app that was uninstalled [CHAR_LIMIT=none]-->
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index e6eb8313a7..96d5d10e77 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -38,21 +38,27 @@
+     </style>
+ 
+     <style name="LauncherTheme" parent="@style/DynamicColorsBaseLauncherTheme">
+-        <item name="android:textColorSecondary">#DE000000</item>
+-        <item name="groupHighlight">@color/materialColorSurfaceContainerHigh</item>
+-        <item name="allAppsScrimColor">@color/materialColorSurfaceDim</item>
+-        <item name="allappsHeaderProtectionColor">@color/materialColorSurfaceContainerHighest</item>
+-        <item name="allAppsNavBarScrimColor">#66FFFFFF</item>
+-        <item name="allAppsSurfaceLow">@color/materialColorSurfaceContainerLow</item>
+-        <item name="allAppsSurfaceHighest">@color/materialColorSurfaceContainerHighest</item>
+-        <item name="allAppsUnselectedTab">@color/materialColorSurfaceBright</item>
+-        <item name="privateSpaceSettingsColor">@color/materialColorSurfaceBright</item>
+-        <item name="privateSpaceDividerColor">@color/materialColorOutlineVariant</item>
+-        <item name="bottomSheetDragHandleColor">@color/materialColorOutlineVariant</item>
++        <item name="android:textColorPrimary">@color/whisper_paper</item>
++        <item name="android:textColorSecondary">@color/whisper_paper_dim</item>
++        <item name="android:textColorTertiary">@color/whisper_paper_dim</item>
++        <item name="android:textColorHint">@color/whisper_paper_dim</item>
++        <item name="android:colorAccent">@color/whisper_amber</item>
++        <item name="android:colorControlHighlight">#26C79338</item>
++        <item name="groupHighlight">@color/whisper_amber_soft</item>
++        <item name="allAppsScrimColor">@color/whisper_black</item>
++        <item name="allappsHeaderProtectionColor">@color/whisper_black</item>
++        <item name="allAppsNavBarScrimColor">#E6000000</item>
++        <item name="allAppsSurfaceLow">@color/whisper_ink</item>
++        <item name="allAppsSurfaceHighest">@color/whisper_ink_high</item>
++        <item name="allAppsUnselectedTab">@color/whisper_ink</item>
++        <item name="allAppsSearchIconBackground">@color/whisper_ink_high</item>
++        <item name="privateSpaceSettingsColor">@color/whisper_ink_high</item>
++        <item name="privateSpaceDividerColor">@color/whisper_hairline</item>
++        <item name="bottomSheetDragHandleColor">@color/whisper_hairline</item>
+         <item name="popupColorPrimary">@color/popup_color_primary_light</item>
+         <item name="popupColorSecondary">@color/popup_color_secondary_light</item>
+         <item name="popupColorTertiary">@color/popup_color_tertiary_light</item>
+-        <item name="popupTextColor">@color/system_on_surface_light</item>
++        <item name="popupTextColor">@color/whisper_paper</item>
+         <item name="popupShadeFirst">@color/popup_shade_first_light</item>
+         <item name="popupShadeSecond">@color/popup_shade_second_light</item>
+         <item name="popupShadeThird">@color/popup_shade_third_light</item>
+@@ -67,18 +73,18 @@
+         <item name="widgetsTheme">@style/WidgetContainerTheme</item>
+         <item name="pageIndicatorDotColor">@color/page_indicator_dot_color_light</item>
+         <item name="pageIndicatorArrowBgColor">@color/page_indicator_arrow_bg_light</item>
+-        <item name="focusOutlineColor">@color/materialColorSecondaryFixed</item>
+-        <item name="focusInnerOutlineColor">@color/materialColorOnSecondaryFixedVariant</item>
++        <item name="focusOutlineColor">@color/whisper_amber</item>
++        <item name="focusInnerOutlineColor">@color/whisper_paper</item>
+         <item name="folderPreviewColor">@color/folder_preview_light</item>
+         <item name="folderBackgroundColor">@color/folder_background_light</item>
+-        <item name="folderIconBorderColor">?android:attr/colorPrimary</item>
+-        <item name="isFolderDarkText">true</item>
++        <item name="folderIconBorderColor">@color/whisper_hairline</item>
++        <item name="isFolderDarkText">false</item>
+         <item name="folderTextColor">@color/folder_text_color_light</item>
+         <item name="folderHintTextColor">@color/folder_hint_text_color_light</item>
+         <item name="appPairSurfaceInFolder">@color/materialColorSurfaceContainerLowest</item>
+         <item name="loadingIconColor">#CCFFFFFF</item>
+         <item name="iconOnlyShortcutColor">?android:attr/textColorSecondary</item>
+-        <item name="eduHalfSheetBGColor">?android:attr/colorAccent</item>
++        <item name="eduHalfSheetBGColor">@color/whisper_ink</item>
+         <item name="workspaceAccentColor">@color/workspace_accent_color_light</item>
+         <item name="workspaceSurfaceColor">@color/workspace_surface_color</item>
+         <item name="dropTargetHoverTextColor">@color/drop_target_hover_text_color_light</item>
+@@ -86,14 +92,14 @@
+         <item name="overviewScrimColorFallback">@color/overview_scrim</item>
+         <item name="overviewScrimForegroundPrimaryBlur">@color/overview_scrim_foreground_primary</item>
+         <item name="overviewScrimForegroundSecondaryBlur">@color/overview_scrim_foreground_secondary</item>
+-        <item name="overviewScrimColorBlur">#80FFFFFF</item>
++        <item name="overviewScrimColorBlur">#CC000000</item>
+         <item name="preloadIconAccentColor">@color/preload_icon_accent_color_light</item>
+         <item name="preloadIconBackgroundColor">@color/preload_icon_background_color_light</item>
+         <item name="android:windowTranslucentStatus">false</item>
+         <item name="android:windowTranslucentNavigation">false</item>
+         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+-        <item name="android:statusBarColor">#00000000</item>
+-        <item name="android:navigationBarColor">#00000000</item>
++        <item name="android:statusBarColor">@color/whisper_black</item>
++        <item name="android:navigationBarColor">@color/whisper_black</item>
+         <item name="android:switchStyle">@style/SwitchStyle</item>
+     </style>
+ 
+@@ -124,13 +130,17 @@
+         <item name="android:textColorHint">#A0FFFFFF</item>
+         <item name="android:colorControlHighlight">#19FFFFFF</item>
+         <item name="android:colorPrimary">#FF212121</item>
+-        <item name="allAppsScrimColor">@color/materialColorSurfaceDim</item>
+-        <item name="allappsHeaderProtectionColor">@color/materialColorSurfaceContainerLow</item>
++        <item name="allAppsScrimColor">@color/whisper_black</item>
++        <item name="allappsHeaderProtectionColor">@color/whisper_black</item>
+         <item name="allAppsNavBarScrimColor">#80000000</item>
++        <item name="allAppsSurfaceLow">@color/whisper_ink</item>
++        <item name="allAppsSurfaceHighest">@color/whisper_ink_high</item>
++        <item name="allAppsUnselectedTab">@color/whisper_ink</item>
++        <item name="allAppsSearchIconBackground">@color/whisper_ink_high</item>
+         <item name="popupColorPrimary">@color/popup_color_primary_dark</item>
+         <item name="popupColorSecondary">@color/popup_color_secondary_dark</item>
+         <item name="popupColorTertiary">@color/popup_color_tertiary_dark</item>
+-        <item name="popupTextColor">@color/system_on_surface_dark</item>
++        <item name="popupTextColor">@color/whisper_paper</item>
+         <item name="popupNotificationDotColor">@color/popup_notification_dot_dark</item>
+         <item name="popupShadeFirst">@color/popup_shade_first_dark</item>
+         <item name="popupShadeSecond">@color/popup_shade_second_dark</item>
+@@ -141,7 +151,7 @@
+         <item name="pageIndicatorArrowBgColor">@color/page_indicator_arrow_bg_dark</item>
+         <item name="folderPreviewColor">@color/folder_preview_dark</item>
+         <item name="folderBackgroundColor">@color/folder_background_dark</item>
+-        <item name="folderIconBorderColor">?android:attr/colorPrimary</item>
++        <item name="folderIconBorderColor">@color/whisper_hairline</item>
+         <item name="isFolderDarkText">false</item>
+         <item name="folderTextColor">@color/folder_text_color_dark</item>
+         <item name="folderHintTextColor">@color/folder_hint_text_color_dark</item>
+@@ -153,7 +163,7 @@
+         <item name="overviewScrimColorFallback">@color/overview_scrim_dark</item>
+         <item name="overviewScrimForegroundPrimaryBlur">@color/overview_scrim_foreground_primary_dark</item>
+         <item name="overviewScrimForegroundSecondaryBlur">@color/overview_scrim_foreground_secondary_dark</item>
+-        <item name="overviewScrimColorBlur">#80000000</item>
++        <item name="overviewScrimColorBlur">#CC000000</item>
+         <item name="preloadIconAccentColor">@color/preload_icon_accent_color_dark</item>
+         <item name="preloadIconBackgroundColor">@color/preload_icon_background_color_dark</item>
+     </style>
+@@ -183,7 +193,19 @@
+     <style name="AppTheme.Dark.DarkText" parent="@style/LauncherTheme.Dark.DarkText" />
+ 
+     <!-- Theme overrides in All Apps when blur is enabled. -->
+-    <style name="AllAppsBlurStyle" />
++    <style name="AllAppsBlurStyle">
++        <item name="allAppsScrimColor">@color/whisper_black</item>
++        <item name="allappsHeaderProtectionColor">@color/whisper_black</item>
++        <item name="allAppsNavBarScrimColor">#E6000000</item>
++        <item name="allAppsSurfaceLow">@color/whisper_ink</item>
++        <item name="allAppsSurfaceHighest">@color/whisper_ink_high</item>
++        <item name="allAppsUnselectedTab">@color/whisper_ink</item>
++        <item name="groupHighlight">@color/whisper_amber_soft</item>
++        <item name="focusHighlight">@color/whisper_amber_soft</item>
++        <item name="privateSpaceSettingsColor">@color/whisper_ink_high</item>
++        <item name="privateSpaceDividerColor">@color/whisper_hairline</item>
++        <item name="bottomSheetDragHandleColor">@color/whisper_hairline</item>
++    </style>
+     <!-- Theme overrides in All Apps when blur is available but currently disabled. -->
+     <style name="AllAppsBlurFallbackStyle" />
+ 
+@@ -450,7 +472,7 @@
+         <item name="android:stateListAnimator">@animator/all_apps_fastscroll_icon_anim</item>
+         <item name="android:paddingLeft">@dimen/dynamic_grid_cell_padding_x</item>
+         <item name="android:paddingRight">@dimen/dynamic_grid_cell_padding_x</item>
+-        <item name="android:textColor">@color/materialColorOnSurface</item>
++        <item name="android:textColor">@color/whisper_paper</item>
+         <item name="android:fontFamily">variable-title-small</item>
+     </style>
+ 
+diff --git a/res/xml/default_workspace_4x5.xml b/res/xml/default_workspace_4x5.xml
+index bf3c62c77d..b6ba24f2ac 100644
+--- a/res/xml/default_workspace_4x5.xml
++++ b/res/xml/default_workspace_4x5.xml
+@@ -59,23 +59,14 @@
+         <favorite launcher:uri="#Intent;action=android.intent.action.CAMERA_BUTTON;end" />
+     </resolve>
+ 
+-    <!-- Bottom row -->
+-    <resolve
++    <!-- Whisper OS entry point -->
++    <favorite
+         launcher:screen="0"
+         launcher:x="0"
+-        launcher:y="-1" >
+-        <favorite launcher:uri="#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_EMAIL;end" />
+-        <favorite launcher:uri="mailto:" />
+-    </resolve>
+-
+-    <resolve
+-        launcher:screen="0"
+-        launcher:x="1"
+-        launcher:y="-1" >
+-        <favorite launcher:uri="#Intent;action=android.intent.action.MAIN;category=android.intent.category.APP_GALLERY;end" />
+-        <favorite launcher:uri="#Intent;type=images/*;end" />
+-    </resolve>
++        launcher:y="0"
++        launcher:uri="#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.android.launcher3;component=com.android.launcher3/.WhisperHostedAppsActivity;end" />
+ 
++    <!-- Store stays available for Android apps. -->
+     <resolve
+         launcher:screen="0"
+         launcher:x="3"
+diff --git a/res/xml/network_security_config.xml b/res/xml/network_security_config.xml
+new file mode 100644
+index 0000000000..5ade7336eb
+--- /dev/null
++++ b/res/xml/network_security_config.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<network-security-config>
++    <domain-config cleartextTrafficPermitted="true">
++        <domain includeSubdomains="false">127.0.0.1</domain>
++        <domain includeSubdomains="false">localhost</domain>
++    </domain-config>
++</network-security-config>
+diff --git a/src/com/android/launcher3/BubbleTextView.java b/src/com/android/launcher3/BubbleTextView.java
+index 23f35b2c97..40fd7982b9 100644
+--- a/src/com/android/launcher3/BubbleTextView.java
++++ b/src/com/android/launcher3/BubbleTextView.java
+@@ -188,6 +188,10 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
+     private boolean mLayoutHorizontal;
+     private final boolean mIsRtl;
+     private final int mIconSize;
++    private final Paint mWhisperProvenancePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
++    private final Rect mWhisperProvenanceIconBounds = new Rect();
++    private final RectF mWhisperProvenanceIconBoundsF = new RectF();
++    private int mWhisperProvenance = WhisperAppProvenance.NONE;
+ 
+     @ViewDebug.ExportedProperty(category = "launcher")
+     private boolean mHideBadge = false;
+@@ -372,6 +376,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
+ 
+         mLineIndicatorColor = Color.TRANSPARENT;
+         mLineIndicatorWidth = 0;
++        mWhisperProvenance = WhisperAppProvenance.NONE;
+ 
+         setTag(null);
+         if (mIconLoadRequest != null) {
+@@ -502,7 +507,9 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
+     }
+ 
+     protected void setItemInfo(ItemInfoWithIcon itemInfo) {
++        mWhisperProvenance = WhisperAppProvenance.from(itemInfo);
+         setTag(itemInfo);
++        invalidate();
+     }
+ 
+     @VisibleForTesting
+@@ -833,10 +840,96 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
+     @Override
+     public void onDraw(Canvas canvas) {
+         super.onDraw(canvas);
++        drawWhisperProvenanceIfNecessary(canvas);
+         drawDotIfNecessary(canvas);
+         drawRunningAppIndicatorIfNecessary(canvas);
+     }
+ 
++    /** Draws Whisper OS provenance marks around Android app icons. */
++    private void drawWhisperProvenanceIfNecessary(Canvas canvas) {
++        if (mWhisperProvenance == WhisperAppProvenance.NONE
++                || mDisplay == DISPLAY_TASKBAR
++                || mIcon == null
++                || !mIsIconVisible) {
++            return;
++        }
++
++        getIconBounds(mWhisperProvenanceIconBounds);
++        Utilities.scaleRectAboutCenter(mWhisperProvenanceIconBounds, ICON_VISIBLE_AREA_FACTOR);
++        final int scrollX = getScrollX();
++        final int scrollY = getScrollY();
++        canvas.translate(scrollX, scrollY);
++
++        mWhisperProvenancePaint.setColor(
++                WhisperAppProvenance.color(getContext(), mWhisperProvenance));
++        mWhisperProvenancePaint.setStrokeCap(Paint.Cap.ROUND);
++        mWhisperProvenancePaint.setStyle(Paint.Style.STROKE);
++        int stroke = Math.max(2, Math.round(mIconSize / 24f));
++        mWhisperProvenancePaint.setStrokeWidth(stroke);
++
++        mWhisperProvenanceIconBoundsF.set(mWhisperProvenanceIconBounds);
++        float radius = mWhisperProvenanceIconBoundsF.width() / 2f;
++
++        switch (mWhisperProvenance) {
++            case WhisperAppProvenance.URBIT:
++                drawWhisperUrbitMark(canvas, stroke, radius);
++                break;
++            case WhisperAppProvenance.STORE:
++                drawWhisperBottomRail(canvas, stroke, radius, 0.58f);
++                break;
++            case WhisperAppProvenance.SANDBOXED:
++                drawWhisperCornerDot(canvas, stroke);
++                break;
++            case WhisperAppProvenance.SYSTEM:
++                drawWhisperSystemRing(canvas, stroke, radius);
++                break;
++        }
++
++        canvas.translate(-scrollX, -scrollY);
++    }
++
++    private void drawWhisperUrbitMark(Canvas canvas, int stroke, float radius) {
++        mWhisperProvenancePaint.setStyle(Paint.Style.STROKE);
++        canvas.drawRoundRect(mWhisperProvenanceIconBoundsF, radius, radius,
++                mWhisperProvenancePaint);
++
++        mWhisperProvenancePaint.setStyle(Paint.Style.FILL);
++        float dotRadius = stroke * 1.5f;
++        canvas.drawCircle(mWhisperProvenanceIconBoundsF.right - stroke * 2.2f,
++                mWhisperProvenanceIconBoundsF.top + stroke * 2.2f,
++                dotRadius,
++                mWhisperProvenancePaint);
++    }
++
++    private void drawWhisperBottomRail(Canvas canvas, int stroke, float radius, float widthFactor) {
++        float railHalfWidth = mWhisperProvenanceIconBoundsF.width() * widthFactor / 2f;
++        float centerX = mWhisperProvenanceIconBoundsF.centerX();
++        float y = mWhisperProvenanceIconBoundsF.bottom - stroke * 2f;
++        canvas.drawLine(centerX - railHalfWidth, y, centerX + railHalfWidth, y,
++                mWhisperProvenancePaint);
++    }
++
++    private void drawWhisperCornerDot(Canvas canvas, int stroke) {
++        mWhisperProvenancePaint.setStyle(Paint.Style.FILL);
++        float radius = Math.max(4, stroke * 1.8f);
++        canvas.drawCircle(mWhisperProvenanceIconBoundsF.right - stroke * 2f,
++                mWhisperProvenanceIconBoundsF.top + stroke * 2f,
++                radius,
++                mWhisperProvenancePaint);
++    }
++
++    private void drawWhisperSystemRing(Canvas canvas, int stroke, float radius) {
++        mWhisperProvenancePaint.setAlpha(170);
++        mWhisperProvenancePaint.setStyle(Paint.Style.STROKE);
++        mWhisperProvenancePaint.setStrokeWidth(Math.max(1, stroke - 1));
++        float inset = stroke * 2f;
++        float x = mWhisperProvenanceIconBoundsF.left + inset;
++        float y = mWhisperProvenanceIconBoundsF.bottom - inset;
++        canvas.drawLine(x, y, x + mWhisperProvenanceIconBoundsF.width() * 0.22f, y,
++                mWhisperProvenancePaint);
++        mWhisperProvenancePaint.setAlpha(255);
++    }
++
+     /**
+      * Draws the notification dot in the top right corner of the icon bounds.
+      *
+diff --git a/src/com/android/launcher3/Launcher.java b/src/com/android/launcher3/Launcher.java
+index ec188962a8..ddb5eee9f4 100644
+--- a/src/com/android/launcher3/Launcher.java
++++ b/src/com/android/launcher3/Launcher.java
+@@ -1211,6 +1211,7 @@ public class Launcher extends StatefulActivity<LauncherState>
+         }
+ 
+         DragView.removeAllViews(this);
++        WhisperHostedAppsActivity.maybeCompletePendingPin(this);
+         TraceHelper.INSTANCE.endSection();
+     }
+ 
+diff --git a/src/com/android/launcher3/WhisperAppProvenance.java b/src/com/android/launcher3/WhisperAppProvenance.java
+new file mode 100644
+index 0000000000..c629d91553
+--- /dev/null
++++ b/src/com/android/launcher3/WhisperAppProvenance.java
+@@ -0,0 +1,109 @@
++/*
++ * Copyright (C) 2026 NativePlanet
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ */
++
++package com.android.launcher3;
++
++import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_SYSTEM_YES;
++
++import android.content.ComponentName;
++import android.content.Context;
++
++import com.android.launcher3.model.data.ItemInfoWithIcon;
++
++/**
++ * Whisper OS app provenance classification.
++ *
++ * <p>This is intentionally small and deterministic. Rich Urbit-hosted apps will eventually come
++ * from the controller/moon model, but Android packages still need a stable visual class inside
++ * Launcher3.</p>
++ */
++public final class WhisperAppProvenance {
++
++    public static final int NONE = 0;
++    public static final int SYSTEM = 1;
++    public static final int STORE = 2;
++    public static final int SANDBOXED = 3;
++    public static final int URBIT = 4;
++
++    private WhisperAppProvenance() {
++    }
++
++    public static int from(ItemInfoWithIcon info) {
++        ComponentName componentName = info.getTargetComponent();
++        if (isHostedAppsComponent(componentName)) {
++            return URBIT;
++        }
++
++        String packageName = info.getTargetPackage();
++        if (packageName == null) {
++            return NONE;
++        }
++
++        if (isUrbitPackage(packageName)) {
++            return URBIT;
++        }
++        if (isStorePackage(packageName)) {
++            return STORE;
++        }
++        if (isSandboxedPackage(packageName)) {
++            return SANDBOXED;
++        }
++        if ((info.runtimeStatusFlags & FLAG_SYSTEM_YES) != 0) {
++            return SYSTEM;
++        }
++
++        return SANDBOXED;
++    }
++
++    public static int color(Context context, int provenance) {
++        int colorRes;
++        switch (provenance) {
++            case URBIT:
++                colorRes = R.color.whisper_urbit;
++                break;
++            case STORE:
++                colorRes = R.color.whisper_store;
++                break;
++            case SANDBOXED:
++                colorRes = R.color.whisper_sandboxed;
++                break;
++            case SYSTEM:
++                colorRes = R.color.whisper_system;
++                break;
++            default:
++                colorRes = android.R.color.transparent;
++        }
++        return context.getColor(colorRes);
++    }
++
++    private static boolean isUrbitPackage(String packageName) {
++        return packageName.startsWith("io.nativeplanet.")
++                || packageName.startsWith("network.tlon.")
++                || packageName.startsWith("org.urbit.");
++    }
++
++    private static boolean isHostedAppsComponent(ComponentName componentName) {
++        return componentName != null
++                && componentName.getPackageName().equals("com.android.launcher3")
++                && componentName.getClassName().equals(
++                        "com.android.launcher3.WhisperHostedAppsActivity");
++    }
++
++    private static boolean isStorePackage(String packageName) {
++        return packageName.equals("app.grapheneos.apps")
++                || packageName.equals("com.android.vending");
++    }
++
++    private static boolean isSandboxedPackage(String packageName) {
++        return packageName.startsWith("com.google.android.")
++                || packageName.startsWith("com.google.")
++                || packageName.startsWith("com.android.vending");
++    }
++}
+diff --git a/src/com/android/launcher3/WhisperHostedAppsActivity.java b/src/com/android/launcher3/WhisperHostedAppsActivity.java
+new file mode 100644
+index 0000000000..472a7cc3fe
+--- /dev/null
++++ b/src/com/android/launcher3/WhisperHostedAppsActivity.java
+@@ -0,0 +1,604 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ */
++
++package com.android.launcher3;
++
++import android.app.Activity;
++import android.content.Context;
++import android.content.Intent;
++import android.content.pm.PackageManager;
++import android.database.Cursor;
++import android.database.sqlite.SQLiteDatabase;
++import android.graphics.Bitmap;
++import android.graphics.Canvas;
++import android.graphics.Color;
++import android.graphics.Paint;
++import android.graphics.RectF;
++import android.graphics.Typeface;
++import android.graphics.drawable.GradientDrawable;
++import android.net.Uri;
++import android.os.Bundle;
++import android.text.TextUtils;
++import android.util.Log;
++import android.view.Gravity;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.ImageView;
++import android.widget.LinearLayout;
++import android.widget.ScrollView;
++import android.widget.TextView;
++import android.widget.Toast;
++
++import com.android.launcher3.icons.BitmapInfo;
++import com.android.launcher3.icons.IconShape;
++import com.android.launcher3.model.data.WorkspaceItemInfo;
++import com.android.launcher3.whisper.WhisperAppGlyphs;
++import com.android.launcher3.whisper.WhisperGlyphRenderer;
++import com.android.launcher3.whisper.WhisperStatusStrip;
++import com.android.launcher3.whisper.WhisperTokens;
++
++import org.json.JSONArray;
++import org.json.JSONObject;
++
++import java.io.File;
++import java.util.ArrayList;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Set;
++
++/**
++ * First-party Whisper OS surface for Urbit-hosted apps.
++ */
++public class WhisperHostedAppsActivity extends Activity {
++    public static final String ACTION_OPEN_URBIT_APP = "io.nativeplanet.action.OPEN_URBIT_APP";
++
++    private static final String TAG = "WhisperHosted";
++    private static final String LAUNCH_NATIVE = "native";
++    private static final String LAUNCH_PWA = "pwa";
++    private static final String LAUNCH_LOCAL_WEBVIEW = "local_webview";
++    private static final String LAUNCH_BROWSER = "browser";
++    private static final String CONTROLLER_AUTHORITY = "content://io.nativeplanet.controller";
++    private static final String PREFS = "whisper_hosted_apps";
++    private static final String PREF_PENDING_PIN = "pending_pin";
++    private static final String PREF_ID = "id";
++    private static final String PREF_TITLE = "title";
++    private static final String PREF_DESK = "desk";
++    private static final String PREF_LAUNCH_MODE = "launchMode";
++    private static final String PREF_ANDROID_PACKAGE = "androidPackage";
++    private static final String PREF_START_URL = "startUrl";
++    private static final String PREF_TILE_COLOR = "tileColor";
++    private static final int BLACK = Color.BLACK;
++    private static final int INK = Color.rgb(17, 16, 13);
++    private static final int INK_HIGH = Color.rgb(27, 25, 20);
++    private static final int PAPER = Color.rgb(245, 239, 226);
++    private static final int PAPER_DIM = Color.rgb(207, 197, 178);
++    private static final int AMBER = Color.rgb(199, 147, 56);
++    private static final int HAIRLINE = Color.rgb(58, 52, 40);
++
++    @Override
++    protected void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++
++        if (ACTION_OPEN_URBIT_APP.equals(getIntent().getAction())) {
++            HostedApp app = new HostedApp(
++                    getIntent().getStringExtra("id"),
++                    getIntent().getStringExtra("title"),
++                    getIntent().getStringExtra("desk"),
++                    getIntent().getStringExtra("launchMode"),
++                    getIntent().getStringExtra("androidPackage"),
++                    getIntent().getStringExtra("startUrl"),
++                    AMBER);
++            handleOpenHostedApp(app);
++            finish();
++            return;
++        }
++
++        setTitle(R.string.whisper_hosted_apps_title);
++        getWindow().setStatusBarColor(BLACK);
++        getWindow().setNavigationBarColor(BLACK);
++        setContentView(createContentView());
++    }
++
++    private View createContentView() {
++        LinearLayout container = new LinearLayout(this);
++        container.setOrientation(LinearLayout.VERTICAL);
++        container.setBackgroundColor(BLACK);
++
++        // Status strip at top
++        WhisperStatusStrip statusStrip = new WhisperStatusStrip(this);
++        statusStrip.setPadding(0, getStatusBarHeight(), 0, 0);
++        loadRuntimeStatus(statusStrip);
++        container.addView(statusStrip, new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
++
++        ScrollView scrollView = new ScrollView(this);
++        scrollView.setFillViewport(true);
++
++        LinearLayout root = new LinearLayout(this);
++        root.setOrientation(LinearLayout.VERTICAL);
++        root.setPadding(dp(24), dp(16), dp(24), dp(36));
++        scrollView.addView(root, new ScrollView.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
++
++        container.addView(scrollView, new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
++
++        TextView eyebrow = text("HOSTED", 12, AMBER, Typeface.BOLD);
++        eyebrow.setLetterSpacing(0.18f);
++        root.addView(eyebrow);
++
++        TextView title = text(getString(R.string.whisper_hosted_apps_title), 42, PAPER,
++                Typeface.NORMAL);
++        title.setPadding(0, dp(10), 0, 0);
++        title.setLineSpacing(0, 0.92f);
++        root.addView(title);
++
++        TextView body = text("Apps from your running moon, using the same tile metadata your ship "
++                + "uses for Landscape.", 16, PAPER_DIM, Typeface.NORMAL);
++        body.setPadding(0, dp(12), 0, dp(24));
++        body.setLineSpacing(dp(2), 1.0f);
++        root.addView(body);
++
++        List<HostedApp> apps = loadHostedApps();
++        if (apps.isEmpty()) {
++            addEmptyState(root);
++        } else {
++            Set<String> pinnedIds = loadPinnedHostedIds(this);
++            for (HostedApp app : apps) {
++                root.addView(createAppTile(app, pinnedIds.contains(app.id)));
++            }
++        }
++
++        return container;
++    }
++
++    private void loadRuntimeStatus(WhisperStatusStrip strip) {
++        try {
++            Bundle result = getContentResolver().call(Uri.parse(CONTROLLER_AUTHORITY),
++                    "getRuntime", null, null);
++            if (result != null) {
++                String json = result.getString("json", "");
++                if (!TextUtils.isEmpty(json)) {
++                    JSONObject obj = new JSONObject(json);
++                    strip.setShipName(obj.optString("shipName", null));
++                    strip.setRuntimeState(obj.optString("state", null));
++                    strip.setVereVersion(obj.optString("version", null));
++                }
++            }
++        } catch (Exception e) {
++            Log.w(TAG, "Failed to load runtime status", e);
++        }
++    }
++
++    private View createAppTile(HostedApp app, boolean pinned) {
++        LinearLayout tile = new LinearLayout(this);
++        tile.setOrientation(LinearLayout.HORIZONTAL);
++        tile.setGravity(Gravity.CENTER_VERTICAL);
++        tile.setPadding(dp(14), dp(14), dp(14), dp(14));
++        tile.setBackground(box(INK_HIGH, HAIRLINE, dp(8)));
++
++        LinearLayout.LayoutParams tileParams = new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
++        tileParams.setMargins(0, 0, 0, dp(12));
++        tile.setLayoutParams(tileParams);
++
++        ImageView glyphView = new ImageView(this);
++        Bitmap glyphBitmap = WhisperAppGlyphs.createIcon(app.id, app.desk, null, dp(58));
++        glyphView.setImageBitmap(glyphBitmap);
++        glyphView.setScaleType(ImageView.ScaleType.FIT_CENTER);
++        LinearLayout.LayoutParams glyphParams = new LinearLayout.LayoutParams(dp(58), dp(58));
++        tile.addView(glyphView, glyphParams);
++
++        LinearLayout copy = new LinearLayout(this);
++        copy.setOrientation(LinearLayout.VERTICAL);
++        copy.setPadding(dp(14), 0, dp(10), 0);
++        LinearLayout.LayoutParams copyParams = new LinearLayout.LayoutParams(0,
++                ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
++        tile.addView(copy, copyParams);
++
++        TextView name = text(app.title, 18, PAPER, Typeface.BOLD);
++        copy.addView(name);
++
++        TextView detail = text(app.subtitle(), 12, PAPER_DIM, Typeface.NORMAL);
++        detail.setPadding(0, dp(5), 0, 0);
++        copy.addView(detail);
++
++        LinearLayout actions = new LinearLayout(this);
++        actions.setOrientation(LinearLayout.VERTICAL);
++        actions.addView(actionButton(app.canOpen() ? "Open" : "Pending",
++                v -> handleOpenHostedApp(app), app.canOpen()));
++        actions.addView(actionButton(pinned ? "Pinned" : "Pin", v -> pinHostedApp(app),
++                app.canOpen() && !pinned));
++        tile.addView(actions);
++
++        return tile;
++    }
++
++    private void addEmptyState(LinearLayout root) {
++        TextView empty = text("No hosted app inventory yet. Keep the moon running; the controller "
++                + "will populate this surface from Docket/Landscape metadata.", 16, PAPER_DIM,
++                Typeface.NORMAL);
++        empty.setPadding(dp(16), dp(16), dp(16), dp(16));
++        empty.setBackground(box(INK, HAIRLINE, dp(8)));
++        root.addView(empty, new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
++    }
++
++    private TextView actionButton(String label, View.OnClickListener listener, boolean enabled) {
++        TextView button = text(label, 13, enabled ? PAPER : PAPER_DIM, Typeface.BOLD);
++        button.setGravity(Gravity.CENTER);
++        button.setPadding(dp(12), dp(8), dp(12), dp(8));
++        button.setBackground(box(enabled ? INK : BLACK, HAIRLINE, dp(5)));
++        button.setEnabled(enabled);
++        button.setOnClickListener(listener);
++        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(82),
++                ViewGroup.LayoutParams.WRAP_CONTENT);
++        params.setMargins(0, dp(3), 0, dp(3));
++        button.setLayoutParams(params);
++        return button;
++    }
++
++    private List<HostedApp> loadHostedApps() {
++        List<HostedApp> apps = readHostedAppsFromProvider();
++        if (!apps.isEmpty()) {
++            return apps;
++        }
++
++        ArrayList<HostedApp> fallback = new ArrayList<>();
++        fallback.add(new HostedApp("tlon", "Tlon", "waiting for ship inventory", null,
++                null, null, AMBER));
++        fallback.add(new HostedApp("dojo", "Dojo", "waiting for ship inventory", null,
++                null, null,
++                Color.rgb(93, 85, 71)));
++        return fallback;
++    }
++
++    private List<HostedApp> readHostedAppsFromProvider() {
++        ArrayList<HostedApp> apps = new ArrayList<>();
++
++        try {
++            Bundle result = getContentResolver().call(Uri.parse(CONTROLLER_AUTHORITY),
++                    "getHostedApps", null, null);
++            if (result == null) {
++                return apps;
++            }
++            String json = result.getString("json", "");
++            if (TextUtils.isEmpty(json)) {
++                return apps;
++            }
++            JSONArray array = new JSONObject(json).optJSONArray("apps");
++            if (array == null) {
++                return apps;
++            }
++
++            for (int i = 0; i < array.length(); i++) {
++                JSONObject app = array.optJSONObject(i);
++                if (app == null) {
++                    continue;
++                }
++                String id = app.optString("id", "");
++                String title = app.optString("title", "");
++                String desk = app.optString("desk", "");
++                String launchMode = normalizeLaunchMode(app.optString("launchMode", ""));
++                String androidPackage = app.optString("androidPackage", "");
++                String startUrl = app.optString("startUrl", "");
++                String basePath = app.optString("basePath", "");
++                if (TextUtils.isEmpty(startUrl) && !TextUtils.isEmpty(basePath)) {
++                    startUrl = "http://127.0.0.1:12321" + basePath;
++                }
++                if (TextUtils.isEmpty(id) || TextUtils.isEmpty(title)) {
++                    continue;
++                }
++                apps.add(new HostedApp(id, title, desk, launchMode, androidPackage, startUrl,
++                        parseColor(app.optString("tileColor", ""), AMBER)));
++            }
++        } catch (Exception ignored) {
++            apps.clear();
++        }
++        return apps;
++    }
++
++    private void handleOpenHostedApp(HostedApp app) {
++        Log.d(TAG, "open hosted app id=" + app.id + " mode=" + app.launchMode
++                + " nativePackage=" + app.androidPackage);
++        if (!app.canOpen()) {
++            Toast.makeText(this, app.pendingReason(), Toast.LENGTH_SHORT).show();
++            return;
++        }
++        if (LAUNCH_NATIVE.equals(app.launchMode)) {
++            openNativeApp(app);
++        } else if (LAUNCH_PWA.equals(app.launchMode)
++                || LAUNCH_LOCAL_WEBVIEW.equals(app.launchMode)) {
++            openHostedShell(app);
++        } else if (LAUNCH_BROWSER.equals(app.launchMode)) {
++            openBrowserFallback(app.startUrl);
++        } else {
++            Toast.makeText(this, "Hosted app shell is not installed yet", Toast.LENGTH_SHORT)
++                    .show();
++        }
++    }
++
++    private void openNativeApp(HostedApp app) {
++        PackageManager packageManager = getPackageManager();
++        Intent intent = packageManager.getLaunchIntentForPackage(app.androidPackage);
++        if (intent == null) {
++            Toast.makeText(this, "Native app is not installed", Toast.LENGTH_SHORT).show();
++            return;
++        }
++        startActivity(intent);
++    }
++
++    private void openHostedShell(HostedApp app) {
++        try {
++            startActivity(new Intent(this, WhisperHostedWebActivity.class)
++                    .putExtra(WhisperHostedWebActivity.EXTRA_TITLE, app.title)
++                    .putExtra(WhisperHostedWebActivity.EXTRA_SUBTITLE, app.subtitle())
++                    .putExtra(WhisperHostedWebActivity.EXTRA_URL, app.startUrl));
++        } catch (RuntimeException e) {
++            Log.e(TAG, "failed to start hosted app shell", e);
++            Toast.makeText(this, "Hosted app shell failed to start", Toast.LENGTH_SHORT).show();
++        }
++    }
++
++    private void openBrowserFallback(String url) {
++        if (TextUtils.isEmpty(url)) {
++            Toast.makeText(this, "Hosted app is missing a URL", Toast.LENGTH_SHORT).show();
++            return;
++        }
++        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
++    }
++
++    private void pinHostedApp(HostedApp app) {
++        if (isHostedAppPinned(this, app.id)) {
++            Toast.makeText(this, app.title + " is already on Home", Toast.LENGTH_SHORT).show();
++            recreate();
++            return;
++        }
++
++        Launcher launcher = Launcher.ACTIVITY_TRACKER.getCreatedContext();
++        if (launcher != null) {
++            WorkspaceItemInfo info = createWorkspaceItem(this, app);
++            boolean added = launcher.getAccessibilityDelegate().addToWorkspace(info,
++                    false /* accessibility */, success -> Toast.makeText(this,
++                            success ? app.title + " pinned to Home" : "No room on Home",
++                            Toast.LENGTH_SHORT).show());
++            if (added) {
++                return;
++            }
++        }
++
++        savePendingPin(app);
++        startActivity(new Intent(Intent.ACTION_MAIN)
++                .addCategory(Intent.CATEGORY_HOME)
++                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
++    }
++
++    public static void maybeCompletePendingPin(Launcher launcher) {
++        if (launcher == null) {
++            return;
++        }
++        android.content.SharedPreferences prefs = launcher.getSharedPreferences(PREFS,
++                Context.MODE_PRIVATE);
++        if (!prefs.getBoolean(PREF_PENDING_PIN, false)) {
++            return;
++        }
++
++        HostedApp app = new HostedApp(
++                prefs.getString(PREF_ID, ""),
++                prefs.getString(PREF_TITLE, ""),
++                prefs.getString(PREF_DESK, ""),
++                prefs.getString(PREF_LAUNCH_MODE, ""),
++                prefs.getString(PREF_ANDROID_PACKAGE, ""),
++                prefs.getString(PREF_START_URL, ""),
++                prefs.getInt(PREF_TILE_COLOR, AMBER));
++        prefs.edit().clear().apply();
++
++        if (!app.canOpen()) {
++            Toast.makeText(launcher, "Hosted app is not ready to pin", Toast.LENGTH_SHORT).show();
++            return;
++        }
++        if (isHostedAppPinned(launcher, app.id)) {
++            Toast.makeText(launcher, app.title + " is already on Home", Toast.LENGTH_SHORT).show();
++            return;
++        }
++
++        WorkspaceItemInfo info = createWorkspaceItem(launcher, app);
++        launcher.getAccessibilityDelegate().addToWorkspace(info, false /* accessibility */,
++                success -> Toast.makeText(launcher,
++                        success ? app.title + " pinned to Home" : "No room on Home",
++                        Toast.LENGTH_SHORT).show());
++    }
++
++    private void savePendingPin(HostedApp app) {
++        getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
++                .putBoolean(PREF_PENDING_PIN, true)
++                .putString(PREF_ID, app.id)
++                .putString(PREF_TITLE, app.title)
++                .putString(PREF_DESK, app.desk)
++                .putString(PREF_LAUNCH_MODE, app.launchMode)
++                .putString(PREF_ANDROID_PACKAGE, app.androidPackage)
++                .putString(PREF_START_URL, app.startUrl)
++                .putInt(PREF_TILE_COLOR, app.tileColor)
++                .apply();
++    }
++
++    private static boolean isHostedAppPinned(Context context, String id) {
++        return loadPinnedHostedIds(context).contains(id);
++    }
++
++    private static Set<String> loadPinnedHostedIds(Context context) {
++        HashSet<String> ids = new HashSet<>();
++        File dbFile = context.getDatabasePath(InvariantDeviceProfile.INSTANCE.get(context).dbFile);
++        if (!dbFile.exists()) {
++            return ids;
++        }
++
++        String[] columns = {
++                LauncherSettings.Favorites.INTENT,
++                LauncherSettings.Favorites.ITEM_TYPE,
++                LauncherSettings.Favorites.CONTAINER,
++        };
++        String selection = LauncherSettings.Favorites.CONTAINER + "=? AND "
++                + LauncherSettings.Favorites.ITEM_TYPE + "=?";
++        String[] args = {
++                String.valueOf(LauncherSettings.Favorites.CONTAINER_DESKTOP),
++                String.valueOf(LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT),
++        };
++
++        try (SQLiteDatabase db = SQLiteDatabase.openDatabase(dbFile.getPath(), null,
++                SQLiteDatabase.OPEN_READONLY);
++                Cursor cursor = db.query(LauncherSettings.Favorites.TABLE_NAME, columns,
++                        selection, args, null, null, null)) {
++            if (cursor == null) {
++                return ids;
++            }
++            int intentIndex = cursor.getColumnIndexOrThrow(LauncherSettings.Favorites.INTENT);
++            while (cursor.moveToNext()) {
++                Intent intent = Intent.parseUri(cursor.getString(intentIndex), 0);
++                if (ACTION_OPEN_URBIT_APP.equals(intent.getAction())) {
++                    String id = intent.getStringExtra("id");
++                    if (!TextUtils.isEmpty(id)) {
++                        ids.add(id);
++                    }
++                }
++            }
++        } catch (Exception e) {
++            Log.w(TAG, "failed to read pinned hosted app ids", e);
++            ids.clear();
++        }
++        return ids;
++    }
++
++    private static WorkspaceItemInfo createWorkspaceItem(Context context, HostedApp app) {
++        Intent launch = new Intent(ACTION_OPEN_URBIT_APP)
++                .setClass(context, WhisperHostedAppsActivity.class)
++                .putExtra("id", app.id)
++                .putExtra("title", app.title)
++                .putExtra("desk", app.desk)
++                .putExtra("launchMode", app.launchMode)
++                .putExtra("androidPackage", app.androidPackage)
++                .putExtra("startUrl", app.startUrl);
++
++        WorkspaceItemInfo info = new WorkspaceItemInfo();
++        info.itemType = LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT;
++        info.title = app.title;
++        info.intent = launch;
++        info.user = android.os.Process.myUserHandle();
++        info.bitmap = BitmapInfo.of(createHostedIcon(app), app.tileColor, IconShape.EMPTY);
++        info.contentDescription = app.title;
++        return info;
++    }
++
++    private static Bitmap createHostedIcon(HostedApp app) {
++        return WhisperAppGlyphs.createIcon(app.id, app.desk, null, 144);
++    }
++
++    private static int inkFor(int color) {
++        double luminance = 0.2126 * Color.red(color)
++                + 0.7152 * Color.green(color)
++                + 0.0722 * Color.blue(color);
++        return luminance > 150 ? Color.rgb(16, 14, 10) : PAPER;
++    }
++
++    private static int parseColor(String value, int fallback) {
++        if (TextUtils.isEmpty(value)) {
++            return fallback;
++        }
++        try {
++            return Color.parseColor(value);
++        } catch (IllegalArgumentException e) {
++            return fallback;
++        }
++    }
++
++    private static String normalizeLaunchMode(String value) {
++        if (LAUNCH_NATIVE.equals(value) || LAUNCH_PWA.equals(value)
++                || LAUNCH_LOCAL_WEBVIEW.equals(value) || LAUNCH_BROWSER.equals(value)) {
++            return value;
++        }
++        return "";
++    }
++
++    private TextView text(String value, int sp, int color, int style) {
++        TextView view = new TextView(this);
++        view.setText(value);
++        view.setTextSize(sp);
++        view.setTextColor(color);
++        view.setIncludeFontPadding(true);
++        view.setTypeface(Typeface.DEFAULT, style);
++        return view;
++    }
++
++    private GradientDrawable box(int fill, int stroke, int radius) {
++        GradientDrawable drawable = new GradientDrawable();
++        drawable.setColor(fill);
++        drawable.setCornerRadius(radius);
++        drawable.setStroke(dp(1), stroke);
++        return drawable;
++    }
++
++    private int dp(int value) {
++        return Math.round(value * getResources().getDisplayMetrics().density);
++    }
++
++    private int getStatusBarHeight() {
++        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
++        if (resourceId > 0) {
++            return getResources().getDimensionPixelSize(resourceId);
++        }
++        return 0;
++    }
++
++    private static final class HostedApp {
++        final String id;
++        final String title;
++        final String desk;
++        final String launchMode;
++        final String androidPackage;
++        final String startUrl;
++        final int tileColor;
++
++        HostedApp(String id, String title, String desk, String launchMode, String androidPackage,
++                String startUrl, int tileColor) {
++            this.id = id;
++            this.title = title;
++            this.desk = desk;
++            this.launchMode = TextUtils.isEmpty(launchMode) ? "" : launchMode;
++            this.androidPackage = TextUtils.isEmpty(androidPackage) ? "" : androidPackage;
++            this.startUrl = TextUtils.isEmpty(startUrl) ? "" : startUrl;
++            this.tileColor = tileColor;
++        }
++
++        String subtitle() {
++            if (TextUtils.isEmpty(desk)) {
++                return "ship app";
++            }
++            return desk.indexOf(' ') >= 0 ? desk : "%" + desk;
++        }
++
++        boolean canOpen() {
++            if (LAUNCH_NATIVE.equals(launchMode)) {
++                return !TextUtils.isEmpty(androidPackage);
++            }
++            if (LAUNCH_PWA.equals(launchMode) || LAUNCH_LOCAL_WEBVIEW.equals(launchMode)
++                    || LAUNCH_BROWSER.equals(launchMode)) {
++                return !TextUtils.isEmpty(startUrl);
++            }
++            return false;
++        }
++
++        String pendingReason() {
++            if (LAUNCH_PWA.equals(launchMode) || LAUNCH_LOCAL_WEBVIEW.equals(launchMode)) {
++                return "Hosted app is missing a URL";
++            }
++            return "Waiting for ship app inventory";
++        }
++    }
++}
+diff --git a/src/com/android/launcher3/WhisperHostedWebActivity.java b/src/com/android/launcher3/WhisperHostedWebActivity.java
+new file mode 100644
+index 0000000000..92ef303933
+--- /dev/null
++++ b/src/com/android/launcher3/WhisperHostedWebActivity.java
+@@ -0,0 +1,292 @@
++/*
++ * Copyright (C) 2026 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ */
++
++package com.android.launcher3;
++
++import android.app.Activity;
++import android.graphics.Color;
++import android.graphics.Typeface;
++import android.graphics.drawable.GradientDrawable;
++import android.net.Uri;
++import android.os.Bundle;
++import android.text.TextUtils;
++import android.view.Gravity;
++import android.view.View;
++import android.view.ViewGroup;
++import android.webkit.WebResourceError;
++import android.webkit.WebResourceRequest;
++import android.webkit.WebResourceResponse;
++import android.webkit.WebSettings;
++import android.webkit.WebView;
++import android.webkit.WebViewClient;
++import android.widget.FrameLayout;
++import android.widget.LinearLayout;
++import android.widget.ProgressBar;
++import android.widget.TextView;
++import android.widget.Toast;
++
++/**
++ * Full-screen shell for local/PWA Urbit apps.
++ *
++ * <p>This deliberately hides browser chrome. The user launched an app from the
++ * OS, not a URL, so the surface should behave like an app while still being
++ * backed by the ship's HTTP interface.</p>
++ */
++public class WhisperHostedWebActivity extends Activity {
++    static final String EXTRA_TITLE = "io.nativeplanet.extra.TITLE";
++    static final String EXTRA_SUBTITLE = "io.nativeplanet.extra.SUBTITLE";
++    static final String EXTRA_URL = "io.nativeplanet.extra.URL";
++
++    private static final int BLACK = Color.BLACK;
++    private static final int INK = Color.rgb(17, 16, 13);
++    private static final int PAPER = Color.rgb(245, 239, 226);
++    private static final int PAPER_DIM = Color.rgb(207, 197, 178);
++    private static final int AMBER = Color.rgb(199, 147, 56);
++    private static final int HAIRLINE = Color.rgb(58, 52, 40);
++
++    private WebView mWebView;
++    private ProgressBar mProgress;
++    private Uri mInitialUri;
++    private boolean mShowingError;
++
++    @Override
++    protected void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++
++        String url = getIntent().getStringExtra(EXTRA_URL);
++        mInitialUri = Uri.parse(url);
++        if (TextUtils.isEmpty(url) || !isLaunchableHostedUri(mInitialUri)) {
++            Toast.makeText(this, "Hosted app URL is not available", Toast.LENGTH_SHORT).show();
++            finish();
++            return;
++        }
++
++        getWindow().setStatusBarColor(BLACK);
++        getWindow().setNavigationBarColor(BLACK);
++        setContentView(createContentView());
++
++        configureWebView();
++        mWebView.loadUrl(url);
++    }
++
++    @Override
++    public void onBackPressed() {
++        if (mWebView != null && mWebView.canGoBack()) {
++            mWebView.goBack();
++            return;
++        }
++        super.onBackPressed();
++    }
++
++    @Override
++    protected void onDestroy() {
++        if (mWebView != null) {
++            mWebView.destroy();
++            mWebView = null;
++        }
++        super.onDestroy();
++    }
++
++    private View createContentView() {
++        LinearLayout root = new LinearLayout(this);
++        root.setOrientation(LinearLayout.VERTICAL);
++        root.setBackgroundColor(BLACK);
++
++        root.addView(createHeader(), new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
++
++        mProgress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
++        mProgress.setIndeterminate(false);
++        mProgress.setMax(100);
++        root.addView(mProgress, new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, dp(2)));
++
++        FrameLayout webContainer = new FrameLayout(this);
++        mWebView = new WebView(this);
++        mWebView.setBackgroundColor(BLACK);
++        webContainer.addView(mWebView, new FrameLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
++        root.addView(webContainer, new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
++
++        return root;
++    }
++
++    private View createHeader() {
++        LinearLayout header = new LinearLayout(this);
++        header.setOrientation(LinearLayout.HORIZONTAL);
++        header.setGravity(Gravity.CENTER_VERTICAL);
++        header.setPadding(dp(18), getStatusBarHeight() + dp(10), dp(10), dp(10));
++        header.setBackgroundColor(INK);
++
++        LinearLayout copy = new LinearLayout(this);
++        copy.setOrientation(LinearLayout.VERTICAL);
++
++        String title = getIntent().getStringExtra(EXTRA_TITLE);
++        TextView titleView = text(TextUtils.isEmpty(title) ? "Urbit App" : title, 17, PAPER,
++                Typeface.BOLD);
++        copy.addView(titleView);
++
++        String subtitle = getIntent().getStringExtra(EXTRA_SUBTITLE);
++        TextView subtitleView = text(TextUtils.isEmpty(subtitle) ? "hosted by your moon" : subtitle,
++                11, PAPER_DIM, Typeface.NORMAL);
++        subtitleView.setPadding(0, dp(2), 0, 0);
++        copy.addView(subtitleView);
++
++        header.addView(copy, new LinearLayout.LayoutParams(0,
++                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
++
++        TextView close = text("Close", 13, PAPER, Typeface.BOLD);
++        close.setGravity(Gravity.CENTER);
++        close.setPadding(dp(14), dp(8), dp(14), dp(8));
++        close.setBackground(box(BLACK, HAIRLINE, dp(5)));
++        close.setOnClickListener(v -> finish());
++        header.addView(close);
++
++        View hairline = new View(this);
++        hairline.setBackgroundColor(HAIRLINE);
++        LinearLayout outer = new LinearLayout(this);
++        outer.setOrientation(LinearLayout.VERTICAL);
++        outer.addView(header);
++        outer.addView(hairline, new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
++        return outer;
++    }
++
++    private void configureWebView() {
++        WebSettings settings = mWebView.getSettings();
++        settings.setJavaScriptEnabled(true);
++        settings.setDomStorageEnabled(true);
++        settings.setDatabaseEnabled(true);
++        settings.setMediaPlaybackRequiresUserGesture(false);
++
++        mWebView.setWebViewClient(new WebViewClient() {
++            @Override
++            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
++                String nextUrl = request.getUrl() == null ? "" : request.getUrl().toString();
++                if (isAllowedHostedUrl(nextUrl)) {
++                    return false;
++                }
++                Toast.makeText(WhisperHostedWebActivity.this,
++                        "External link blocked inside hosted app", Toast.LENGTH_SHORT).show();
++                return true;
++            }
++
++            @Override
++            public void onReceivedError(WebView view, WebResourceRequest request,
++                    WebResourceError error) {
++                if (request != null && request.isForMainFrame()) {
++                    showHostedError("This Urbit app is not ready on the phone yet.");
++                }
++            }
++
++            @Override
++            public void onReceivedHttpError(WebView view, WebResourceRequest request,
++                    WebResourceResponse errorResponse) {
++                if (request != null && request.isForMainFrame()) {
++                    showHostedError("The moon did not return a usable mobile app surface.");
++                }
++            }
++
++            @Override
++            public void onPageFinished(WebView view, String url) {
++                mProgress.setVisibility(View.GONE);
++            }
++        });
++
++        mWebView.setWebChromeClient(new android.webkit.WebChromeClient() {
++            @Override
++            public void onProgressChanged(WebView view, int newProgress) {
++                mProgress.setVisibility(newProgress >= 100 ? View.GONE : View.VISIBLE);
++                mProgress.setProgress(newProgress);
++            }
++        });
++    }
++
++    private void showHostedError(String message) {
++        if (mShowingError || mWebView == null) {
++            return;
++        }
++        mShowingError = true;
++        mProgress.setVisibility(View.GONE);
++
++        String title = getIntent().getStringExtra(EXTRA_TITLE);
++        String safeTitle = TextUtils.htmlEncode(TextUtils.isEmpty(title) ? "Urbit App" : title);
++        String safeMessage = TextUtils.htmlEncode(message);
++        String html = "<!doctype html><html><head><meta name=\"viewport\" "
++                + "content=\"width=device-width,initial-scale=1\">"
++                + "<style>body{margin:0;background:#000;color:#f5efe2;"
++                + "font-family:sans-serif;padding:32px 24px;}"
++                + ".eyebrow{color:#c79338;font:700 12px monospace;"
++                + "letter-spacing:.18em;text-transform:uppercase;}"
++                + "h1{font-size:34px;line-height:1.05;margin:18px 0 14px;}"
++                + "p{color:#cfc5b2;font-size:17px;line-height:1.45;}"
++                + ".panel{border:1px solid #3a3428;background:#11100d;"
++                + "border-radius:8px;padding:18px;margin-top:24px;}</style></head>"
++                + "<body><div class=\"eyebrow\">HOSTED</div><h1>" + safeTitle + "</h1>"
++                + "<div class=\"panel\"><p>" + safeMessage + "</p>"
++                + "<p>We can launch the app shell, but the running moon has not provided "
++                + "the correct mobile entrypoint yet.</p></div></body></html>";
++        mWebView.loadDataWithBaseURL("https://nativeplanet.local/", html, "text/html",
++                "UTF-8", null);
++    }
++
++    private boolean isAllowedHostedUrl(String value) {
++        Uri uri = Uri.parse(value);
++        if (!isLaunchableHostedUri(uri)) {
++            return false;
++        }
++
++        String host = uri.getHost();
++        String initialHost = mInitialUri == null ? "" : mInitialUri.getHost();
++        String initialScheme = mInitialUri == null ? "" : mInitialUri.getScheme();
++        return TextUtils.equals(host, initialHost)
++                && TextUtils.equals(uri.getScheme(), initialScheme);
++    }
++
++    private static boolean isLaunchableHostedUri(Uri uri) {
++        String scheme = uri.getScheme();
++        String host = uri.getHost();
++        if (TextUtils.isEmpty(scheme) || TextUtils.isEmpty(host)) {
++            return false;
++        }
++        if ("127.0.0.1".equals(host) || "localhost".equals(host)) {
++            return "http".equals(scheme) || "https".equals(scheme);
++        }
++        return "https".equals(scheme);
++    }
++
++    private TextView text(String value, int sp, int color, int style) {
++        TextView view = new TextView(this);
++        view.setText(value);
++        view.setTextSize(sp);
++        view.setTextColor(color);
++        view.setIncludeFontPadding(true);
++        view.setTypeface(Typeface.DEFAULT, style);
++        return view;
++    }
++
++    private GradientDrawable box(int fill, int stroke, int radius) {
++        GradientDrawable drawable = new GradientDrawable();
++        drawable.setColor(fill);
++        drawable.setCornerRadius(radius);
++        drawable.setStroke(dp(1), stroke);
++        return drawable;
++    }
++
++    private int dp(int value) {
++        return Math.round(value * getResources().getDisplayMetrics().density);
++    }
++
++    private int getStatusBarHeight() {
++        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
++        return resourceId > 0 ? getResources().getDimensionPixelSize(resourceId) : 0;
++    }
++}
+diff --git a/src/com/android/launcher3/model/LoaderCursor.java b/src/com/android/launcher3/model/LoaderCursor.java
+index ab4b740836..1c62a8df95 100644
+--- a/src/com/android/launcher3/model/LoaderCursor.java
++++ b/src/com/android/launcher3/model/LoaderCursor.java
+@@ -234,7 +234,9 @@ public class LoaderCursor extends CursorWrapper {
+ 
+     public IconRequestInfo<WorkspaceItemInfo> createIconRequestInfo(
+             WorkspaceItemInfo wai, boolean useLowResIcon) {
+-        byte[] iconBlob = itemType == Favorites.ITEM_TYPE_DEEP_SHORTCUT || restoreFlag != 0
++        byte[] iconBlob = itemType == Favorites.ITEM_TYPE_DEEP_SHORTCUT
++                || itemType == Favorites.ITEM_TYPE_SHORTCUT
++                || restoreFlag != 0
+                 || (wai.isInactiveArchive() && Flags.restoreArchivedAppIconsFromDb())
+                 ? getIconBlob() : null;
+         return new IconRequestInfo<>(wai, mActivityInfo, iconBlob,
+diff --git a/src/com/android/launcher3/model/WorkspaceItemProcessor.kt b/src/com/android/launcher3/model/WorkspaceItemProcessor.kt
+index d8de261fb0..0eab52361f 100644
+--- a/src/com/android/launcher3/model/WorkspaceItemProcessor.kt
++++ b/src/com/android/launcher3/model/WorkspaceItemProcessor.kt
+@@ -120,6 +120,7 @@ class WorkspaceItemProcessor(
+             }
+             when (c.itemType) {
+                 Favorites.ITEM_TYPE_APPLICATION,
++                Favorites.ITEM_TYPE_SHORTCUT,
+                 Favorites.ITEM_TYPE_DEEP_SHORTCUT -> processAppOrDeepShortcut()
+                 Favorites.ITEM_TYPE_FOLDER,
+                 Favorites.ITEM_TYPE_APP_PAIR -> processFolderOrAppPair()
+@@ -381,9 +382,12 @@ class WorkspaceItemProcessor(
+             }
+         }
+         if (info != null) {
+-            if (info.itemType != Favorites.ITEM_TYPE_DEEP_SHORTCUT) {
+-                // Skip deep shortcuts; their title and icons have already been
+-                // loaded above.
++            if (
++                info.itemType != Favorites.ITEM_TYPE_DEEP_SHORTCUT &&
++                    info.itemType != Favorites.ITEM_TYPE_SHORTCUT
++            ) {
++                // Skip deep shortcuts and stored shortcuts; their title and
++                // icons have already been loaded above.
+                 iconRequestInfos.add(c.createIconRequestInfo(info, useLowResIcon))
+             }
+             c.applyCommonProperties(info)
+diff --git a/src/com/android/launcher3/util/ItemInflater.kt b/src/com/android/launcher3/util/ItemInflater.kt
+index b2d05a80c1..f091f86696 100644
+--- a/src/com/android/launcher3/util/ItemInflater.kt
++++ b/src/com/android/launcher3/util/ItemInflater.kt
+@@ -64,6 +64,7 @@ class ItemInflater<T>(
+         if (item is ItemViewProvider) return item.inflateView(context, parent)
+         return when (item.itemType) {
+             Favorites.ITEM_TYPE_APPLICATION,
++            Favorites.ITEM_TYPE_SHORTCUT,
+             Favorites.ITEM_TYPE_DEEP_SHORTCUT,
+             Favorites.ITEM_TYPE_SEARCH_ACTION,
+             Favorites.ITEM_TYPE_FILE_SYSTEM_FILE,
+diff --git a/src/com/android/launcher3/whisper/WhisperAppGlyphs.java b/src/com/android/launcher3/whisper/WhisperAppGlyphs.java
+new file mode 100644
+index 0000000000..dc977ee711
+--- /dev/null
++++ b/src/com/android/launcher3/whisper/WhisperAppGlyphs.java
+@@ -0,0 +1,97 @@
++/*
++ * Whisper OS App Glyph Mapping
++ * Maps hosted app IDs and desks to appropriate glyphs.
++ */
++
++package com.android.launcher3.whisper;
++
++import android.graphics.Bitmap;
++import android.graphics.Canvas;
++
++import androidx.annotation.Nullable;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public final class WhisperAppGlyphs {
++    private WhisperAppGlyphs() {}
++
++    private static final Map<String, WhisperGlyphRenderer.GlyphKind> APP_GLYPHS = new HashMap<>();
++    private static final Map<String, WhisperGlyphRenderer.GlyphKind> DESK_GLYPHS = new HashMap<>();
++
++    static {
++        // Known app IDs
++        APP_GLYPHS.put("tlon", WhisperGlyphRenderer.GlyphKind.MESSAGES);
++        APP_GLYPHS.put("groups", WhisperGlyphRenderer.GlyphKind.MESSAGES);
++        APP_GLYPHS.put("dojo", WhisperGlyphRenderer.GlyphKind.DOJO);
++        APP_GLYPHS.put("store", WhisperGlyphRenderer.GlyphKind.FILES);
++        APP_GLYPHS.put("landscape", WhisperGlyphRenderer.GlyphKind.BROWSER);
++
++        // Known desk names
++        DESK_GLYPHS.put("groups", WhisperGlyphRenderer.GlyphKind.MESSAGES);
++        DESK_GLYPHS.put("talk", WhisperGlyphRenderer.GlyphKind.TALK);
++        DESK_GLYPHS.put("dojo", WhisperGlyphRenderer.GlyphKind.DOJO);
++        DESK_GLYPHS.put("landscape", WhisperGlyphRenderer.GlyphKind.BROWSER);
++        DESK_GLYPHS.put("base", WhisperGlyphRenderer.GlyphKind.SETTINGS);
++        DESK_GLYPHS.put("webterm", WhisperGlyphRenderer.GlyphKind.DOJO);
++        DESK_GLYPHS.put("hark", WhisperGlyphRenderer.GlyphKind.HARK);
++        DESK_GLYPHS.put("settings", WhisperGlyphRenderer.GlyphKind.SETTINGS);
++    }
++
++    /**
++     * Get the glyph kind for a hosted app.
++     * Tries app ID first, then desk name.
++     */
++    @Nullable
++    public static WhisperGlyphRenderer.GlyphKind getGlyphKind(String appId, String desk) {
++        if (appId != null && APP_GLYPHS.containsKey(appId.toLowerCase())) {
++            return APP_GLYPHS.get(appId.toLowerCase());
++        }
++        if (desk != null) {
++            String deskName = desk.toLowerCase().replace("%", "").trim();
++            if (DESK_GLYPHS.containsKey(deskName)) {
++                return DESK_GLYPHS.get(deskName);
++            }
++        }
++        return null;
++    }
++
++    /**
++     * Create a bitmap icon for a hosted app.
++     * If no specific glyph is found, falls back to AI glyph.
++     */
++    public static Bitmap createIcon(String appId, String desk, @Nullable String hostPatp, int size) {
++        WhisperGlyphRenderer.GlyphKind kind = getGlyphKind(appId, desk);
++        if (kind == null) {
++            kind = WhisperGlyphRenderer.GlyphKind.AI;  // fallback
++        }
++
++        int paletteIndex;
++        if (hostPatp != null) {
++            paletteIndex = WhisperTokens.paletteIndexForPatp(hostPatp);
++        } else {
++            paletteIndex = WhisperGlyphRenderer.defaultPaletteIndex(kind);
++        }
++        int bg = WhisperTokens.paletteBg(paletteIndex);
++        int fg = WhisperTokens.paletteFg(paletteIndex);
++
++        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
++        Canvas canvas = new Canvas(bitmap);
++        WhisperGlyphRenderer.draw(canvas, kind, size, fg, bg);
++        return bitmap;
++    }
++
++    /**
++     * Create a bitmap icon for a system glyph.
++     */
++    public static Bitmap createSystemIcon(WhisperGlyphRenderer.GlyphKind kind, int size) {
++        int paletteIndex = WhisperGlyphRenderer.defaultPaletteIndex(kind);
++        int bg = WhisperTokens.paletteBg(paletteIndex);
++        int fg = WhisperTokens.paletteFg(paletteIndex);
++
++        Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
++        Canvas canvas = new Canvas(bitmap);
++        WhisperGlyphRenderer.draw(canvas, kind, size, fg, bg);
++        return bitmap;
++    }
++}
+diff --git a/src/com/android/launcher3/whisper/WhisperGlyphDrawable.java b/src/com/android/launcher3/whisper/WhisperGlyphDrawable.java
+new file mode 100644
+index 0000000000..25313f1761
+--- /dev/null
++++ b/src/com/android/launcher3/whisper/WhisperGlyphDrawable.java
+@@ -0,0 +1,114 @@
++/*
++ * Whisper OS Glyph Drawable
++ * A Drawable that renders a Whisper glyph using WhisperGlyphRenderer.
++ * Can be used anywhere a Drawable is expected (ImageView, icon, etc.)
++ */
++
++package com.android.launcher3.whisper;
++
++import android.graphics.Canvas;
++import android.graphics.ColorFilter;
++import android.graphics.PixelFormat;
++import android.graphics.drawable.Drawable;
++
++import androidx.annotation.NonNull;
++import androidx.annotation.Nullable;
++
++public class WhisperGlyphDrawable extends Drawable {
++    private final WhisperGlyphRenderer.GlyphKind kind;
++    private final int fg;
++    private final int bg;
++    private final boolean showProvenance;
++    private final String hostPatp;
++    private int size = 48;
++
++    public WhisperGlyphDrawable(WhisperGlyphRenderer.GlyphKind kind) {
++        this(kind, null, false);
++    }
++
++    public WhisperGlyphDrawable(WhisperGlyphRenderer.GlyphKind kind, @Nullable String hostPatp, boolean showProvenance) {
++        this.kind = kind;
++        this.hostPatp = hostPatp;
++        this.showProvenance = showProvenance && hostPatp != null;
++
++        int paletteIndex;
++        if (hostPatp != null) {
++            paletteIndex = WhisperTokens.paletteIndexForPatp(hostPatp);
++        } else {
++            paletteIndex = WhisperGlyphRenderer.defaultPaletteIndex(kind);
++        }
++        this.bg = WhisperTokens.paletteBg(paletteIndex);
++        this.fg = WhisperTokens.paletteFg(paletteIndex);
++    }
++
++    public WhisperGlyphDrawable(WhisperGlyphRenderer.GlyphKind kind, int fg, int bg) {
++        this.kind = kind;
++        this.fg = fg;
++        this.bg = bg;
++        this.showProvenance = false;
++        this.hostPatp = null;
++    }
++
++    @Override
++    public void draw(@NonNull Canvas canvas) {
++        int width = getBounds().width();
++        int height = getBounds().height();
++        size = Math.min(width, height);
++        if (size <= 0) size = 48;
++
++        canvas.save();
++        canvas.translate(getBounds().left, getBounds().top);
++
++        WhisperGlyphRenderer.draw(canvas, kind, size, fg, bg);
++
++        // Draw provenance dot if needed
++        if (showProvenance && hostPatp != null) {
++            int[] hostPalette = WhisperTokens.paletteForPatp(hostPatp);
++            int dotColor = hostPalette[1];  // fg color
++            float dotSize = size * 0.22f;
++            float border = size * 0.025f;
++
++            android.graphics.Paint borderPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
++            borderPaint.setColor(bg);
++            borderPaint.setStyle(android.graphics.Paint.Style.FILL);
++
++            android.graphics.Paint dotPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
++            dotPaint.setColor(dotColor);
++            dotPaint.setStyle(android.graphics.Paint.Style.FILL);
++
++            float right = size;
++            float bottom = size;
++            canvas.drawRect(right - dotSize - border * 2, bottom - dotSize - border * 2,
++                    right, bottom, borderPaint);
++            canvas.drawRect(right - dotSize - border, bottom - dotSize - border,
++                    right - border, bottom - border, dotPaint);
++        }
++
++        canvas.restore();
++    }
++
++    @Override
++    public void setAlpha(int alpha) {
++        // Not implemented
++    }
++
++    @Override
++    public void setColorFilter(@Nullable ColorFilter colorFilter) {
++        // Not implemented
++    }
++
++    @Override
++    public int getOpacity() {
++        return PixelFormat.OPAQUE;
++    }
++
++    @Override
++    public int getIntrinsicWidth() {
++        return size;
++    }
++
++    @Override
++    public int getIntrinsicHeight() {
++        return size;
++    }
++}
+diff --git a/src/com/android/launcher3/whisper/WhisperGlyphRenderer.java b/src/com/android/launcher3/whisper/WhisperGlyphRenderer.java
+new file mode 100644
+index 0000000000..6edbe5b3e7
+--- /dev/null
++++ b/src/com/android/launcher3/whisper/WhisperGlyphRenderer.java
+@@ -0,0 +1,360 @@
++/*
++ * Whisper OS Glyph Renderer
++ * Draws the 24 system glyphs onto a Canvas.
++ * Port of SigilGlyphs.kt from the Compose reference implementation.
++ */
++
++package com.android.launcher3.whisper;
++
++import android.graphics.Canvas;
++import android.graphics.Paint;
++import android.graphics.Path;
++import android.graphics.RectF;
++
++public final class WhisperGlyphRenderer {
++    private WhisperGlyphRenderer() {}
++
++    public enum GlyphKind {
++        // communication
++        MESSAGES, TALK, PHONE, MAIL, CONTACT, HARK,
++        // time + place
++        CALENDAR, CLOCK, MAPS, WEATHER,
++        // capture + media
++        CAMERA, PHOTOS, MUSIC, STUDIO,
++        // documents
++        NOTES, FILES, READ, MEMEX, WALLET,
++        // system
++        SETTINGS, BROWSER, SEARCH, DOJO, AI
++    }
++
++    public static int defaultPaletteIndex(GlyphKind kind) {
++        switch (kind) {
++            case PHONE:
++            case TALK:
++            case CONTACT:
++                return WhisperTokens.PALETTE_MINT;
++            case MESSAGES:
++            case CALENDAR:
++            case HARK:
++            case AI:
++                return WhisperTokens.PALETTE_AMBER;
++            case MAIL:
++            case WALLET:
++            case READ:
++                return WhisperTokens.PALETTE_WHEAT;
++            case CAMERA:
++            case PHOTOS:
++            case STUDIO:
++                return WhisperTokens.PALETTE_CORAL;
++            case MAPS:
++            case WEATHER:
++                return WhisperTokens.PALETTE_SKY;
++            case MUSIC:
++            case MEMEX:
++                return WhisperTokens.PALETTE_LAVENDER;
++            case FILES:
++            case NOTES:
++                return WhisperTokens.PALETTE_SAGE;
++            default:
++                return WhisperTokens.PALETTE_PAPER;  // Clock, Settings, Browser, Search, Dojo
++        }
++    }
++
++    /**
++     * Draw a glyph centered in the given bounds.
++     * The glyph is drawn on a 24-unit logical grid, scaled to fit.
++     */
++    public static void draw(Canvas canvas, GlyphKind kind, float size, int fg, int bg) {
++        float inset = size * 0.14f;
++        float viewport = size - inset * 2f;
++        float u = viewport / 24f;
++
++        Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
++        bgPaint.setColor(bg);
++        bgPaint.setStyle(Paint.Style.FILL);
++        canvas.drawRect(0, 0, size, size, bgPaint);
++
++        canvas.save();
++        canvas.translate(inset, inset);
++
++        Paint fgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
++        fgPaint.setColor(fg);
++        fgPaint.setStyle(Paint.Style.FILL);
++
++        Paint bgLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
++        bgLinePaint.setColor(bg);
++        bgLinePaint.setStyle(Paint.Style.FILL);
++
++        switch (kind) {
++            case MESSAGES: drawMessages(canvas, fgPaint, u); break;
++            case TALK: drawTalk(canvas, fgPaint, u); break;
++            case PHONE: drawPhone(canvas, fgPaint, u); break;
++            case MAIL: drawMail(canvas, fgPaint, bgLinePaint, u); break;
++            case CONTACT: drawContact(canvas, fgPaint, u); break;
++            case HARK: drawHark(canvas, fgPaint, u); break;
++            case CALENDAR: drawCalendar(canvas, fgPaint, bgLinePaint, u); break;
++            case CLOCK: drawClock(canvas, fgPaint, bgLinePaint, u); break;
++            case MAPS: drawMaps(canvas, fgPaint, bgLinePaint, u); break;
++            case WEATHER: drawWeather(canvas, fgPaint, u); break;
++            case CAMERA: drawCamera(canvas, fgPaint, bgLinePaint, u); break;
++            case PHOTOS: drawPhotos(canvas, fgPaint, bgLinePaint, u); break;
++            case MUSIC: drawMusic(canvas, fgPaint, u); break;
++            case STUDIO: drawStudio(canvas, fgPaint, u); break;
++            case NOTES: drawNotes(canvas, fgPaint, u); break;
++            case FILES: drawFiles(canvas, fgPaint, u); break;
++            case READ: drawRead(canvas, fgPaint, bgLinePaint, u); break;
++            case MEMEX: drawMemex(canvas, fgPaint, u); break;
++            case WALLET: drawWallet(canvas, fgPaint, u); break;
++            case SETTINGS: drawSettings(canvas, fgPaint, u); break;
++            case BROWSER: drawBrowser(canvas, fgPaint, bgLinePaint, u); break;
++            case SEARCH: drawSearch(canvas, fgPaint, u); break;
++            case DOJO: drawDojo(canvas, fgPaint, u); break;
++            case AI: drawAi(canvas, fgPaint, u); break;
++        }
++
++        canvas.restore();
++    }
++
++    // ─────────────────────────────────────────────────────────────
++    // Communication glyphs
++    // ─────────────────────────────────────────────────────────────
++
++    private static void drawMessages(Canvas c, Paint p, float u) {
++        Path path = new Path();
++        path.moveTo(3f * u, 5f * u);
++        path.lineTo(21f * u, 5f * u);
++        path.lineTo(21f * u, 16f * u);
++        path.lineTo(10f * u, 16f * u);
++        path.lineTo(5f * u, 20f * u);
++        path.lineTo(7f * u, 16f * u);
++        path.lineTo(3f * u, 16f * u);
++        path.close();
++        c.drawPath(path, p);
++    }
++
++    private static void drawTalk(Canvas c, Paint p, float u) {
++        c.drawCircle(12f * u, 12f * u, 3.5f * u, p);
++        // Left arc
++        Path left = new Path();
++        left.moveTo(5.5f * u, 5.5f * u);
++        left.quadTo(3f * u, 12f * u, 5.5f * u, 18.5f * u);
++        left.lineTo(7f * u, 18.5f * u);
++        left.quadTo(5f * u, 12f * u, 7f * u, 5.5f * u);
++        left.close();
++        c.drawPath(left, p);
++        // Right arc
++        Path right = new Path();
++        right.moveTo(18.5f * u, 5.5f * u);
++        right.quadTo(21f * u, 12f * u, 18.5f * u, 18.5f * u);
++        right.lineTo(17f * u, 18.5f * u);
++        right.quadTo(19f * u, 12f * u, 17f * u, 5.5f * u);
++        right.close();
++        c.drawPath(right, p);
++    }
++
++    private static void drawPhone(Canvas c, Paint p, float u) {
++        c.drawCircle(6.5f * u, 6.5f * u, 3f * u, p);
++        c.drawCircle(17.5f * u, 17.5f * u, 3f * u, p);
++        c.save();
++        c.rotate(-45f, 12f * u, 12f * u);
++        c.drawRect(11f * u, 2f * u, 13f * u, 22f * u, p);
++        c.restore();
++    }
++
++    private static void drawMail(Canvas c, Paint fg, Paint bg, float u) {
++        c.drawRect(3f * u, 6f * u, 21f * u, 19f * u, fg);
++        Path v = new Path();
++        v.moveTo(3f * u, 6f * u);
++        v.lineTo(12f * u, 14f * u);
++        v.lineTo(21f * u, 6f * u);
++        v.lineTo(21f * u, 8.5f * u);
++        v.lineTo(12f * u, 16.5f * u);
++        v.lineTo(3f * u, 8.5f * u);
++        v.close();
++        c.drawPath(v, bg);
++    }
++
++    private static void drawContact(Canvas c, Paint p, float u) {
++        c.drawCircle(12f * u, 8f * u, 4f * u, p);
++        Path body = new Path();
++        body.moveTo(3f * u, 22f * u);
++        body.quadTo(3f * u, 13f * u, 12f * u, 13f * u);
++        body.quadTo(21f * u, 13f * u, 21f * u, 22f * u);
++        body.close();
++        c.drawPath(body, p);
++    }
++
++    private static void drawHark(Canvas c, Paint p, float u) {
++        c.drawCircle(12f * u, 11f * u, 7f * u, p);
++        c.drawRect(9f * u, 18f * u, 15f * u, 21f * u, p);
++    }
++
++    // ─────────────────────────────────────────────────────────────
++    // Time + place glyphs
++    // ─────────────────────────────────────────────────────────────
++
++    private static void drawCalendar(Canvas c, Paint fg, Paint bg, float u) {
++        c.drawRect(3f * u, 5f * u, 21f * u, 21f * u, fg);
++        c.drawRect(3f * u, 9f * u, 21f * u, 10.5f * u, bg);
++        c.drawRect(6f * u, 3f * u, 8f * u, 8f * u, fg);
++        c.drawRect(16f * u, 3f * u, 18f * u, 8f * u, fg);
++    }
++
++    private static void drawClock(Canvas c, Paint fg, Paint bg, float u) {
++        c.drawCircle(12f * u, 12f * u, 9f * u, fg);
++        c.drawRect(11f * u, 5f * u, 13f * u, 13f * u, bg);
++        c.drawRect(11f * u, 11f * u, 18f * u, 13f * u, bg);
++    }
++
++    private static void drawMaps(Canvas c, Paint fg, Paint bg, float u) {
++        Path diamond = new Path();
++        diamond.moveTo(12f * u, 2f * u);
++        diamond.lineTo(21f * u, 12f * u);
++        diamond.lineTo(12f * u, 22f * u);
++        diamond.lineTo(3f * u, 12f * u);
++        diamond.close();
++        c.drawPath(diamond, fg);
++        c.drawCircle(12f * u, 10f * u, 2.5f * u, bg);
++    }
++
++    private static void drawWeather(Canvas c, Paint p, float u) {
++        c.drawCircle(12f * u, 12f * u, 5f * u, p);
++        // Rays
++        c.drawRect(11f * u, 2f * u, 13f * u, 5f * u, p);
++        c.drawRect(11f * u, 19f * u, 13f * u, 22f * u, p);
++        c.drawRect(2f * u, 11f * u, 5f * u, 13f * u, p);
++        c.drawRect(19f * u, 11f * u, 22f * u, 13f * u, p);
++        // Diagonal rays
++        c.save();
++        c.rotate(-45f, 5.5f * u, 6f * u);
++        c.drawRect(4.5f * u, 4.5f * u, 6.5f * u, 7.5f * u, p);
++        c.restore();
++        c.save();
++        c.rotate(45f, 18.5f * u, 6f * u);
++        c.drawRect(17.5f * u, 4.5f * u, 19.5f * u, 7.5f * u, p);
++        c.restore();
++        c.save();
++        c.rotate(45f, 5.5f * u, 18f * u);
++        c.drawRect(4.5f * u, 16.5f * u, 6.5f * u, 19.5f * u, p);
++        c.restore();
++        c.save();
++        c.rotate(-45f, 18.5f * u, 18f * u);
++        c.drawRect(17.5f * u, 16.5f * u, 19.5f * u, 19.5f * u, p);
++        c.restore();
++    }
++
++    // ─────────────────────────────────────────────────────────────
++    // Capture + media glyphs
++    // ─────────────────────────────────────────────────────────────
++
++    private static void drawCamera(Canvas c, Paint fg, Paint bg, float u) {
++        c.drawRect(3f * u, 7f * u, 21f * u, 21f * u, fg);
++        c.drawRect(8f * u, 4f * u, 16f * u, 7f * u, fg);
++        c.drawCircle(12f * u, 14f * u, 4f * u, bg);
++        c.drawCircle(12f * u, 14f * u, 1.5f * u, fg);
++    }
++
++    private static void drawPhotos(Canvas c, Paint fg, Paint bg, float u) {
++        c.drawRect(3f * u, 3f * u, 16f * u, 16f * u, fg);
++        c.drawRect(6f * u, 6f * u, 20f * u, 20f * u, bg);
++        c.drawRect(7f * u, 7f * u, 20f * u, 20f * u, fg);
++    }
++
++    private static void drawMusic(Canvas c, Paint p, float u) {
++        c.drawRect(11f * u, 4f * u, 13f * u, 18f * u, p);
++        c.drawCircle(8f * u, 17f * u, 3.5f * u, p);
++    }
++
++    private static void drawStudio(Canvas c, Paint p, float u) {
++        c.drawRect(4f * u, 4f * u, 11f * u, 11f * u, p);
++        c.drawRect(13f * u, 4f * u, 20f * u, 11f * u, p);
++        c.drawRect(4f * u, 13f * u, 11f * u, 20f * u, p);
++        c.drawRect(13f * u, 13f * u, 20f * u, 20f * u, p);
++    }
++
++    // ─────────────────────────────────────────────────────────────
++    // Documents glyphs
++    // ─────────────────────────────────────────────────────────────
++
++    private static void drawNotes(Canvas c, Paint p, float u) {
++        Path path = new Path();
++        path.moveTo(5f * u, 4f * u);
++        path.lineTo(16f * u, 4f * u);
++        path.lineTo(20f * u, 8f * u);
++        path.lineTo(20f * u, 20f * u);
++        path.lineTo(5f * u, 20f * u);
++        path.close();
++        c.drawPath(path, p);
++    }
++
++    private static void drawFiles(Canvas c, Paint p, float u) {
++        c.drawRect(3f * u, 4f * u, 12f * u, 8f * u, p);
++        c.drawRect(3f * u, 7f * u, 21f * u, 21f * u, p);
++    }
++
++    private static void drawRead(Canvas c, Paint fg, Paint bg, float u) {
++        c.drawRect(3f * u, 5f * u, 21f * u, 19f * u, fg);
++        c.drawRect(11.5f * u, 5f * u, 12.5f * u, 19f * u, bg);
++    }
++
++    private static void drawMemex(Canvas c, Paint p, float u) {
++        c.drawRect(4f * u, 4f * u, 20f * u, 20f * u, p);
++        // Grid lines would go here in full impl
++    }
++
++    private static void drawWallet(Canvas c, Paint p, float u) {
++        c.drawRect(3f * u, 6f * u, 21f * u, 18f * u, p);
++        c.drawRect(16f * u, 10f * u, 21f * u, 14f * u, p);
++    }
++
++    // ─────────────────────────────────────────────────────────────
++    // System glyphs
++    // ─────────────────────────────────────────────────────────────
++
++    private static void drawSettings(Canvas c, Paint p, float u) {
++        c.drawCircle(12f * u, 12f * u, 4f * u, p);
++        // Gear teeth
++        for (int i = 0; i < 8; i++) {
++            c.save();
++            c.rotate(i * 45f, 12f * u, 12f * u);
++            c.drawRect(10.5f * u, 2f * u, 13.5f * u, 6f * u, p);
++            c.restore();
++        }
++    }
++
++    private static void drawBrowser(Canvas c, Paint fg, Paint bg, float u) {
++        c.drawCircle(12f * u, 12f * u, 9f * u, fg);
++        // Horizontal line
++        c.drawRect(3f * u, 11f * u, 21f * u, 13f * u, bg);
++        // Vertical line
++        c.drawRect(11f * u, 3f * u, 13f * u, 21f * u, bg);
++    }
++
++    private static void drawSearch(Canvas c, Paint p, float u) {
++        Paint stroke = new Paint(p);
++        stroke.setStyle(Paint.Style.STROKE);
++        stroke.setStrokeWidth(2f * u);
++        c.drawCircle(10f * u, 10f * u, 5f * u, stroke);
++        c.save();
++        c.rotate(45f, 14f * u, 14f * u);
++        c.drawRect(13f * u, 14f * u, 15f * u, 21f * u, p);
++        c.restore();
++    }
++
++    private static void drawDojo(Canvas c, Paint p, float u) {
++        // Terminal prompt style
++        c.drawRect(3f * u, 10f * u, 7f * u, 14f * u, p);
++        c.drawRect(9f * u, 11f * u, 21f * u, 13f * u, p);
++    }
++
++    private static void drawAi(Canvas c, Paint p, float u) {
++        // Diamond/crystal shape
++        Path path = new Path();
++        path.moveTo(12f * u, 3f * u);
++        path.lineTo(20f * u, 10f * u);
++        path.lineTo(12f * u, 21f * u);
++        path.lineTo(4f * u, 10f * u);
++        path.close();
++        c.drawPath(path, p);
++    }
++}
+diff --git a/src/com/android/launcher3/whisper/WhisperStatusStrip.java b/src/com/android/launcher3/whisper/WhisperStatusStrip.java
+new file mode 100644
+index 0000000000..ee3a25f514
+--- /dev/null
++++ b/src/com/android/launcher3/whisper/WhisperStatusStrip.java
+@@ -0,0 +1,170 @@
++/*
++ * Whisper OS Status Strip
++ * The signature chrome element showing runtime status.
++ * See design handoff: 01-foundations.md §1.6
++ */
++
++package com.android.launcher3.whisper;
++
++import android.content.Context;
++import android.graphics.Canvas;
++import android.graphics.Paint;
++import android.graphics.Typeface;
++import android.text.TextUtils;
++import android.util.AttributeSet;
++import android.view.View;
++
++import java.util.ArrayList;
++import java.util.List;
++
++public class WhisperStatusStrip extends View {
++
++    private final Paint bgPaint;
++    private final Paint textPaint;
++    private final Paint accentPaint;
++
++    private boolean inverted = false;
++    private String shipName = null;
++    private String runtimeState = null;
++    private String vereVersion = null;
++    private List<String> extras = new ArrayList<>();
++
++    private static final int PAD_H = 14;
++    private static final int PAD_V = 10;
++    private static final int TEXT_SIZE = 11;
++
++    public WhisperStatusStrip(Context context) {
++        this(context, null);
++    }
++
++    public WhisperStatusStrip(Context context, AttributeSet attrs) {
++        this(context, attrs, 0);
++    }
++
++    public WhisperStatusStrip(Context context, AttributeSet attrs, int defStyleAttr) {
++        super(context, attrs, defStyleAttr);
++
++        float density = context.getResources().getDisplayMetrics().density;
++
++        bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
++        bgPaint.setStyle(Paint.Style.FILL);
++
++        textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
++        textPaint.setTypeface(Typeface.MONOSPACE);
++        textPaint.setTextSize(TEXT_SIZE * density);
++        textPaint.setLetterSpacing(0.03f);
++
++        accentPaint = new Paint(textPaint);
++        accentPaint.setColor(WhisperTokens.ACCENT_AMBER);
++
++        updateColors();
++    }
++
++    public void setInverted(boolean inverted) {
++        if (this.inverted != inverted) {
++            this.inverted = inverted;
++            updateColors();
++            invalidate();
++        }
++    }
++
++    public void setShipName(String shipName) {
++        this.shipName = shipName;
++        invalidate();
++    }
++
++    public void setRuntimeState(String state) {
++        this.runtimeState = state;
++        invalidate();
++    }
++
++    public void setVereVersion(String version) {
++        this.vereVersion = version;
++        invalidate();
++    }
++
++    public void setExtras(List<String> extras) {
++        this.extras = extras != null ? extras : new ArrayList<>();
++        invalidate();
++    }
++
++    private void updateColors() {
++        if (inverted) {
++            bgPaint.setColor(WhisperTokens.PAPER);
++            textPaint.setColor(WhisperTokens.INK);
++        } else {
++            bgPaint.setColor(WhisperTokens.INK);
++            textPaint.setColor(WhisperTokens.PAPER);
++        }
++    }
++
++    @Override
++    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
++        float density = getResources().getDisplayMetrics().density;
++        int height = getPaddingTop() + getPaddingBottom()
++                + (int) ((PAD_V * 2 + TEXT_SIZE + 4) * density);
++        int width = MeasureSpec.getSize(widthMeasureSpec);
++        setMeasuredDimension(width, height);
++    }
++
++    @Override
++    protected void onDraw(Canvas canvas) {
++        super.onDraw(canvas);
++
++        float density = getResources().getDisplayMetrics().density;
++        float padH = PAD_H * density;
++        float padV = getPaddingTop() + PAD_V * density;
++
++        // Draw background
++        canvas.drawRect(0, 0, getWidth(), getHeight(), bgPaint);
++
++        // Build status text
++        StringBuilder sb = new StringBuilder();
++
++        if (!TextUtils.isEmpty(shipName)) {
++            sb.append(shipName);
++        }
++
++        if (!TextUtils.isEmpty(runtimeState)) {
++            if (sb.length() > 0) sb.append(" · ");
++            sb.append(runtimeState);
++        }
++
++        if (!TextUtils.isEmpty(vereVersion)) {
++            if (sb.length() > 0) sb.append(" · ");
++            sb.append("v").append(vereVersion);
++        }
++
++        for (String extra : extras) {
++            if (!TextUtils.isEmpty(extra)) {
++                if (sb.length() > 0) sb.append(" · ");
++                sb.append(extra);
++            }
++        }
++
++        String statusText = sb.toString();
++        if (TextUtils.isEmpty(statusText)) {
++            statusText = "whisper os";
++        }
++
++        // Calculate baseline
++        Paint.FontMetrics fm = textPaint.getFontMetrics();
++        float baseline = padV + (-fm.top);
++
++        // Draw % accent
++        float x = padH;
++        canvas.drawText("%", x, baseline, accentPaint);
++        x += accentPaint.measureText("% ");
++
++        // Draw status text (truncate if needed)
++        float maxWidth = getWidth() - x - padH;
++        String displayText = statusText;
++        if (textPaint.measureText(displayText) > maxWidth) {
++            while (displayText.length() > 3 && textPaint.measureText(displayText + "…") > maxWidth) {
++                displayText = displayText.substring(0, displayText.length() - 1);
++            }
++            displayText = displayText + "…";
++        }
++        canvas.drawText(displayText, x, baseline, textPaint);
++    }
++}
+diff --git a/src/com/android/launcher3/whisper/WhisperTokens.java b/src/com/android/launcher3/whisper/WhisperTokens.java
+new file mode 100644
+index 0000000000..feed5826dd
+--- /dev/null
++++ b/src/com/android/launcher3/whisper/WhisperTokens.java
+@@ -0,0 +1,144 @@
++/*
++ * Whisper OS Design Tokens
++ * Single source of truth for colors, typography, and spacing.
++ * See design handoff: 01-foundations.md
++ */
++
++package com.android.launcher3.whisper;
++
++import android.graphics.Color;
++import android.graphics.Typeface;
++
++public final class WhisperTokens {
++    private WhisperTokens() {}
++
++    // ─────────────────────────────────────────────────────────────
++    // 1.1 · Surface colors
++    // ─────────────────────────────────────────────────────────────
++
++    public static final int PAPER = 0xFFF4F1EC;      // light surfaces
++    public static final int INK = 0xFF1A1916;        // warm-black surfaces, text on paper
++    public static final int DEEP = 0xFF0E0D0C;       // onboarding, full-screen identity
++
++    // Text/line tints on paper
++    public static final int INK_DIM = 0x8C1A1916;    // 55% ink
++    public static final int INK_FAINT = 0x4D1A1916;  // 30% ink
++    public static final int INK_HAIR = 0x1A1A1916;   // 10% ink (hairlines)
++
++    // Text/line tints on ink/deep
++    public static final int PAPER_DIM = 0x8CF4F1EC;    // 55% paper
++    public static final int PAPER_FAINT = 0x4DF4F1EC;  // 30% paper
++    public static final int PAPER_HAIR = 0x1AF4F1EC;   // 10% paper (hairlines)
++
++    // ─────────────────────────────────────────────────────────────
++    // 1.2 · The eight sigil palettes
++    // ─────────────────────────────────────────────────────────────
++
++    public static final int[][] PALETTES = {
++        { 0xFF1A1A1A, 0xFFF3A712 },  // 0: Amber
++        { 0xFF10221C, 0xFF7FC7A3 },  // 1: Mint
++        { 0xFF1A1530, 0xFFA18CD1 },  // 2: Lavender
++        { 0xFF2A1A1A, 0xFFD97757 },  // 3: Coral
++        { 0xFF0E1A2A, 0xFF7DA6C9 },  // 4: Sky
++        { 0xFF1C1C1C, 0xFFE8E8E8 },  // 5: Paper
++        { 0xFF221A10, 0xFFD6B370 },  // 6: Wheat
++        { 0xFF1A1A1A, 0xFF9BB380 },  // 7: Sage
++    };
++
++    public static int paletteBg(int index) {
++        return PALETTES[Math.abs(index) % PALETTES.length][0];
++    }
++
++    public static int paletteFg(int index) {
++        return PALETTES[Math.abs(index) % PALETTES.length][1];
++    }
++
++    // Named palette indices
++    public static final int PALETTE_AMBER = 0;
++    public static final int PALETTE_MINT = 1;
++    public static final int PALETTE_LAVENDER = 2;
++    public static final int PALETTE_CORAL = 3;
++    public static final int PALETTE_SKY = 4;
++    public static final int PALETTE_PAPER = 5;
++    public static final int PALETTE_WHEAT = 6;
++    public static final int PALETTE_SAGE = 7;
++
++    // ─────────────────────────────────────────────────────────────
++    // 1.3 · System accents
++    // ─────────────────────────────────────────────────────────────
++
++    public static final int ACCENT_AMBER = 0xFFF3A712;       // system spark, %, AI dot, unread, caret
++    public static final int ACCENT_AMBER_SOFT = 0xFFD6A35C;  // identity surfaces, urbit provenance
++    public static final int MINT = 0xFF7FC7A3;               // affirmative call actions
++    public static final int CORAL = 0xFFD97757;              // destructive, missed, decline
++
++    // ─────────────────────────────────────────────────────────────
++    // 4.2 · Provenance world colors
++    // ─────────────────────────────────────────────────────────────
++
++    public static final int WORLD_URBIT = 0xFFD6A35C;  // urbit-native
++    public static final int WORLD_PLAY = 0xFF8FB39A;   // Google Play (sandboxed)
++    public static final int WORLD_WEB = 0xFF9AA4B3;    // web app
++    public static final int WORLD_SYS = 0xFFA89888;    // Android system
++    public static final int WORLD_DEV = 0xFFC89678;    // sideloaded/developer
++
++    // ─────────────────────────────────────────────────────────────
++    // 1.5 · Spacing (dp values)
++    // ─────────────────────────────────────────────────────────────
++
++    public static final int SCREEN_PAD_X = 22;
++    public static final int SCREEN_PAD_X_WIDE = 24;
++    public static final int SCREEN_PAD_TOP = 60;
++    public static final int SCREEN_PAD_BOTTOM = 60;
++    public static final int GRID_GAP = 14;
++    public static final int GRID_GAP_DENSE = 10;
++    public static final int ROW_PAD_Y = 12;
++    public static final int SECTION_GAP = 24;
++
++    // App grid
++    public static final int CELL_SIZE = 62;
++    public static final int CELL_LABEL_GAP = 6;
++    public static final int DOCK_CELL_SIZE = 44;
++
++    // ─────────────────────────────────────────────────────────────
++    // 1.6 · Status strip
++    // ─────────────────────────────────────────────────────────────
++
++    public static final int STRIP_PAD_V = 10;
++    public static final int STRIP_PAD_H = 14;
++    public static final int STRIP_TEXT_SIZE = 11;
++
++    // ─────────────────────────────────────────────────────────────
++    // Typography sizes (sp)
++    // ─────────────────────────────────────────────────────────────
++
++    public static final int TYPE_DISPLAY_XL = 88;  // lock screen clock
++    public static final int TYPE_DISPLAY_L = 44;   // home clock
++    public static final int TYPE_TITLE = 28;       // screen titles
++    public static final int TYPE_HEADLINE = 20;    // card titles
++    public static final int TYPE_BODY = 14;        // list rows, app names
++    public static final int TYPE_LABEL = 11;       // section labels, @p, timestamps
++    public static final int TYPE_MICRO = 9;        // sub-metadata
++
++    // ─────────────────────────────────────────────────────────────
++    // FNV-1a hash for @p → palette
++    // ─────────────────────────────────────────────────────────────
++
++    public static int fnv1a32(String s) {
++        int h = 0x811C9DC5;
++        for (int i = 0; i < s.length(); i++) {
++            h ^= s.charAt(i);
++            h *= 0x01000193;
++        }
++        return h;
++    }
++
++    public static int paletteIndexForPatp(String patp) {
++        int hash = fnv1a32(patp);
++        return (int) (Integer.toUnsignedLong(hash) % PALETTES.length);
++    }
++
++    public static int[] paletteForPatp(String patp) {
++        return PALETTES[paletteIndexForPatp(patp)];
++    }
++}
