@@ -55,6 +55,25 @@ Latest verified ROM package: `2026061002`
   `~wacpeg-hodpel-palrum-roclur` auto-started with `connSockAvailable=true`.
 - Provider and launcher smokes passed again after reboot.
 
+## 2026-06-15 Non-Mutating Parent Probe
+
+After updating the parent-side Artemis desk, the current parent was probed from
+the workstation without creating a new moon and without writing the access code
+or any moon boot keys to disk.
+
+- Eyre login returned HTTP 200.
+- `/~/host` returned `~palrum-roclur`.
+- `/apps/artemis/` returned HTTP 200.
+- `/~/scry/artemis/mons.json` returned HTTP 200.
+- The response contained six managed moons.
+- All six managed moons were role `%mobile`.
+- Each moon entry exposed the expected fields:
+  `who`, `nam`, `rol`, `pub`, `sec`, `lif`, `rif`, `sed`, `dat`, and `tag`.
+
+This confirms the current Artemis deployment still matches the controller's
+parent-pairing contract. No phone-side provisioning was triggered during this
+probe.
+
 ## Issues Found And Resolved
 
 The direct `pairWithPlanet` path successfully authenticated to the parent and
