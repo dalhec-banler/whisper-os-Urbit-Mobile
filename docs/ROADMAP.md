@@ -24,11 +24,15 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
   moon through Click/conn.sock and Docket
 - Hosted Urbit apps can be pinned to the normal Android workspace and opened in
   a Whisper-hosted WebView shell
+- Satellite Pill v1 now builds with `%nativeplanet-mobile`, boots on host,
+  boots on Android Vere, and is live-installed on the current userdebug phone
+  through adb remount
 
 Next step: mobile app surfaces. The phone can now discover and pin Urbit apps,
-but the running moon still needs a mobile-ready desk/pill path so those apps
-open into useful phone surfaces instead of generic hosted shells. Manual
-moon-key import stays available as an advanced fallback.
+and the v1 pill path exists, but a freshly provisioned moon still needs to be
+tested from the production BootPackage flow before those surfaces can replace
+generic hosted shells. Manual moon-key import stays available as an advanced
+fallback.
 
 For detailed verification reports, see [docs/verification/](verification/).
 
@@ -103,8 +107,10 @@ home-screen behavior stay production-grade.
 - Pin-to-home flow for hosted Urbit apps
 
 **Next:**
-- Define and build the mobile desk/moon pill that gives hosted apps phone-ready
-  entrypoints.
+- Flash or otherwise package the v1 `satellite.pill` without relying on adb
+  remount.
+- Provision a fresh moon through the production BootPackage path and verify it
+  starts from Satellite Pill v1.
 - Find the correct mobile entrypoints for Tlon, Dojo, Grove, and Kin.
 - Use Grove and Kin as candidate paths for installing or syncing Urbit web apps
   after the first mobile app surfaces are stable.
