@@ -7,6 +7,10 @@
     <!-- Query the controller ContentProvider -->
     <queries>
         <provider android:authorities="io.nativeplanet.controller" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <application
@@ -19,13 +23,15 @@
         android:theme="@style/Theme.WhisperLauncher">
 
         <activity
-            android:name=".MainActivity"
+            android:name="io.nativeplanet.launcher.MainActivity"
+            android:configChanges="keyboard|keyboardHidden|mcc|mnc|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale"
+            android:excludeFromRecents="true"
             android:exported="true"
-            android:theme="@style/Theme.WhisperLauncher">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:launchMode="singleInstance"
+            android:resumeWhilePausing="true"
+            android:stateNotNeeded="true"
+            android:theme="@style/Theme.WhisperLauncher"
+            android:windowSoftInputMode="adjustNothing">
         </activity>
 
     </application>

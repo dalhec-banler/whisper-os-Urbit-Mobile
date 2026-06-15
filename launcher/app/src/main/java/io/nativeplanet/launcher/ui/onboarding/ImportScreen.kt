@@ -45,7 +45,7 @@ fun ImportScreen(
         Spacer(modifier = Modifier.height(NPSpacing.xxxl))
 
         Text(
-            text = "MOON KEY",
+            text = "IMPORT A SATELLITE · 1 OF 2",
             style = NPType.micro,
             color = colors.foregroundDim
         )
@@ -53,7 +53,7 @@ fun ImportScreen(
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
         Text(
-            text = "Manual import.",
+            text = "Bring an existing satellite.",
             style = NPType.displaySm,
             color = colors.foreground
         )
@@ -61,7 +61,7 @@ fun ImportScreen(
         Spacer(modifier = Modifier.height(NPSpacing.lg))
 
         Text(
-            text = "Enter a throwaway moon key from your parent planet. Generate one with |moon in your planet's dojo.",
+            text = "Paste the satellite name, your planet name, and the satellite key. Your keys stay on this device.",
             style = NPType.bodySm,
             color = colors.foregroundDim
         )
@@ -73,8 +73,8 @@ fun ImportScreen(
                 NPTextField(
                     value = shipName,
                     onValueChange = { shipName = it },
-                    label = "Moon",
-                    placeholder = "~sample-moon-parent"
+                    label = "Satellite",
+                    placeholder = "~sample-device-planet"
                 )
 
                 Spacer(modifier = Modifier.height(NPSpacing.md))
@@ -82,8 +82,8 @@ fun ImportScreen(
                 NPTextField(
                     value = parentName,
                     onValueChange = { parentName = it },
-                    label = "Parent",
-                    placeholder = "~parent-planet"
+                    label = "Your planet",
+                    placeholder = "~your-planet"
                 )
 
                 Spacer(modifier = Modifier.height(NPSpacing.md))
@@ -91,7 +91,7 @@ fun ImportScreen(
                 NPTextFieldMultiline(
                     value = keyMaterial,
                     onValueChange = { keyMaterial = it },
-                    label = "Moon key",
+                    label = "Satellite key",
                     placeholder = "0w...",
                     isSecret = true
                 )
@@ -112,7 +112,7 @@ fun ImportScreen(
                     keyMaterial.trim().isNotEmpty()
 
                 NPButton(
-                    text = "Import moon",
+                    text = "import satellite",
                     enabled = canImport,
                     onClick = {
                         val submittedShip = shipName.trim()
@@ -127,7 +127,7 @@ fun ImportScreen(
                             val result = onProvisionMoon(submittedShip, submittedParent, submittedKey)
                             when (result) {
                                 is ControlResult.Success -> {
-                                    statusMessage = "starting moon…"
+                                    statusMessage = "starting satellite…"
                                     importState = ImportState.COMPLETE
                                     onImportComplete(
                                         normalizeShip(submittedShip),

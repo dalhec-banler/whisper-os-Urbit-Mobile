@@ -1,7 +1,7 @@
 package io.nativeplanet.launcher.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +21,7 @@ import io.nativeplanet.launcher.ui.components.NPButtonStyle
 import io.nativeplanet.launcher.ui.components.SectionHeader
 import io.nativeplanet.launcher.ui.components.SigilView
 import io.nativeplanet.launcher.ui.components.StatusChip
+import io.nativeplanet.launcher.ui.home.LauncherNavPill
 import io.nativeplanet.launcher.ui.home.RuntimeStatusViewModel
 
 @Composable
@@ -33,6 +34,7 @@ fun IdentitySettingsScreen(
     val colors = NativePlanetTheme.colors
     val uiState by viewModel.uiState.collectAsState()
     val bootPackage = uiState.bootPackageStatus
+    BackHandler(onBack = onBack)
 
     Column(
         modifier = modifier
@@ -43,20 +45,10 @@ fun IdentitySettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(NPSpacing.screenGutter)
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "back",
-                style = NPType.caption,
-                color = colors.foregroundDim,
-                modifier = Modifier
-                    .clickable(onClick = onBack)
-                    .padding(end = NPSpacing.md)
-            )
-
             Text(
                 text = "Identity",
                 style = NPType.displaySm,
@@ -107,7 +99,7 @@ fun IdentitySettingsScreen(
 
                 bootPackage.parent?.let { parent ->
                     Text(
-                        text = "mobile moon · under $parent",
+                        text = "satellite · under $parent",
                         style = NPType.bodySm,
                         color = colors.foregroundDim
                     )
@@ -169,7 +161,7 @@ fun IdentitySettingsScreen(
                 .padding(NPSpacing.cardPadding)
         ) {
             Text(
-                text = "Only this moon is on the phone right now.",
+                text = "Only this satellite is on the phone right now.",
                 style = NPType.bodySm,
                 color = colors.foregroundDim
             )
@@ -177,7 +169,7 @@ fun IdentitySettingsScreen(
             Spacer(modifier = Modifier.height(NPSpacing.xs))
 
             Text(
-                text = "Add another identity when you want a second mobile moon or a recovery import.",
+                text = "Add another identity when you want a second satellite or a recovery import.",
                 style = NPType.nano,
                 color = colors.foregroundFaint
             )
@@ -194,9 +186,16 @@ fun IdentitySettingsScreen(
         Spacer(modifier = Modifier.height(NPSpacing.sm))
 
         Text(
-            text = "Pair another moon or use a moon key.",
+            text = "Pair another satellite or import an existing one.",
             style = NPType.caption,
             color = colors.foregroundDim
+        )
+
+        Spacer(modifier = Modifier.height(NPSpacing.xl))
+
+        LauncherNavPill(
+            color = colors.foreground.copy(alpha = 0.28f),
+            modifier = Modifier.align(Alignment.CenterHorizontally)
         )
 
         Spacer(modifier = Modifier.height(NPSpacing.lg))

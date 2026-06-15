@@ -30,7 +30,7 @@ fun CometScreen(
             delay(1500)
             statusMessage = "generating identity…"
             delay(1500)
-            statusMessage = "booting urbit…"
+            statusMessage = "booting identity…"
             delay(2000)
             bootState = CometBootState.COMPLETE
             onBootComplete("~sampel-palnet-marzod-marzod--marzod-marzod-marzod-marzod")
@@ -65,7 +65,7 @@ fun CometScreen(
         Spacer(modifier = Modifier.height(NPSpacing.lg))
 
         Text(
-            text = "A comet is a temporary Urbit identity. It boots instantly with no sponsor required, but has limited network access and cannot be recovered if lost.",
+            text = "A comet is a temporary identity. It boots instantly with no sponsor required, but has limited network access and cannot be recovered if lost.",
             style = NPType.bodySm,
             color = colors.foregroundDim
         )

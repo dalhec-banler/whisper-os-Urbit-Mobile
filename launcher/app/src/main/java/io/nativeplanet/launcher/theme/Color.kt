@@ -3,42 +3,60 @@ package io.nativeplanet.launcher.theme
 import androidx.compose.ui.graphics.Color
 
 object NPColors {
-    // Surfaces (dark)
-    val bgWarmBlack = Color(0xFF0E0D0C)
-    val bgWarmBlack2 = Color(0xFF1A1916)
-    val bgCoolDark = Color(0xFF0A0D10)
-    val bgStream = Color(0xFF1A1815)
-    val bgLedger = Color(0xFF1A1612)
+    // Whisper OS source-of-truth surfaces.
+    val paper = Color(0xFFF4F1EC)
+    val ink = Color(0xFF1A1916)
+    val deep = Color(0xFF0E0D0C)
 
-    // Surfaces (light)
-    val bgPaper = Color(0xFFF4F1EC)
-    val bgPaper2 = Color(0xFFFDFAF3)
-    val bgPaper3 = Color(0xFFE3DDD2)
+    // Derived tints.
+    val inkDim = ink.copy(alpha = 0.55f)
+    val inkFaint = ink.copy(alpha = 0.30f)
+    val inkHair = ink.copy(alpha = 0.10f)
+    val paperDim = paper.copy(alpha = 0.55f)
+    val paperFaint = paper.copy(alpha = 0.30f)
+    val paperHair = paper.copy(alpha = 0.10f)
 
-    // Foregrounds
-    val fgCream = Color(0xFFF4F1EC)
-    val fgBone = Color(0xFFECE7DF)
-    val fgInk = Color(0xFF1A1916)
-    val fgDim = Color(0x80F4F1EC)
-    val fgDimInk = Color(0x801A1916)
-    val fgFaint = Color(0x4DF4F1EC)
+    // Backwards-compatible names used by existing screens.
+    val bgWarmBlack = deep
+    val bgWarmBlack2 = ink
+    val bgCoolDark = deep
+    val bgStream = ink
+    val bgLedger = ink
+    val bgPaper = paper
+    val bgPaper2 = paper
+    val bgPaper3 = inkHair
+    val fgCream = paper
+    val fgBone = paper
+    val fgInk = ink
+    val fgDim = paperDim
+    val fgDimInk = inkDim
+    val fgFaint = paperFaint
 
-    // Accents
+    // Accents.
     val accentAmber = Color(0xFFF3A712)
     val accentAmberSoft = Color(0xFFD6A35C)
-    val accentCoral = Color(0xFFD97757)
-    val accentSage = Color(0xFF8FB39A)
+    val mint = Color(0xFF7FC7A3)
+    val coral = Color(0xFFD97757)
+    val accentCoral = coral
+    val accentSage = Color(0xFF9BB380)
     val accentSky = Color(0xFF7DA6C9)
     val accentLavender = Color(0xFFA18CD1)
     val accentSlate = Color(0xFF9AA4B3)
     val accentStone = Color(0xFFA89888)
     val accentClay = Color(0xFFC89678)
 
-    // Errors (warm coral, never pure red)
-    val error = Color(0xFFE57373)
+    // Errors/destructive states use coral, never pure red.
+    val error = coral
 
-    // Hairlines
-    val hairlineDark = Color(0x0DFFFFFF)
-    val hairlineDarkEmphasis = Color(0x14FFFFFF)
-    val hairlinePaper = Color(0x141A1916)
+    // Provenance worlds.
+    val worldUrbit = accentAmberSoft
+    val worldPlay = Color(0xFF8FB39A)
+    val worldWeb = accentSlate
+    val worldSystem = accentStone
+    val worldDev = accentClay
+
+    // Hairlines.
+    val hairlineDark = paperHair
+    val hairlineDarkEmphasis = paper.copy(alpha = 0.14f)
+    val hairlinePaper = inkHair
 }

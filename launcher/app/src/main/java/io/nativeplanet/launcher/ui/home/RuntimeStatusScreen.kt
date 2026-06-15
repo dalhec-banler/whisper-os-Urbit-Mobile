@@ -1,197 +1,962 @@
 package io.nativeplanet.launcher.ui.home
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
-import io.nativeplanet.launcher.domain.IdentityMode
 import io.nativeplanet.launcher.domain.model.RuntimeState
-import io.nativeplanet.launcher.theme.*
+import io.nativeplanet.launcher.platform.GuestLauncher
+import io.nativeplanet.launcher.platform.LauncherAppInfo
+import io.nativeplanet.launcher.theme.NPColors
+import io.nativeplanet.launcher.theme.NPSpacing
+import io.nativeplanet.launcher.theme.NPType
+import io.nativeplanet.launcher.theme.NativePlanetTheme
 import io.nativeplanet.launcher.ui.components.NPButton
 import io.nativeplanet.launcher.ui.components.NPButtonStyle
-import io.nativeplanet.launcher.ui.components.SigilView
-import io.nativeplanet.launcher.ui.components.StatusChip
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
+private data class HomeDragPreview(
+    val tile: HomeTileSpec,
+    val position: Offset
+)
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RuntimeStatusScreen(
     onNavigateToSettings: () -> Unit,
+    onNavigateToOnboarding: () -> Unit,
+    onNavigateToApps: () -> Unit,
+    onNavigateToSearch: () -> Unit,
+    onNavigateToDetails: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: RuntimeStatusViewModel = hiltViewModel()
+) {
+    val colors = NativePlanetTheme.colors
+    val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+
+    val displayShip = uiState.demoIdentity.shipName ?: uiState.bootPackageStatus.ship
+    val displayParent = uiState.demoIdentity.parentName ?: uiState.bootPackageStatus.parent
+    val shipLabel = displayShip?.withPatpSig()
+    val parentLabel = displayParent?.withPatpSig()
+    val isConfigured = uiState.demoIdentity.isConfigured || uiState.bootPackageStatus.exists
+    val now = LocalTime.now()
+    val hostPatp = parentLabel ?: shipLabel
+    var homeTiles by remember(hostPatp) {
+        mutableStateOf(HomeLayoutStore.load(context, hostPatp))
+    }
+    var editMode by remember { mutableStateOf(false) }
+    var removeTargetArmed by remember { mutableStateOf(false) }
+    var notice by remember { mutableStateOf<String?>(null) }
+    var dragPreview by remember { mutableStateOf<HomeDragPreview?>(null) }
+    val pageCount = remember(homeTiles) {
+        maxOf(2, (homeTiles.maxOfOrNull { it.page } ?: 0) + 2)
+    }
+    val pagerState = rememberPagerState(pageCount = { pageCount })
+    val scope = rememberCoroutineScope()
+    val stripText = buildList {
+        add(uiState.runtimeStatus.state.name.lowercase())
+        if (uiState.networkStatus.validated) add(uiState.networkStatus.type.name.lowercase()) else add("offline")
+        if (uiState.runtimeStatus.connSockAvailable) add("conn") else add("waiting")
+    }.joinToString(" · ")
+    val identityText = buildList {
+        shipLabel?.let { add(it) }
+        parentLabel?.let { add("under $it") }
+    }.joinToString(" · ")
+
+    LaunchedEffect(context, hostPatp) {
+        homeTiles = HomeLayoutStore.load(context, hostPatp)
+        HomeLayoutEvents.changes.collectLatest {
+            homeTiles = HomeLayoutStore.load(context, hostPatp)
+        }
+    }
+    LaunchedEffect(notice) {
+        if (notice != null) {
+            delay(2600)
+            notice = null
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(if (isConfigured) NPColors.paper else colors.background)
+            .navigationBarsPadding()
+    ) {
+        StatusStrip(
+            text = stripText.ifBlank { "whisper os" },
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+
+        if (isConfigured && editMode) {
+            HomeEditRail(
+                armed = removeTargetArmed,
+                onReset = {
+                    homeTiles = HomeLayoutStore.reset(context, hostPatp)
+                    editMode = false
+                    removeTargetArmed = false
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = NPSpacing.screenPadX)
+                    .padding(top = 54.dp)
+                    .zIndex(2f)
+            )
+        }
+
+        if (!isConfigured) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = NPSpacing.screenPadXWide)
+                    .padding(top = NPSpacing.screenPadTop, bottom = NPSpacing.screenPadBottom)
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+                EmptyWhisperState(onNavigateToOnboarding = onNavigateToOnboarding)
+                Spacer(modifier = Modifier.weight(1f))
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = NPSpacing.screenPadX)
+                    .padding(top = 58.dp, bottom = 82.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(Unit) {
+                            var dragTotal = 0f
+                            detectVerticalDragGestures(
+                                onDragStart = { dragTotal = 0f },
+                                onVerticalDrag = { _, dragAmount -> dragTotal += dragAmount },
+                                onDragEnd = {
+                                    if (dragTotal > 72.dp.toPx()) {
+                                        onNavigateToSearch()
+                                    }
+                                },
+                                onDragCancel = { dragTotal = 0f }
+                            )
+                        }
+                ) {
+                    Text(
+                        text = now.format(DateTimeFormatter.ofPattern("H:mm")),
+                        style = NPType.displayLg,
+                        color = NPColors.ink,
+                        maxLines = 1
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = LocalDate.now().format(DateTimeFormatter.ofPattern("EEE · MMM d")).uppercase(),
+                        style = NPType.caption,
+                        color = NPColors.inkDim,
+                        maxLines = 1
+                    )
+                    if (identityText.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = identityText,
+                            style = NPType.caption,
+                            color = NPColors.inkDim,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+                WorkspacePageIndicator(
+                    page = pagerState.currentPage,
+                    pageCount = pageCount,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    beyondBoundsPageCount = 1
+                ) { page ->
+                    val pageTiles = homeTiles
+                        .filter { it.page == page }
+                        .sortedBy { it.cell }
+
+                    HomeWorkspacePage(
+                        page = page,
+                        pageCount = pageCount,
+                        tiles = pageTiles,
+                        onTileClick = { tile ->
+                            launchHomeTile(
+                                context = context,
+                                tile = tile,
+                                onNavigateToApps = onNavigateToApps,
+                                onNavigateToSearch = onNavigateToSearch,
+                                onNavigateToSettings = onNavigateToSettings,
+                                onNavigateToDetails = onNavigateToDetails,
+                                onNotice = { notice = it }
+                            )
+                        },
+                        onMove = { fromTile, toTile ->
+                            val from = homeTiles.indexOfFirst { it.id == fromTile.id }
+                            val to = homeTiles.indexOfFirst { it.id == toTile.id }
+                            homeTiles = HomeLayoutStore.move(homeTiles, from, to)
+                            HomeLayoutStore.save(context, homeTiles)
+                        },
+                        onMoveToCell = { tile, cell ->
+                            homeTiles = HomeLayoutStore.moveToCell(homeTiles, tile.id, page, cell)
+                            HomeLayoutStore.save(context, homeTiles)
+                        },
+                        onMoveToPage = { tile, targetPage ->
+                            val clampedTarget = targetPage.coerceIn(0, pageCount - 1)
+                            homeTiles = HomeLayoutStore.moveToPage(homeTiles, tile.id, clampedTarget)
+                            HomeLayoutStore.save(context, homeTiles)
+                            scope.launch {
+                                pagerState.animateScrollToPage(clampedTarget)
+                            }
+                        },
+                        onRemove = { tile ->
+                            homeTiles = HomeLayoutStore.remove(context, tile.id, hostPatp)
+                            editMode = false
+                            removeTargetArmed = false
+                        },
+                        onDragState = { dragging ->
+                            editMode = dragging
+                            if (!dragging) {
+                                removeTargetArmed = false
+                                dragPreview = null
+                            }
+                        },
+                        onRemoveHover = { armed -> removeTargetArmed = armed },
+                        onDragPreview = { dragPreview = it },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+
+            if (editMode) {
+                LauncherNavPill(
+                    color = NPColors.ink.copy(alpha = 0.18f),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 24.dp)
+                )
+            } else {
+                FindAskBar(
+                    text = "find an app, or ask…",
+                    onClick = onNavigateToSearch,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = NPSpacing.screenPadX)
+                        .padding(bottom = 24.dp)
+                        .pointerInput(Unit) {
+                            var dragTotal = 0f
+                            detectVerticalDragGestures(
+                                onDragStart = { dragTotal = 0f },
+                                onVerticalDrag = { _, dragAmount -> dragTotal += dragAmount },
+                                onDragEnd = {
+                                    if (dragTotal < -72.dp.toPx()) {
+                                        onNavigateToApps()
+                                    }
+                                },
+                                onDragCancel = { dragTotal = 0f }
+                            )
+                        }
+                )
+            }
+
+            notice?.let { text ->
+                HomeNotice(
+                    text = text,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = NPSpacing.screenPadX)
+                        .padding(bottom = 92.dp)
+                        .zIndex(3f)
+                    )
+            }
+
+            dragPreview?.let { preview ->
+                HomeTileCell(
+                    tile = preview.tile,
+                    modifier = Modifier
+                        .offset {
+                            IntOffset(
+                                preview.position.x.roundToInt(),
+                                preview.position.y.roundToInt()
+                            )
+                        }
+                        .graphicsLayer(
+                            scaleX = 1.08f,
+                            scaleY = 1.08f,
+                            alpha = 0.96f
+                        )
+                        .zIndex(20f),
+                    onClick = {}
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkspacePageIndicator(
+    page: Int,
+    pageCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(pageCount) { index ->
+            Box(
+                modifier = Modifier
+                    .size(if (index == page) 7.dp else 5.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (index == page) {
+                            NPColors.ink.copy(alpha = 0.62f)
+                        } else {
+                            NPColors.ink.copy(alpha = 0.18f)
+                        }
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeWorkspacePage(
+    page: Int,
+    pageCount: Int,
+    tiles: List<HomeTileSpec>,
+    onTileClick: (HomeTileSpec) -> Unit,
+    onMove: (from: HomeTileSpec, to: HomeTileSpec) -> Unit,
+    onMoveToCell: (tile: HomeTileSpec, cell: Int) -> Unit,
+    onMoveToPage: (tile: HomeTileSpec, targetPage: Int) -> Unit,
+    onRemove: (HomeTileSpec) -> Unit,
+    onDragState: (Boolean) -> Unit,
+    onRemoveHover: (Boolean) -> Unit,
+    onDragPreview: (HomeDragPreview?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (tiles.isEmpty()) {
+        EmptyWorkspacePage(
+            page = page,
+            modifier = modifier
+        )
+        return
+    }
+
+    val density = LocalDensity.current
+    Column(modifier = modifier.fillMaxWidth()) {
+        SectionLabel(text = if (page == 0) "home" else "page ${page + 1}")
+        Spacer(modifier = Modifier.height(12.dp))
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            val cellWidth = maxWidth / HomeLayoutStore.COLUMNS
+            val cellHeight = maxHeight / HomeLayoutStore.ROWS
+            val cellWidthPx = with(density) { cellWidth.toPx() }
+            val cellHeightPx = with(density) { cellHeight.toPx() }
+            val pageWidthPx = with(density) { maxWidth.toPx() }
+
+            tiles.forEach { tile ->
+                val cell = tile.cell.coerceIn(0, HomeLayoutStore.PAGE_SIZE - 1)
+                val col = cell % HomeLayoutStore.COLUMNS
+                val row = cell / HomeLayoutStore.COLUMNS
+                val x = cellWidth * col + ((cellWidth - NPSpacing.appCell) / 2)
+                val y = cellHeight * row
+                DraggableHomeTile(
+                    tile = tile,
+                    cell = cell,
+                    page = page,
+                    pageCount = pageCount,
+                    pageTiles = tiles,
+                    cellWidthPx = cellWidthPx,
+                    cellHeightPx = cellHeightPx,
+                    pageWidthPx = pageWidthPx,
+                    onTileClick = onTileClick,
+                    onMove = onMove,
+                    onMoveToCell = onMoveToCell,
+                    onMoveToPage = onMoveToPage,
+                    onRemove = onRemove,
+                    onDragState = onDragState,
+                    onRemoveHover = onRemoveHover,
+                    onDragPreview = onDragPreview,
+                    modifier = Modifier.offset(x = x, y = y)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyWorkspacePage(
+    page: Int,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(top = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        SectionLabel(text = "page ${page + 1}")
+        Spacer(modifier = Modifier.height(96.dp))
+        Text(
+            text = "empty home page",
+            style = NPType.bodySm,
+            color = NPColors.inkDim
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "drag apps here as the workspace grows",
+            style = NPType.caption,
+            color = NPColors.inkFaint
+        )
+    }
+}
+
+@Composable
+private fun DraggableHomeTile(
+    tile: HomeTileSpec,
+    cell: Int,
+    page: Int,
+    pageCount: Int,
+    pageTiles: List<HomeTileSpec>,
+    cellWidthPx: Float,
+    cellHeightPx: Float,
+    pageWidthPx: Float,
+    onTileClick: (HomeTileSpec) -> Unit,
+    onMove: (from: HomeTileSpec, to: HomeTileSpec) -> Unit,
+    onMoveToCell: (tile: HomeTileSpec, cell: Int) -> Unit,
+    onMoveToPage: (tile: HomeTileSpec, targetPage: Int) -> Unit,
+    onRemove: (HomeTileSpec) -> Unit,
+    onDragState: (Boolean) -> Unit,
+    onRemoveHover: (Boolean) -> Unit,
+    onDragPreview: (HomeDragPreview?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val removeThreshold = with(density) { -92.dp.toPx() }
+    val pageEdgeThreshold = pageWidthPx * 0.42f
+    var dragOffset by remember(tile.id) { mutableStateOf(Offset.Zero) }
+    var cellPosition by remember(tile.id) { mutableStateOf(Offset.Zero) }
+    var dragging by remember(tile.id) { mutableStateOf(false) }
+    var removeArmed by remember(tile.id) { mutableStateOf(false) }
+
+    HomeTileCell(
+        tile = tile,
+        modifier = modifier
+            .zIndex(if (dragging) 10f else 0f)
+            .graphicsLayer(
+                scaleX = if (dragging) 1.08f else 1f,
+                scaleY = if (dragging) 1.08f else 1f,
+                alpha = if (dragging) 0.20f else 1f
+            )
+            .onGloballyPositioned { coordinates ->
+                cellPosition = coordinates.positionInRoot()
+            }
+            .pointerInput(tile.id, cell, pageTiles.size, cellWidthPx, cellHeightPx) {
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        dragging = true
+                        onDragState(true)
+                        dragOffset = Offset.Zero
+                        removeArmed = false
+                        onRemoveHover(false)
+                        onDragPreview(HomeDragPreview(tile, cellPosition))
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        dragOffset += dragAmount
+                        onDragPreview(HomeDragPreview(tile, cellPosition + dragOffset))
+                        val nextRemoveArmed = dragOffset.y < removeThreshold
+                        if (nextRemoveArmed != removeArmed) {
+                            removeArmed = nextRemoveArmed
+                            onRemoveHover(nextRemoveArmed)
+                        }
+                    },
+                    onDragEnd = {
+                        if (removeArmed) {
+                            onRemove(tile)
+                        } else if (dragOffset.x > pageEdgeThreshold && page < pageCount - 1) {
+                            onMoveToPage(tile, page + 1)
+                        } else if (dragOffset.x < -pageEdgeThreshold && page > 0) {
+                            onMoveToPage(tile, page - 1)
+                        } else {
+                            val currentCol = cell % HomeLayoutStore.COLUMNS
+                            val currentRow = cell / HomeLayoutStore.COLUMNS
+                            val targetCol = (currentCol + (dragOffset.x / cellWidthPx).roundToInt())
+                                .coerceIn(0, HomeLayoutStore.COLUMNS - 1)
+                            val targetRow = (currentRow + (dragOffset.y / cellHeightPx).roundToInt())
+                                .coerceIn(0, HomeLayoutStore.ROWS - 1)
+                            val targetCell = targetRow * HomeLayoutStore.COLUMNS + targetCol
+                            if (targetCell != cell) {
+                                val targetTile = pageTiles.firstOrNull { it.cell == targetCell }
+                                if (targetTile != null) {
+                                    onMove(tile, targetTile)
+                                } else {
+                                    onMoveToCell(tile, targetCell)
+                                }
+                            }
+                        }
+                        dragging = false
+                        onDragState(false)
+                        dragOffset = Offset.Zero
+                        removeArmed = false
+                        onRemoveHover(false)
+                        onDragPreview(null)
+                    },
+                    onDragCancel = {
+                        dragging = false
+                        onDragState(false)
+                        dragOffset = Offset.Zero
+                        removeArmed = false
+                        onRemoveHover(false)
+                        onDragPreview(null)
+                    }
+                )
+            },
+        onClick = { onTileClick(tile) }
+    )
+}
+
+@Composable
+private fun HomeEditRail(
+    armed: Boolean,
+    onReset: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (armed) NPColors.accentCoral else NPColors.ink.copy(alpha = 0.08f))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = if (armed) "release to remove" else "drag here to remove",
+            style = NPType.caption,
+            color = if (armed) NPColors.paper else NPColors.ink
+        )
+        Text(
+            text = "reset layout",
+            style = NPType.caption,
+            color = if (armed) NPColors.paper else NPColors.inkDim,
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(onClick = onReset)
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+        )
+    }
+}
+
+@Composable
+private fun HomeTileCell(
+    tile: HomeTileSpec,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val glyph = tile.glyph
+    if (glyph != null) {
+        LauncherGridCell(
+            label = tile.label,
+            glyph = glyph,
+            modifier = modifier,
+            hostPatp = tile.hostPatp,
+            provenance = false,
+            onClick = onClick
+        )
+    } else {
+        Column(
+            modifier = modifier
+                .width(NPSpacing.appCell)
+                .clickable(onClick = onClick),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            AppGlyph(
+                label = tile.label,
+                world = tile.world,
+                size = NPSpacing.appCell,
+                packageName = tile.packageName
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = tile.label,
+                style = NPType.nano,
+                color = NPColors.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+private fun launchHomeTile(
+    context: android.content.Context,
+    tile: HomeTileSpec,
+    onNavigateToApps: () -> Unit,
+    onNavigateToSearch: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToDetails: () -> Unit,
+    onNotice: (String) -> Unit
+) {
+    when (tile.action) {
+        "phone" -> GuestLauncher.launchDialer(context)
+        "messages" -> {
+            if (!GuestLauncher.launchMessaging(context)) {
+                onNotice("messages is not available yet")
+            }
+        }
+        "browser" -> GuestLauncher.launchBrowser(context)
+        "camera" -> GuestLauncher.launchCamera(context)
+        "settings" -> onNavigateToSettings()
+        "apps" -> onNavigateToApps()
+        "details" -> onNavigateToDetails()
+        "search" -> onNavigateToSearch()
+        HomeLayoutStore.ACTION_HOSTED_PENDING -> onNotice("${tile.label} is waiting for app sync")
+        else -> {
+            if (tile.packageName != null && tile.className != null) {
+                val launched = GuestLauncher.launchApp(
+                    context,
+                    LauncherAppInfo(
+                        label = tile.label,
+                        packageName = tile.packageName,
+                        className = tile.className
+                    )
+                )
+                if (!launched) {
+                    onNotice("${tile.label} is not available yet")
+                }
+            } else {
+                onNotice("${tile.label} is not available yet")
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeNotice(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(NPColors.ink)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(NPColors.accentAmber)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = text,
+            style = NPType.bodySm,
+            color = NPColors.paper,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+fun RuntimeDetailsScreen(
+    onBack: () -> Unit,
     onNavigateToOnboarding: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RuntimeStatusViewModel = hiltViewModel()
 ) {
     val colors = NativePlanetTheme.colors
     val uiState by viewModel.uiState.collectAsState()
+    val isConfigured = uiState.demoIdentity.isConfigured || uiState.bootPackageStatus.exists
+    BackHandler(onBack = onBack)
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(colors.background)
-            .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(NPSpacing.screenGutter)
+            .padding(horizontal = NPSpacing.screenGutter, vertical = NPSpacing.md)
     ) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
-        ) {
-            Text(
-                text = "NativePlanet",
-                style = NPType.displaySm,
-                color = colors.foreground
-            )
-
-            Text(
-                text = "identity",
-                style = NPType.caption,
-                color = colors.foregroundDim,
-                modifier = Modifier
-                    .clickable(onClick = onNavigateToSettings)
-                    .padding(NPSpacing.sm)
-            )
-        }
-
-        // Demo data banner
-        if (uiState.usingDemoData) {
-            Spacer(modifier = Modifier.height(NPSpacing.md))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(NPColors.accentAmber.copy(alpha = 0.15f))
-                    .padding(NPSpacing.md)
-            ) {
-                Text(
-                    text = if (uiState.controllerAvailable)
-                        "Controller connected"
-                    else
-                        "Controller unavailable · using demo data",
-                    style = NPType.caption,
-                    color = NPColors.accentAmber
-                )
-            }
-        }
+        StatusStrip(
+            text = "settings · identity · ${uiState.runtimeStatus.version ?: "whisper os"}"
+        )
 
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
-        // Ship card - use demo identity if configured, otherwise fall back to boot package
-        val displayShip = uiState.demoIdentity.shipName ?: uiState.bootPackageStatus.ship
-        val displayParent = uiState.demoIdentity.parentName ?: uiState.bootPackageStatus.parent
-        val isConfigured = uiState.demoIdentity.isConfigured || uiState.bootPackageStatus.exists
+        Text(
+            text = "System details",
+            style = NPType.displaySm,
+            color = colors.foreground
+        )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
-                .background(colors.backgroundSecondary)
-                .padding(NPSpacing.cardPadding),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SigilView(
-                patp = displayShip ?: "~zod",
-                modifier = Modifier.size(56.dp)
-            )
-
-            Spacer(modifier = Modifier.width(NPSpacing.lg))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = displayShip ?: "no ship configured",
-                    style = NPType.patp,
-                    color = colors.foreground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                when {
-                    uiState.demoIdentity.mode == IdentityMode.COMET -> {
-                        Text(
-                            text = "comet · temporary",
-                            style = NPType.bodySm,
-                            color = colors.foregroundDim,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    displayParent != null -> {
-                        Text(
-                            text = "under $displayParent",
-                            style = NPType.bodySm,
-                            color = colors.foregroundDim,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-
-            StatusChip(state = if (isConfigured) uiState.runtimeStatus.state else RuntimeState.UNINITIALIZED)
-        }
-
-        Spacer(modifier = Modifier.height(NPSpacing.md))
+        Spacer(modifier = Modifier.height(NPSpacing.xl))
 
         NPButton(
-            text = if (isConfigured) "Add identity" else "Set up moon",
+            text = if (isConfigured) "Add identity" else "Set up satellite",
             onClick = onNavigateToOnboarding,
             style = if (isConfigured) NPButtonStyle.SECONDARY else NPButtonStyle.FILLED
         )
 
-        Spacer(modifier = Modifier.height(NPSpacing.xs))
-
-        Text(
-            text = if (isConfigured) {
-                "Pair another moon or use a moon key."
-            } else {
-                "Pair with your parent ship or use a moon key."
-            },
-            style = NPType.caption,
-            color = colors.foregroundDim
-        )
-
-        if (uiState.demoIdentity.isConfigured) {
-            Spacer(modifier = Modifier.height(NPSpacing.sm))
-            Text(
-                text = "reset demo identity",
-                style = NPType.bodySm,
-                color = colors.foregroundFaint,
-                modifier = Modifier
-                    .clickable { viewModel.resetDemo() }
-                    .padding(vertical = NPSpacing.sm)
-            )
-        }
-
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
-        // Runtime details
         RuntimeDetailsPanel(runtimeStatus = uiState.runtimeStatus)
 
         Spacer(modifier = Modifier.height(NPSpacing.lg))
 
-        // Boot package status
         BootPackagePanel(bootPackageStatus = uiState.bootPackageStatus)
 
         Spacer(modifier = Modifier.height(NPSpacing.lg))
 
-        // Network status
         NetworkStatusPanel(networkStatus = uiState.networkStatus)
 
         Spacer(modifier = Modifier.height(NPSpacing.lg))
 
-        // Diagnostics
         DiagnosticsPanel(diagnostics = uiState.diagnostics)
 
+        Spacer(modifier = Modifier.height(NPSpacing.xl))
+
+        LauncherNavPill(
+            color = colors.foreground.copy(alpha = 0.28f),
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+
         Spacer(modifier = Modifier.height(NPSpacing.lg))
+    }
+}
+
+@Composable
+private fun EmptyWhisperState(onNavigateToOnboarding: () -> Unit) {
+    val colors = NativePlanetTheme.colors
+
+    Column {
+        Text(
+            text = "No satellite on this phone.",
+            style = NPType.displaySm,
+            color = colors.foreground
+        )
+        Spacer(modifier = Modifier.height(NPSpacing.md))
+        Text(
+            text = "Pair with your planet or import a satellite.",
+            style = NPType.bodySm,
+            color = colors.foregroundDim
+        )
+        Spacer(modifier = Modifier.height(NPSpacing.xl))
+        NPButton(
+            text = "Set up satellite",
+            onClick = onNavigateToOnboarding
+        )
+    }
+}
+
+@Composable
+private fun WhisperClock(
+    time: LocalTime,
+    subline: String,
+    large: Boolean
+) {
+    val colors = NativePlanetTheme.colors
+
+    Column {
+        Text(
+            text = time.format(DateTimeFormatter.ofPattern("H:mm")),
+            style = if (large) {
+                NPType.displayLg.copy(fontSize = 88.sp, lineHeight = (88 * 0.92).sp)
+            } else {
+                NPType.displayLg.copy(fontSize = 64.sp, lineHeight = (64 * 0.92).sp)
+            },
+            color = colors.foreground,
+            maxLines = 1
+        )
+        Spacer(modifier = Modifier.height(NPSpacing.xs))
+        Text(
+            text = subline,
+            style = NPType.caption,
+            color = colors.foregroundDim
+        )
+    }
+}
+
+@Composable
+private fun WhisperItem(
+    from: String,
+    line: String,
+    meta: String,
+    active: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = NativePlanetTheme.colors
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(colors.hairline)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(8.dp)
+                    .padding(top = 7.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (active) {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp)
+                            .clip(CircleShape)
+                            .background(NPColors.accentAmber)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(5.dp)
+                            .clip(CircleShape)
+                            .background(colors.foregroundFaint)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = from,
+                    style = NPType.bodySm,
+                    color = colors.foreground,
+                    maxLines = 1
+                )
+                Text(
+                    text = line,
+                    style = NPType.bodySm,
+                    color = colors.foregroundDim,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(NPSpacing.md))
+
+            Text(
+                text = meta,
+                style = NPType.nano,
+                color = colors.foregroundFaint,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun WhisperCommandBar(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = NativePlanetTheme.colors
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(colors.foreground.copy(alpha = 0.05f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 15.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(5.dp)
+                .clip(CircleShape)
+                .background(NPColors.accentAmber)
+        )
+        Spacer(modifier = Modifier.width(NPSpacing.md))
+        Text(
+            text = text,
+            style = NPType.bodySm,
+            color = colors.foregroundDim,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

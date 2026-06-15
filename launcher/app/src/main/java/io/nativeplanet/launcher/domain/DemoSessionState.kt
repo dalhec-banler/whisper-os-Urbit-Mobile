@@ -24,7 +24,7 @@ data class DemoIdentity(
     val modeLabel: String get() = when (mode) {
         IdentityMode.NONE -> "none"
         IdentityMode.COMET -> "comet"
-        IdentityMode.PAIRED_MOON -> "moon"
+        IdentityMode.PAIRED_MOON -> "satellite"
         IdentityMode.IMPORTED -> "imported"
     }
 }

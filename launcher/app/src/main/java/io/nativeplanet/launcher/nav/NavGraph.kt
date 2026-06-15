@@ -1,18 +1,23 @@
 package io.nativeplanet.launcher.nav
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import io.nativeplanet.launcher.domain.IdentityMode
+import io.nativeplanet.launcher.ui.home.AppDrawerScreen
+import io.nativeplanet.launcher.ui.home.RuntimeDetailsScreen
 import io.nativeplanet.launcher.ui.home.RuntimeStatusScreen
+import io.nativeplanet.launcher.ui.home.SearchScreen
 import io.nativeplanet.launcher.ui.onboarding.CometScreen
 import io.nativeplanet.launcher.ui.onboarding.ImportScreen
 import io.nativeplanet.launcher.ui.onboarding.OnboardingViewModel
 import io.nativeplanet.launcher.ui.onboarding.PairScreen
 import io.nativeplanet.launcher.ui.onboarding.RevealScreen
+import io.nativeplanet.launcher.ui.onboarding.BackupScreen
 import io.nativeplanet.launcher.ui.onboarding.WelcomeScreen
 import io.nativeplanet.launcher.ui.settings.IdentitySettingsScreen
 
@@ -22,16 +27,32 @@ object Routes {
     const val IMPORT = "import"
     const val COMET = "comet"
     const val REVEAL = "reveal/{shipName}/{parentName}/{identityMode}"
+    const val BACKUP = "backup/{shipName}/{parentName}/{identityMode}"
     const val HOME = "home"
+    const val APPS = "apps"
+    const val SEARCH = "search"
+    const val RUNTIME_DETAILS = "runtime/details"
     const val SETTINGS_IDENTITY = "settings/identity"
 
     fun reveal(shipName: String, parentName: String?, mode: IdentityMode) =
         "reveal/${shipName}/${parentName ?: "none"}/${mode.name}"
+
+    fun backup(shipName: String, parentName: String?, mode: IdentityMode) =
+        "backup/${shipName}/${parentName ?: "none"}/${mode.name}"
 }
 
 @Composable
 fun NavGraph(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+
+    LaunchedEffect(navController) {
+        HomeEvents.requests.collect {
+            navController.navigate(Routes.HOME) {
+                popUpTo(Routes.HOME) { inclusive = false }
+                launchSingleTop = true
+            }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -90,6 +111,27 @@ fun NavGraph(modifier: Modifier = Modifier) {
                 shipName = shipName,
                 parentName = parentName,
                 onContinue = {
+                    navController.navigate(Routes.backup(shipName, parentName, identityMode)) {
+                        popUpTo(Routes.REVEAL) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Routes.BACKUP) { backStackEntry ->
+            val viewModel: OnboardingViewModel = hiltViewModel()
+            val shipName = backStackEntry.arguments?.getString("shipName") ?: "~zod"
+            val parentName = backStackEntry.arguments?.getString("parentName")?.takeIf { it != "none" && it.isNotEmpty() }
+            val identityMode = backStackEntry.arguments?.getString("identityMode")?.let {
+                try { IdentityMode.valueOf(it) } catch (e: Exception) { IdentityMode.NONE }
+            } ?: IdentityMode.NONE
+
+            BackupScreen(
+                shipName = shipName,
+                parentName = parentName,
+                identityMode = identityMode,
+                keyMaterial = null,
+                onEnterWhisperOs = {
                     when (identityMode) {
                         IdentityMode.COMET -> viewModel.completeComet(shipName)
                         IdentityMode.PAIRED_MOON -> viewModel.completePairing(shipName, parentName ?: "")
@@ -99,6 +141,11 @@ fun NavGraph(modifier: Modifier = Modifier) {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.WELCOME) { inclusive = true }
                     }
+                },
+                onBackToImport = {
+                    navController.navigate(Routes.IMPORT) {
+                        popUpTo(Routes.WELCOME) { inclusive = false }
+                    }
                 }
             )
         }
@@ -106,6 +153,29 @@ fun NavGraph(modifier: Modifier = Modifier) {
         composable(Routes.HOME) {
             RuntimeStatusScreen(
                 onNavigateToSettings = { navController.navigate(Routes.SETTINGS_IDENTITY) },
+                onNavigateToOnboarding = { navController.navigate(Routes.WELCOME) },
+                onNavigateToApps = { navController.navigate(Routes.APPS) },
+                onNavigateToSearch = { navController.navigate(Routes.SEARCH) },
+                onNavigateToDetails = { navController.navigate(Routes.RUNTIME_DETAILS) }
+            )
+        }
+
+        composable(Routes.APPS) {
+            AppDrawerScreen(
+                onBack = { navController.popBackStack() },
+                onSearch = { navController.navigate(Routes.SEARCH) }
+            )
+        }
+
+        composable(Routes.SEARCH) {
+            SearchScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.RUNTIME_DETAILS) {
+            RuntimeDetailsScreen(
+                onBack = { navController.popBackStack() },
                 onNavigateToOnboarding = { navController.navigate(Routes.WELCOME) }
             )
         }

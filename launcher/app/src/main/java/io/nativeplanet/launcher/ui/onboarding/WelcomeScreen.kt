@@ -8,9 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.unit.dp
 import io.nativeplanet.launcher.theme.*
+import io.nativeplanet.launcher.ui.components.GlyphKind
 import io.nativeplanet.launcher.ui.components.NPButton
 import io.nativeplanet.launcher.ui.components.NPButtonStyle
+import io.nativeplanet.launcher.ui.components.SigilGlyph
 
 @Composable
 fun WelcomeScreen(
@@ -32,36 +35,65 @@ fun WelcomeScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Welcome.",
-            style = NPType.displayMd,
+            text = "WHISPER OS · WELCOME · 1 OF 4",
+            style = NPType.caption,
+            color = colors.foregroundDim
+        )
+
+        Spacer(modifier = Modifier.height(NPSpacing.xl))
+
+        Text(
+            text = "Whisper OS.",
+            style = NPType.displayLg,
             color = colors.foreground
         )
 
         Spacer(modifier = Modifier.height(NPSpacing.sm))
 
         Text(
-            text = "First — your identity.",
-            style = NPType.displaySm.copy(fontStyle = FontStyle.Italic),
+            text = "Pair this phone with your planet.",
+            style = NPType.headline.copy(fontStyle = FontStyle.Italic),
+            color = colors.foregroundDim
+        )
+
+        Spacer(modifier = Modifier.height(NPSpacing.lg))
+
+        Text(
+            text = "Your planet creates a satellite for this device. The satellite signs from here; your planet stays the root.",
+            style = NPType.bodySm,
             color = colors.foregroundDim
         )
 
         Spacer(modifier = Modifier.height(NPSpacing.xxxl))
 
         NPButton(
-            text = "Pair with planet",
+            text = "pair with your planet",
             onClick = onPairWithPlanet,
             style = NPButtonStyle.FILLED
         )
 
         Spacer(modifier = Modifier.height(NPSpacing.md))
 
-        NPButton(
-            text = "Use moon key",
-            onClick = onImportShip,
-            style = NPButtonStyle.GHOST
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onImportShip)
+                .padding(vertical = NPSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SigilGlyph(
+                glyph = GlyphKind.Files,
+                size = 28.dp
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "import a satellite",
+                style = NPType.bodySm,
+                color = colors.foregroundDim
+            )
+        }
 
-        Spacer(modifier = Modifier.height(NPSpacing.xl))
+        Spacer(modifier = Modifier.height(NPSpacing.lg))
 
         // Comet link (faint)
         Text(

@@ -43,7 +43,7 @@ fun PairScreen(
         Spacer(modifier = Modifier.height(NPSpacing.xxxl))
 
         Text(
-            text = "PAIR WITH PLANET",
+            text = "PAIR · WAITING · 2 OF 4",
             style = NPType.micro,
             color = colors.foregroundDim
         )
@@ -51,7 +51,7 @@ fun PairScreen(
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
         Text(
-            text = "Create your phone moon.",
+            text = "Open your planet.",
             style = NPType.displaySm,
             color = colors.foreground
         )
@@ -59,7 +59,7 @@ fun PairScreen(
         Spacer(modifier = Modifier.height(NPSpacing.md))
 
         Text(
-            text = "Use your parent ship's hosting URL and +code. Artemis on the parent will create a mobile moon for this phone.",
+            text = "Your planet creates a satellite for this device. Enter the hosting URL and access code shown by your planet.",
             style = NPType.bodySm,
             color = colors.foregroundDim
         )
@@ -69,8 +69,8 @@ fun PairScreen(
         NPTextField(
             value = hostUrl,
             onValueChange = { hostUrl = it },
-            label = "Hosting URL",
-            placeholder = "https://example.tlon.network"
+            label = "Planet hosting URL",
+            placeholder = "https://your-planet.example"
         )
 
         Spacer(modifier = Modifier.height(NPSpacing.md))
@@ -78,8 +78,8 @@ fun PairScreen(
         NPTextField(
             value = accessCode,
             onValueChange = { accessCode = it },
-            label = "+code",
-            placeholder = "xxxx-xxxx-xxxx-xxxx",
+            label = "Access code",
+            placeholder = "word-word-word-word",
             isSecret = true
         )
 
@@ -95,13 +95,13 @@ fun PairScreen(
         Spacer(modifier = Modifier.height(NPSpacing.xl))
 
         NPButton(
-            text = if (isConnecting) "Connecting" else "Connect",
+            text = if (isConnecting) "waiting for your planet" else "pair this phone",
             enabled = canConnect,
             onClick = {
                 val submittedHost = hostUrl.trim()
                 val submittedCode = accessCode.trim()
                 accessCode = ""
-                statusMessage = "connecting..."
+                statusMessage = "waiting for your planet…"
                 statusIsError = false
                 isConnecting = true
 
@@ -114,9 +114,9 @@ fun PairScreen(
                             val pairedShip = result.shipName
                             if (pairedShip != null) {
                                 onPairComplete(pairedShip, result.parentName)
-                                "connected"
+                                "paired"
                             } else {
-                                "connected"
+                                "paired"
                             }
                         }
                         is ControlResult.AlreadyInState -> {
@@ -135,7 +135,7 @@ fun PairScreen(
         Spacer(modifier = Modifier.height(NPSpacing.md))
 
         Text(
-            text = "Use moon key instead",
+            text = "import a satellite instead",
             style = NPType.bodySm,
             color = colors.foregroundFaint,
             modifier = Modifier
