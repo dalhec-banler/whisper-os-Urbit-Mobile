@@ -135,10 +135,10 @@ Kin is a candidate for app installation and app preference flows.
 
 The v1 mobile desk should provide a small read-only API for launcher metadata.
 
-Suggested scry:
+Scry:
 
 ```text
-/x/mobile/apps/json
+/gx/nativeplanet-mobile/apps/json
 ```
 
 Suggested JSON:

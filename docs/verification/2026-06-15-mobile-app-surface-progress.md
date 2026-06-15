@@ -48,12 +48,14 @@ mobile app-surface work began.
 - Gall reported `%nativeplanet-mobile` as running.
 - Authenticated HTTP scry passed:
   `/~/scry/nativeplanet-mobile/apps.json`.
+- Click/conn.sock Khan eval passed with:
+  `/gx/nativeplanet-mobile/apps/json`.
 - The scry returned the expected metadata for Landscape, Terminal, Tlon,
   Grove, and Kin.
+- `NativePlanetController` module build passed after adding controller-side
+  `%nativeplanet-mobile` metadata merge support.
 
 ## Remaining
 
-- Add controller merge support for `%nativeplanet-mobile` metadata after the
-  desk has been validated on a ship.
 - Build a real Satellite Pill v1 containing `%nativeplanet-mobile`.
 - Validate Tlon, Terminal, Landscape, Grove, and Kin as mobile app surfaces.

@@ -19,7 +19,9 @@ import java.math.BigInteger;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Polls the running ship's %docket app inventory through conn.sock.
@@ -43,6 +45,11 @@ public class HostedAppsPoller {
             "=/  m  (strand ,vase)  " +
             ";<  x=*  bind:m  (scry * /gx/docket/charges/noun)  " +
             "(pure:m !>(x))";
+
+    private static final String NATIVEPLANET_MOBILE_APPS_HOON =
+            "=/  m  (strand ,vase)  " +
+            ";<  x=json  bind:m  (scry json /gx/nativeplanet-mobile/apps/json)  " +
+            "(pure:m !>((en:json:html x)))";
 
     private HandlerThread handlerThread;
     private Handler handler;
@@ -114,13 +121,20 @@ public class HostedAppsPoller {
         }
 
         NounCodec.Noun response;
+        String mobileAppsJson = null;
         try (ConnSockClient client = new ConnSockClient(connSockPath)) {
             client.connect();
             response = client.sendKhanEval(DOCKET_CHARGES_HOON);
+            try {
+                mobileAppsJson = NounCodec.parseFyrdCordResponse(
+                        client.sendKhanEval(NATIVEPLANET_MOBILE_APPS_HOON));
+            } catch (Exception e) {
+                Log.i(TAG, "No nativeplanet-mobile app metadata available: " + e.getMessage());
+            }
         }
 
         NounCodec.Noun value = parseKhanValue(response);
-        JSONObject json = buildHostedAppsJson(value);
+        JSONObject json = buildHostedAppsJson(value, mobileAppsJson);
         writeFile(HOSTED_APPS_PATH, json.toString(2));
         return true;
     }
@@ -171,7 +185,8 @@ public class HostedAppsPoller {
         return page.tail;
     }
 
-    private JSONObject buildHostedAppsJson(NounCodec.Noun value) throws JSONException, IOException {
+    private JSONObject buildHostedAppsJson(NounCodec.Noun value, String mobileAppsJson)
+            throws JSONException, IOException {
         if (!(value instanceof NounCodec.Cell)) {
             throw new IOException("docket response not a cell");
         }
@@ -182,6 +197,7 @@ public class HostedAppsPoller {
 
         List<JSONObject> apps = new ArrayList<>();
         walkMap(update.tail, apps);
+        boolean mobileMetadataAvailable = applyMobileMetadata(apps, mobileAppsJson);
         apps.sort(Comparator.comparing(app -> app.optString("title", "")));
 
         JSONArray array = new JSONArray();
@@ -192,13 +208,156 @@ public class HostedAppsPoller {
         JSONObject json = new JSONObject();
         long now = System.currentTimeMillis();
         json.put("version", 1);
-        json.put("source", "docket");
+        json.put("source", mobileMetadataAvailable ? "docket+nativeplanet-mobile" : "docket");
+        json.put("mobileMetadataAvailable", mobileMetadataAvailable);
         json.put("timestampMs", now);
         json.put("lastPollAttemptMs", now);
         json.put("lastError", JSONObject.NULL);
         json.put("stale", false);
         json.put("apps", array);
         return json;
+    }
+
+    private boolean applyMobileMetadata(List<JSONObject> apps, String mobileAppsJson)
+            throws JSONException {
+        if (mobileAppsJson == null || mobileAppsJson.isEmpty()) {
+            return false;
+        }
+
+        JSONObject metadata;
+        try {
+            metadata = new JSONObject(mobileAppsJson);
+        } catch (JSONException e) {
+            Log.w(TAG, "Malformed nativeplanet-mobile app metadata: " + e.getMessage());
+            return false;
+        }
+
+        JSONArray mobileApps = metadata.optJSONArray("apps");
+        if (mobileApps == null) {
+            return false;
+        }
+
+        Map<String, JSONObject> byDesk = new LinkedHashMap<>();
+        for (JSONObject app : apps) {
+            String key = app.optString("desk", app.optString("id", ""));
+            if (!key.isEmpty()) {
+                byDesk.put(key, app);
+            }
+        }
+
+        for (int i = 0; i < mobileApps.length(); i++) {
+            JSONObject mobile = mobileApps.optJSONObject(i);
+            if (mobile == null) {
+                continue;
+            }
+
+            String desk = mobile.optString("desk", "");
+            if (desk.isEmpty()) {
+                continue;
+            }
+
+            if (mobile.optBoolean("hidden", false)) {
+                byDesk.remove(desk);
+                continue;
+            }
+
+            JSONObject app = byDesk.get(desk);
+            if (app == null) {
+                app = buildMetadataOnlyApp(desk);
+                byDesk.put(desk, app);
+            }
+
+            applyMobileAppMetadata(app, mobile);
+        }
+
+        apps.clear();
+        apps.addAll(byDesk.values());
+        return true;
+    }
+
+    private JSONObject buildMetadataOnlyApp(String desk) throws JSONException {
+        JSONObject app = new JSONObject();
+        app.put("id", desk);
+        app.put("desk", desk);
+        app.put("title", titleFromDesk(desk));
+        app.put("info", "");
+        app.put("tileColor", "#c79338");
+        app.put("launchMode", "");
+        app.put("basePath", JSONObject.NULL);
+        app.put("startUrl", "");
+        app.put("sourceUrl", JSONObject.NULL);
+        app.put("imageUrl", JSONObject.NULL);
+        app.put("version", JSONObject.NULL);
+        app.put("website", "");
+        app.put("license", "");
+        app.put("availability", "nativeplanet-mobile");
+        app.put("androidPackage", JSONObject.NULL);
+        app.put("pwaManifestUrl", JSONObject.NULL);
+        return app;
+    }
+
+    private void applyMobileAppMetadata(JSONObject app, JSONObject mobile) throws JSONException {
+        String preferredLaunchMode = normalizeLaunchMode(
+                mobile.optString("preferredLaunchMode", ""));
+        String mobilePath = mobile.optString("mobilePath", "");
+        String androidPackage = mobile.optString("androidPackage", "");
+        String pwaManifestPath = mobile.optString("pwaManifestPath", "");
+
+        if (!mobilePath.isEmpty()) {
+            app.put("basePath", mobilePath);
+            app.put("startUrl", "");
+        }
+
+        if (!pwaManifestPath.isEmpty()) {
+            app.put("pwaManifestUrl", pwaManifestPath);
+        }
+
+        if (!androidPackage.isEmpty()) {
+            app.put("androidPackage", androidPackage);
+        }
+
+        if ("native".equals(preferredLaunchMode)) {
+            if (!androidPackage.isEmpty() && isLaunchablePackageInstalled(androidPackage)) {
+                app.put("launchMode", "native");
+                app.put("androidPackage", androidPackage);
+            } else if (!mobilePath.isEmpty()) {
+                app.put("launchMode", "local_webview");
+            }
+        } else if ("pwa".equals(preferredLaunchMode)) {
+            if (!mobilePath.isEmpty()) {
+                app.put("launchMode", "pwa");
+            }
+        } else if ("local_webview".equals(preferredLaunchMode)) {
+            if (!mobilePath.isEmpty()) {
+                app.put("launchMode", "local_webview");
+            }
+        } else if ("browser".equals(preferredLaunchMode)) {
+            app.put("launchMode", "browser");
+        }
+
+        app.put("recommended", mobile.optBoolean("recommended", false));
+        app.put("hidden", false);
+        app.put("mobileMetadata", true);
+    }
+
+    private String normalizeLaunchMode(String launchMode) {
+        if ("native".equals(launchMode)
+                || "pwa".equals(launchMode)
+                || "local_webview".equals(launchMode)
+                || "browser".equals(launchMode)) {
+            return launchMode;
+        }
+        return "";
+    }
+
+    private String titleFromDesk(String desk) {
+        if ("groups".equals(desk)) return "Tlon";
+        if ("webterm".equals(desk)) return "Terminal";
+        if ("dojo".equals(desk)) return "Dojo";
+        if ("landscape".equals(desk)) return "Landscape";
+        if ("grove".equals(desk)) return "Grove";
+        if ("kin".equals(desk)) return "Kin";
+        return desk;
     }
 
     private void walkMap(NounCodec.Noun node, List<JSONObject> apps) {
