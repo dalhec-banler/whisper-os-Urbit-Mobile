@@ -1123,10 +1123,10 @@ index 0000000000..c629d91553
 +}
 diff --git a/src/com/android/launcher3/WhisperHostedAppsActivity.java b/src/com/android/launcher3/WhisperHostedAppsActivity.java
 new file mode 100644
-index 0000000000..ec874cb927
+index 0000000000..7c34524846
 --- /dev/null
 +++ b/src/com/android/launcher3/WhisperHostedAppsActivity.java
-@@ -0,0 +1,668 @@
+@@ -0,0 +1,669 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -1194,6 +1194,7 @@ index 0000000000..ec874cb927
 +    private static final String LAUNCH_LOCAL_WEBVIEW = "local_webview";
 +    private static final String LAUNCH_BROWSER = "browser";
 +    private static final String CONTROLLER_AUTHORITY = "content://io.nativeplanet.controller";
++    private static final String LOCAL_EYRE_ORIGIN = "http://127.0.0.1:8080";
 +    private static final String PREFS = "whisper_hosted_apps";
 +    private static final String PREF_PENDING_PIN = "pending_pin";
 +    private static final String PREF_ID = "id";
@@ -1427,7 +1428,7 @@ index 0000000000..ec874cb927
 +                String startUrl = app.optString("startUrl", "");
 +                String basePath = app.optString("basePath", "");
 +                if (TextUtils.isEmpty(startUrl) && !TextUtils.isEmpty(basePath)) {
-+                    startUrl = "http://127.0.0.1:12321" + basePath;
++                    startUrl = LOCAL_EYRE_ORIGIN + basePath;
 +                }
 +                if (TextUtils.isEmpty(id) || TextUtils.isEmpty(title)) {
 +                    continue;
@@ -1797,10 +1798,10 @@ index 0000000000..ec874cb927
 +}
 diff --git a/src/com/android/launcher3/WhisperHostedWebActivity.java b/src/com/android/launcher3/WhisperHostedWebActivity.java
 new file mode 100644
-index 0000000000..b3f5b8852d
+index 0000000000..185cf9d0be
 --- /dev/null
 +++ b/src/com/android/launcher3/WhisperHostedWebActivity.java
-@@ -0,0 +1,311 @@
+@@ -0,0 +1,463 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -1821,9 +1822,11 @@ index 0000000000..b3f5b8852d
 +import android.net.Uri;
 +import android.os.Bundle;
 +import android.text.TextUtils;
++import android.util.Log;
 +import android.view.Gravity;
 +import android.view.View;
 +import android.view.ViewGroup;
++import android.webkit.CookieManager;
 +import android.webkit.WebResourceError;
 +import android.webkit.WebResourceRequest;
 +import android.webkit.WebResourceResponse;
@@ -1836,6 +1839,16 @@ index 0000000000..b3f5b8852d
 +import android.widget.TextView;
 +import android.widget.Toast;
 +
++import org.json.JSONObject;
++
++import java.io.OutputStream;
++import java.net.HttpURLConnection;
++import java.net.URL;
++import java.net.URLEncoder;
++import java.nio.charset.StandardCharsets;
++import java.util.List;
++import java.util.Map;
++
 +/**
 + * Full-screen shell for local/PWA Urbit apps.
 + *
@@ -1847,6 +1860,10 @@ index 0000000000..b3f5b8852d
 +    static final String EXTRA_TITLE = "io.nativeplanet.extra.TITLE";
 +    static final String EXTRA_SUBTITLE = "io.nativeplanet.extra.SUBTITLE";
 +    static final String EXTRA_URL = "io.nativeplanet.extra.URL";
++
++    private static final String CONTROLLER_AUTHORITY = "content://io.nativeplanet.controller";
++    private static final String LOCAL_EYRE_ORIGIN = "http://127.0.0.1:8080";
++    private static final int EYRE_LOGIN_TIMEOUT_MS = 5000;
 +
 +    private static final int BLACK = Color.BLACK;
 +    private static final int INK = Color.rgb(17, 16, 13);
@@ -1865,8 +1882,13 @@ index 0000000000..b3f5b8852d
 +        super.onCreate(savedInstanceState);
 +
 +        String url = getIntent().getStringExtra(EXTRA_URL);
++        if (TextUtils.isEmpty(url)) {
++            Toast.makeText(this, "Hosted app URL is not available", Toast.LENGTH_SHORT).show();
++            finish();
++            return;
++        }
 +        mInitialUri = Uri.parse(url);
-+        if (TextUtils.isEmpty(url) || !isLaunchableHostedUri(mInitialUri)) {
++        if (!isLaunchableHostedUri(mInitialUri)) {
 +            Toast.makeText(this, "Hosted app URL is not available", Toast.LENGTH_SHORT).show();
 +            finish();
 +            return;
@@ -1877,7 +1899,7 @@ index 0000000000..b3f5b8852d
 +        setContentView(createContentView());
 +
 +        configureWebView();
-+        mWebView.loadUrl(url);
++        loadHostedUrlWithLocalSession(url);
 +    }
 +
 +    @Override
@@ -2024,6 +2046,127 @@ index 0000000000..b3f5b8852d
 +        });
 +    }
 +
++    private void loadHostedUrlWithLocalSession(String url) {
++        if (!isLocalEyreUri(mInitialUri)) {
++            mWebView.loadUrl(url);
++            return;
++        }
++
++        new Thread(() -> {
++            try {
++                String code = requestLocalWebLoginCode();
++                if (!TextUtils.isEmpty(code)) {
++                    loginLocalEyre(code, mInitialUri);
++                }
++            } catch (Exception e) {
++                Log.w("WhisperHostedWeb", "Local Eyre auth bootstrap failed: "
++                        + e.getClass().getSimpleName());
++            }
++
++            runOnUiThread(() -> {
++                if (mWebView != null) {
++                    mWebView.loadUrl(url);
++                }
++            });
++        }, "WhisperEyreLogin").start();
++    }
++
++    private String requestLocalWebLoginCode() throws Exception {
++        Bundle result = getContentResolver().call(Uri.parse(CONTROLLER_AUTHORITY),
++                "getWebLoginCode", null, null);
++        if (result == null) {
++            return null;
++        }
++
++        String json = result.getString("json", "");
++        if (TextUtils.isEmpty(json)) {
++            return null;
++        }
++
++        JSONObject obj = new JSONObject(json);
++        if (!obj.optBoolean("ok", false)) {
++            return null;
++        }
++        return obj.optString("code", null);
++    }
++
++    private boolean loginLocalEyre(String code, Uri redirectUri) throws Exception {
++        HttpURLConnection connection = null;
++        try {
++            URL url = new URL(LOCAL_EYRE_ORIGIN + "/~/login");
++            connection = (HttpURLConnection) url.openConnection();
++            connection.setConnectTimeout(EYRE_LOGIN_TIMEOUT_MS);
++            connection.setReadTimeout(EYRE_LOGIN_TIMEOUT_MS);
++            connection.setInstanceFollowRedirects(false);
++            connection.setRequestMethod("POST");
++            connection.setDoOutput(true);
++            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
++
++            String body = "password=" + encode(code)
++                    + "&redirect=" + encode(redirectPath(redirectUri));
++            byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
++            connection.setFixedLengthStreamingMode(bodyBytes.length);
++            try (OutputStream out = connection.getOutputStream()) {
++                out.write(bodyBytes);
++            }
++
++            int status = connection.getResponseCode();
++            boolean storedCookie = storeCookies(connection.getHeaderFields());
++            return status >= 200 && status < 400 && storedCookie;
++        } finally {
++            if (connection != null) {
++                connection.disconnect();
++            }
++        }
++    }
++
++    private boolean storeCookies(Map<String, List<String>> headers) {
++        if (headers == null || headers.isEmpty()) {
++            return false;
++        }
++
++        CookieManager cookieManager = CookieManager.getInstance();
++        cookieManager.setAcceptCookie(true);
++
++        boolean stored = false;
++        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
++            if (entry.getKey() == null || !"Set-Cookie".equalsIgnoreCase(entry.getKey())) {
++                continue;
++            }
++            List<String> values = entry.getValue();
++            if (values == null) {
++                continue;
++            }
++            for (String cookie : values) {
++                if (!TextUtils.isEmpty(cookie)) {
++                    cookieManager.setCookie(LOCAL_EYRE_ORIGIN, cookie);
++                    stored = true;
++                }
++            }
++        }
++
++        if (stored) {
++            cookieManager.flush();
++        }
++        return stored;
++    }
++
++    private String redirectPath(Uri uri) {
++        String path = uri == null ? null : uri.getEncodedPath();
++        if (TextUtils.isEmpty(path)) {
++            path = "/";
++        }
++        String query = uri == null ? null : uri.getEncodedQuery();
++        if (!TextUtils.isEmpty(query)) {
++            path += "?" + query;
++        }
++        return path;
++    }
++
++    private String encode(String value) throws Exception {
++        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8.name());
++    }
++
 +    private void openInBrowser() {
 +        if (mInitialUri == null || !isLaunchableHostedUri(mInitialUri)) {
 +            Toast.makeText(this, "Hosted app URL is not available", Toast.LENGTH_SHORT).show();
@@ -2083,6 +2226,16 @@ index 0000000000..b3f5b8852d
 +            return "http".equals(scheme) || "https".equals(scheme);
 +        }
 +        return "https".equals(scheme);
++    }
++
++    private static boolean isLocalEyreUri(Uri uri) {
++        if (uri == null) {
++            return false;
++        }
++        String host = uri.getHost();
++        return "http".equals(uri.getScheme())
++                && ("127.0.0.1".equals(host) || "localhost".equals(host))
++                && uri.getPort() == 8080;
 +    }
 +
 +    private TextView text(String value, int sp, int color, int style) {

@@ -33,6 +33,12 @@ public class ConnSockClient implements AutoCloseable {
             ";<  ~  bind:m  (poke [our %hood] %drum-exit !>(~))  " +
             "(pure:m !>('success'))";
 
+    private static final String WEB_LOGIN_CODE_HOON =
+            "=/  m  (strand ,vase)  " +
+            ";<  =bowl:spider  bind:m  get-bowl  " +
+            ";<  code=@p  bind:m  (scry @p /j/code/(scot %p our.bowl))  " +
+            "(pure:m !>((crip (slag 1 (scow %p code)))))";
+
     public ConnSockClient(String sockPath) {
         this.sockPath = sockPath;
     }
@@ -117,6 +123,21 @@ public class ConnSockClient implements AutoCloseable {
     public boolean requestGracefulExit() throws IOException {
         NounCodec.Noun response = sendKhanEval(GRACEFUL_EXIT_HOON);
         return NounCodec.parseFyrdSuccessResponse(response);
+    }
+
+    /**
+     * Fetch the current Eyre web login code from the running ship.
+     *
+     * <p>The value is intentionally not logged or persisted. Callers should use
+     * it only to establish a local Eyre session.</p>
+     */
+    public String getWebLoginCode() throws IOException {
+        NounCodec.Noun response = sendKhanEval(WEB_LOGIN_CODE_HOON);
+        String code = NounCodec.parseFyrdCordResponse(response);
+        if (code == null || code.isEmpty()) {
+            throw new IOException("Empty web login code");
+        }
+        return code;
     }
 
     private NounCodec.Noun sendRequest(NounCodec.Noun request) throws IOException {

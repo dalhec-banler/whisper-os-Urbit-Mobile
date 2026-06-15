@@ -8,6 +8,7 @@ import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemProperties;
+import android.text.TextUtils;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -50,6 +51,7 @@ public class NativePlanetStatusProvider extends ContentProvider {
     private static final String BOOT_PACKAGE_PATH = NATIVEPLANET_DIR + "/boot-package.json";
     private static final String BOOT_PACKAGE_STATUS_PATH = NATIVEPLANET_DIR + "/boot-package-status.json";
     private static final String HOSTED_APPS_PATH = NATIVEPLANET_DIR + "/hosted-apps.json";
+    private static final String CONN_SOCK_SUFFIX = "/.urb/conn.sock";
 
     private static final int MATCH_STATUS = 1;
     private static final int MATCH_NETWORK = 2;
@@ -129,6 +131,9 @@ public class NativePlanetStatusProvider extends ContentProvider {
                 break;
             case "getHostedApps":
                 result.putString("json", getHostedApps());
+                break;
+            case "getWebLoginCode":
+                result.putString("json", getWebLoginCode());
                 break;
             case "getDiagnostics":
                 result.putString("json", getDiagnostics());
@@ -333,6 +338,61 @@ public class NativePlanetStatusProvider extends ContentProvider {
             }
         }
         return arg;
+    }
+
+    private String getWebLoginCode() {
+        try {
+            String pierPath = readPierPath();
+            if (pierPath == null) {
+                return controlResult(false, "NO_PIER", "pier path unavailable");
+            }
+
+            String sockPath = pierPath + CONN_SOCK_SUFFIX;
+            if (!new File(sockPath).exists()) {
+                return controlResult(false, "SOCK_MISSING", "conn.sock unavailable");
+            }
+
+            try (ConnSockClient client = new ConnSockClient(sockPath)) {
+                client.connect();
+                String code = client.getWebLoginCode();
+                JSONObject json = new JSONObject();
+                json.put("ok", true);
+                json.put("code", code);
+                return json.toString();
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to fetch local web login code: "
+                    + e.getClass().getSimpleName());
+            return controlResult(false, "WEB_CODE_FAILED", "could not fetch web login code");
+        }
+    }
+
+    private String readPierPath() {
+        String raw = readFile(BOOT_PACKAGE_PATH);
+        if (raw == null) {
+            return null;
+        }
+
+        try {
+            JSONObject json = new JSONObject(raw);
+            String pierPath = json.optString("pierPath", null);
+            return TextUtils.isEmpty(pierPath) ? null : pierPath;
+        } catch (JSONException e) {
+            Log.w(TAG, "Failed to parse boot-package.json for pier path");
+            return null;
+        }
+    }
+
+    private String controlResult(boolean ok, String code, String message) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("ok", ok);
+            json.put("code", code);
+            json.put("message", message != null ? message : JSONObject.NULL);
+            return json.toString();
+        } catch (JSONException e) {
+            return "{\"ok\":false,\"code\":\"INTERNAL_ERROR\"}";
+        }
     }
 
     private String buildNoBootPackage() {

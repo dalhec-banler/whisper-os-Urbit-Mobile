@@ -459,8 +459,20 @@ public class NounCodec {
     }
 
     public static boolean parseFyrdSuccessResponse(Noun noun) {
+        return isCord(parseFyrdNounValue(noun), "success");
+    }
+
+    public static String parseFyrdCordResponse(Noun noun) {
+        Noun value = parseFyrdNounValue(noun);
+        if (!value.isAtom()) {
+            throw new IllegalArgumentException("Fyrd noun value not an atom");
+        }
+        return ((Atom) value).toCord();
+    }
+
+    public static Noun parseFyrdNounValue(Noun noun) {
         // Expected success shape from %khan-eval:
-        // [rid %avow %.y %noun %success]
+        // [rid %avow %.y %noun value]
         if (!noun.isCell()) {
             throw new IllegalArgumentException("Fyrd response not a cell");
         }
@@ -476,21 +488,24 @@ public class NounCodec {
         }
 
         if (!tagged.tail.isCell()) {
-            return false;
+            throw new IllegalArgumentException("Fyrd response missing result");
         }
 
         Cell result = (Cell) tagged.tail;
         // %.y is atom 0; %.n is atom 1.
         if (!isAtomValue(result.head, BigInteger.ZERO)) {
-            return false;
+            throw new IllegalArgumentException("Fyrd thread failed");
         }
 
         if (!result.tail.isCell()) {
-            return false;
+            throw new IllegalArgumentException("Fyrd response missing page");
         }
 
         Cell page = (Cell) result.tail;
-        return isCord(page.head, "noun") && isCord(page.tail, "success");
+        if (!isCord(page.head, "noun")) {
+            throw new IllegalArgumentException("Fyrd response mark not %noun");
+        }
+        return page.tail;
     }
 
     private static boolean isCord(Noun noun, String cord) {
