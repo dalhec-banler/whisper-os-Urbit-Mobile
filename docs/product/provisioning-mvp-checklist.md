@@ -83,9 +83,11 @@ import remains the advanced fallback.
 - [x] Update controller API contract with current Artemis-backed pairing direction.
 - [x] Update onboarding product doc to match moon-first import flow.
 - [x] Document Artemis mobile provisioning architecture.
+- [x] Record current Artemis parent probe without secrets.
+- [x] Sync source-only GrapheneOS `vendor/nativeplanet` changes into this repo.
+- [x] Preserve Launcher3/Quickstep changes as `rom/patches/launcher3-whisper-os.patch`.
 - [ ] Update verification report after fresh-phone test.
-- [ ] Sync source-only GrapheneOS `vendor/nativeplanet` changes into this repo.
-- [ ] Sync launcher source changes into this repo.
+- [ ] Sync companion launcher source changes into this repo once the dirty UI branch is reviewed.
 - [ ] Run git hygiene checks before commit.
 
 ## Product Step 5: Artemis-Backed Parent Provisioning
@@ -112,6 +114,28 @@ import remains the advanced fallback.
   - Provider runtime reached `running` with `connSockAvailable=true`.
   - Provider and launcher smokes passed after pairing.
   - Plain reboot persistence passed.
+- [x] Re-confirm current parent Artemis deployment after latest Artemis update.
+  - Non-mutating probe passed on 2026-06-15.
+  - Existing `%mobile` moon inventory exposes `who`, `nam`, `rol`, `pub`,
+    `sec`, `lif`, `rif`, `sed`, `dat`, and `tag`.
+
+## Product Step 6: Hosted Urbit Apps
+
+- [x] Decide Launcher3/Quickstep is the product HOME shell.
+- [x] Add first-party `My Urbit Apps` Launcher3 surface.
+- [x] Discover installed Urbit app inventory from the running moon through
+  Click/conn.sock and Docket metadata.
+- [x] Expose hosted app inventory through the controller provider.
+- [x] Remove fake hosted app fallback tiles.
+- [x] Pin hosted Urbit apps to the normal Launcher3 workspace.
+- [x] Refresh pinned state when returning to `My Urbit Apps`.
+- [x] Open pinned hosted apps in the Whisper-hosted WebView shell.
+- [x] Avoid Android broken-page placeholder for unsupported mobile surfaces.
+- [ ] Build the mobile desk/moon pill so hosted apps expose phone-ready
+  entrypoints.
+- [ ] Wire Docket tile images into Launcher3 icons where available.
+- [ ] Add hosted app unpin and open-in-browser actions.
+- [ ] Validate Tlon, Terminal, Landscape, Grove, and Kin as real phone surfaces.
 
 ## Not In This Step
 

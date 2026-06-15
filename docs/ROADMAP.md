@@ -4,7 +4,7 @@ A mobile-first Urbit runtime for Android, built on GrapheneOS.
 
 ## Current Status
 
-**Phase 1: Moon Onboarding** — in progress
+**Phase 1: Moon Onboarding And Hosted Apps** — in progress
 
 The device boots, runs a real Urbit moon, and reports truthful status. Core infrastructure is verified:
 
@@ -15,14 +15,20 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
 - Graceful shutdown through conn.sock works (Click-style `%hood %drum-exit`)
 - Reboot persistence restores the running ship
 - Launcher can provision a moon from manually entered moon name, parent, and moon key
+- Controller can pair with a parent ship through Artemis and provision a
+  `%mobile` moon from the returned boot fields
 - Whisper OS now uses the platform Launcher3/Quickstep launcher as HOME, with
   NativePlanet runtime surfaces integrated as OS-level launcher features instead
   of a standalone app icon
+- `My Urbit Apps` discovers real installed Urbit app metadata from the running
+  moon through Click/conn.sock and Docket
+- Hosted Urbit apps can be pinned to the normal Android workspace and opened in
+  a Whisper-hosted WebView shell
 
-Next step: Artemis-backed moon provisioning. The phone should ask for the
-ship's hosting URL and `+code`, then ask Artemis on the parent ship to create or
-hand out a `%mobile` moon. Manual moon-key import stays available as an advanced
-fallback.
+Next step: mobile app surfaces. The phone can now discover and pin Urbit apps,
+but the running moon still needs a mobile-ready desk/pill path so those apps
+open into useful phone surfaces instead of generic hosted shells. Manual
+moon-key import stays available as an advanced fallback.
 
 For detailed verification reports, see [docs/verification/](verification/).
 
@@ -65,7 +71,8 @@ For the active checklist, see [docs/product/provisioning-mvp-checklist.md](produ
 
 **Goal:** First shippable launcher surfaces against real backend data.
 
-**Status:** Moon-key import works. Launcher work is now based on
+**Status:** Moon-key import and Artemis-backed parent provisioning work.
+Launcher work is now based on
 Launcher3/Quickstep so Android gestures, recents, drag/drop, app drawer, and
 home-screen behavior stay production-grade.
 
@@ -91,12 +98,19 @@ home-screen behavior stay production-grade.
 - Artemis creates or returns a `%mobile` moon
 - Phone provisions the returned boot package and starts Vere
 - Manual moon-key import remains available as an advanced path
-- Replace hand-seeded hosted app inventory with controller-generated inventory
-  from the running ship's Docket/Landscape metadata
-- Find the correct mobile entrypoints for Tlon, Dojo, Grove, and Kin instead of
-  guessing legacy app paths
+- Controller-generated hosted app inventory from the running ship's Docket
+  metadata
+- Pin-to-home flow for hosted Urbit apps
+
+**Next:**
+- Define and build the mobile desk/moon pill that gives hosted apps phone-ready
+  entrypoints.
+- Find the correct mobile entrypoints for Tlon, Dojo, Grove, and Kin.
 - Use Grove and Kin as candidate paths for installing or syncing Urbit web apps
-  after inventory generation is stable
+  after the first mobile app surfaces are stable.
+- Add richer Launcher3 actions for hosted apps: pin, unpin, open locally, and
+  open in browser.
+- Wire Docket tile images into Launcher3 icons when available.
 
 Tlon signup can be linked from onboarding later, but it is not part of the
 current MVP.
