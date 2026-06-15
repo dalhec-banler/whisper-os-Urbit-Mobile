@@ -142,6 +142,10 @@ import remains the advanced fallback.
   - Current hook: `%groups` / Tlon can prefer the native Android package if
     present; otherwise it keeps using the verified local WebView path.
   - `NativePlanetController` module build passed; not flashed yet.
+- [x] Add draft `%nativeplanet-mobile` desk source for launcher metadata.
+  - Source exists under `satellite-pill/desks/nativeplanet-mobile/`.
+  - Gall app passes host `urbit eval` parse/type smoke.
+  - Not pill-built or installed on a ship yet.
 - [ ] Build the mobile desk/moon pill so hosted apps expose phone-ready
   entrypoints.
 - [ ] Wire Docket tile images into Launcher3 icons where available.

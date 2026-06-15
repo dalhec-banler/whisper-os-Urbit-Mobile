@@ -18,6 +18,9 @@ The Satellite Pill is built using `+brass` from `pkg/arvo/gen/pill/brass.hoon`. 
 
 - Desks: `%base`, `%nativeplanet-mobile`
 - Purpose: Mobile-specific agents and marks
+- Status: `%nativeplanet-mobile` source draft exists under
+  `desks/nativeplanet-mobile/`; the Gall app passes a host `urbit eval`
+  parse/type smoke, but it has not yet been pill-built.
 
 ### Satellite Pill v2+ (Future)
 
@@ -84,7 +87,7 @@ The pill is generic. Identity is provisioned through the BootPackage at runtime.
 satellite-pill/
   README.md           # This file
   build-satellite-pill.sh  # Build script
-  desks/              # Desk source (future)
+  desks/              # Desk source
     nativeplanet-mobile/
     satellite-sync/
     parent-delegation/

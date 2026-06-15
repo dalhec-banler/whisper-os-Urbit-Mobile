@@ -1,0 +1,9 @@
+:~  title+'NativePlanet Mobile'
+    info+'Mobile app surface metadata for Whisper OS'
+    color+0xc79338
+    image+''
+    site+/apps/nativeplanet-mobile
+    version+[0 1 0]
+    website+'https://github.com/dalhec-banler/whisper-os-Urbit-Mobile'
+    license+'MIT'
+==
