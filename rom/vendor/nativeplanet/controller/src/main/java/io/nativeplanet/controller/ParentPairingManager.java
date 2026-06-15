@@ -1,5 +1,6 @@
 package io.nativeplanet.controller;
 
+import android.os.SystemProperties;
 import android.util.Log;
 
 import org.json.JSONException;
@@ -40,6 +41,7 @@ public final class ParentPairingManager {
     private static final String AUTH_CONFIRM_SCRY = "/~/scry/hood/kiln/pikes.json";
     private static final String ARTEMIS_APP_PATH = "/apps/artemis/";
     private static final String ARTEMIS_MOONS_SCRY = "/~/scry/artemis/mons.json";
+    private static final String VERE_SERVICE_PROP = "init.svc.nativeplanet_vere";
     private static final int MOON_CREATE_TIMEOUT_MS = 30000;
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -63,6 +65,11 @@ public final class ParentPairingManager {
 
             if (accessCode.isEmpty()) {
                 return response(false, "MISSING_ACCESS_CODE", "Enter your +code");
+            }
+
+            if (isVereServiceRunning()) {
+                return response(false, "RUNTIME_RUNNING",
+                        "Stop the current ship before pairing a new mobile moon.");
             }
 
             PairingSession session = authenticate(normalizedUrl, accessCode);
@@ -543,6 +550,10 @@ public final class ParentPairingManager {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private static boolean isVereServiceRunning() {
+        return "running".equals(SystemProperties.get(VERE_SERVICE_PROP, ""));
     }
 
     private static String safeMessage(Exception e) {
