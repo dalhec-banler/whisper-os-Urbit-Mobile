@@ -54,6 +54,12 @@ Or use the build script:
 ./build-satellite-pill.sh v1
 ```
 
+Before attempting a pill build, run the desk smoke check:
+
+```bash
+./tools/smoke-satellite-pill.sh
+```
+
 ## brass.hoon Reference
 
 From `pkg/arvo/gen/pill/brass.hoon`:

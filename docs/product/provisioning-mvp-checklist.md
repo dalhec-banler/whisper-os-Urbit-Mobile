@@ -145,6 +145,7 @@ import remains the advanced fallback.
 - [x] Add draft `%nativeplanet-mobile` desk source for launcher metadata.
   - Source exists under `satellite-pill/desks/nativeplanet-mobile/`.
   - Gall app passes host `urbit eval` parse/type smoke.
+  - Repeatable smoke: `tools/smoke-satellite-pill.sh`.
   - Not pill-built or installed on a ship yet.
 - [ ] Build the mobile desk/moon pill so hosted apps expose phone-ready
   entrypoints.
