@@ -66,11 +66,18 @@ mobile app-surface work began.
 - The Pixel booted a disposable fake ship from the v1 pill with Android Vere.
 - Android boot logs showed `%nativeplanet-mobile` installing during bootstrap,
   `conn.sock` coming up, and Eyre binding on the alternate test port.
+- On the connected userdebug device, `/system_ext/etc/nativeplanet/satellite.pill`
+  was updated through adb remount to the v1 pill hash.
+- After reboot, WiFi reconnected, the real moon returned to `state=running`,
+  and launcher/provider smoke checks passed.
+- A disposable Android boot using the production pill path
+  `/system_ext/etc/nativeplanet/satellite.pill` also installed
+  `%nativeplanet-mobile` and brought up `conn.sock`.
 
 ## Remaining
 
-- Generate flashable images or choose a dev fastboot path for the v1 target-files.
-- Flash a ROM containing Satellite Pill v1.
-- Verify fresh moon boot through the production BootPackage path using the v1
-  pill from `/system_ext/etc/nativeplanet/satellite.pill`.
+- Generate signed flashable release images when signing credentials are
+  available, or use the unsigned dev image zip on an unlocked test device.
+- Flash a ROM containing Satellite Pill v1 without relying on adb remount.
+- Verify fresh moon provisioning through the production BootPackage path.
 - Validate Tlon, Terminal, Landscape, Grove, and Kin as mobile app surfaces.
