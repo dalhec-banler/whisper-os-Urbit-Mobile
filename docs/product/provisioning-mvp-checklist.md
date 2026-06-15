@@ -131,10 +131,12 @@ import remains the advanced fallback.
 - [x] Refresh pinned state when returning to `My Urbit Apps`.
 - [x] Open pinned hosted apps in the Whisper-hosted WebView shell.
 - [x] Avoid Android broken-page placeholder for unsupported mobile surfaces.
+- [x] Add hosted app unpin and open-in-browser actions.
+  - Source queued in `rom/patches/launcher3-whisper-os.patch`.
+  - `Launcher3QuickStep` module build passed; not flashed yet.
 - [ ] Build the mobile desk/moon pill so hosted apps expose phone-ready
   entrypoints.
 - [ ] Wire Docket tile images into Launcher3 icons where available.
-- [ ] Add hosted app unpin and open-in-browser actions.
 - [ ] Validate Tlon, Terminal, Landscape, Grove, and Kin as real phone surfaces.
 
 ## Not In This Step

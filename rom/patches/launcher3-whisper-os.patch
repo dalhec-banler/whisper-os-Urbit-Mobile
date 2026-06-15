@@ -1123,10 +1123,10 @@ index 0000000000..c629d91553
 +}
 diff --git a/src/com/android/launcher3/WhisperHostedAppsActivity.java b/src/com/android/launcher3/WhisperHostedAppsActivity.java
 new file mode 100644
-index 0000000000..77ea03dbc3
+index 0000000000..ec874cb927
 --- /dev/null
 +++ b/src/com/android/launcher3/WhisperHostedAppsActivity.java
-@@ -0,0 +1,594 @@
+@@ -0,0 +1,668 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -1356,8 +1356,13 @@ index 0000000000..77ea03dbc3
 +        actions.setOrientation(LinearLayout.VERTICAL);
 +        actions.addView(actionButton(app.canOpen() ? "Open" : "Pending",
 +                v -> handleOpenHostedApp(app), app.canOpen()));
-+        actions.addView(actionButton(pinned ? "Pinned" : "Pin", v -> pinHostedApp(app),
-+                app.canOpen() && !pinned));
++        if (pinned) {
++            actions.addView(actionButton("Unpin", v -> unpinHostedApp(app), true));
++        } else {
++            actions.addView(actionButton("Pin", v -> pinHostedApp(app), app.canOpen()));
++        }
++        actions.addView(actionButton("Browser", v -> openBrowserFallback(app.startUrl),
++                !TextUtils.isEmpty(app.startUrl)));
 +        tile.addView(actions);
 +
 +        return tile;
@@ -1499,6 +1504,22 @@ index 0000000000..77ea03dbc3
 +                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
 +    }
 +
++    private void unpinHostedApp(HostedApp app) {
++        int deleted = deletePinnedHostedApp(this, app.id);
++        if (deleted <= 0) {
++            Toast.makeText(this, app.title + " was not on Home", Toast.LENGTH_SHORT).show();
++            recreate();
++            return;
++        }
++
++        Launcher launcher = Launcher.ACTIVITY_TRACKER.getCreatedContext();
++        if (launcher != null) {
++            launcher.getModel().forceReload();
++        }
++        Toast.makeText(this, app.title + " removed from Home", Toast.LENGTH_SHORT).show();
++        recreate();
++    }
++
 +    public static void maybeCompletePendingPin(Launcher launcher) {
 +        if (launcher == null) {
 +            return;
@@ -1550,6 +1571,59 @@ index 0000000000..77ea03dbc3
 +
 +    private static boolean isHostedAppPinned(Context context, String id) {
 +        return loadPinnedHostedIds(context).contains(id);
++    }
++
++    private static int deletePinnedHostedApp(Context context, String id) {
++        if (TextUtils.isEmpty(id)) {
++            return 0;
++        }
++
++        File dbFile = context.getDatabasePath(InvariantDeviceProfile.INSTANCE.get(context).dbFile);
++        if (!dbFile.exists()) {
++            return 0;
++        }
++
++        ArrayList<String> idsToDelete = new ArrayList<>();
++        String[] columns = {
++                LauncherSettings.Favorites._ID,
++                LauncherSettings.Favorites.INTENT,
++                LauncherSettings.Favorites.ITEM_TYPE,
++                LauncherSettings.Favorites.CONTAINER,
++        };
++        String selection = LauncherSettings.Favorites.CONTAINER + "=? AND "
++                + LauncherSettings.Favorites.ITEM_TYPE + "=?";
++        String[] args = {
++                String.valueOf(LauncherSettings.Favorites.CONTAINER_DESKTOP),
++                String.valueOf(LauncherSettings.Favorites.ITEM_TYPE_SHORTCUT),
++        };
++
++        try (SQLiteDatabase db = SQLiteDatabase.openDatabase(dbFile.getPath(), null,
++                SQLiteDatabase.OPEN_READWRITE);
++                Cursor cursor = db.query(LauncherSettings.Favorites.TABLE_NAME, columns,
++                        selection, args, null, null, null)) {
++            if (cursor == null) {
++                return 0;
++            }
++            int rowIdIndex = cursor.getColumnIndexOrThrow(LauncherSettings.Favorites._ID);
++            int intentIndex = cursor.getColumnIndexOrThrow(LauncherSettings.Favorites.INTENT);
++            while (cursor.moveToNext()) {
++                Intent intent = Intent.parseUri(cursor.getString(intentIndex), 0);
++                if (ACTION_OPEN_URBIT_APP.equals(intent.getAction())
++                        && id.equals(intent.getStringExtra("id"))) {
++                    idsToDelete.add(String.valueOf(cursor.getLong(rowIdIndex)));
++                }
++            }
++
++            int deleted = 0;
++            for (String rowId : idsToDelete) {
++                deleted += db.delete(LauncherSettings.Favorites.TABLE_NAME,
++                        LauncherSettings.Favorites._ID + "=?", new String[]{rowId});
++            }
++            return deleted;
++        } catch (Exception e) {
++            Log.w(TAG, "failed to delete pinned hosted app", e);
++            return 0;
++        }
 +    }
 +
 +    private static Set<String> loadPinnedHostedIds(Context context) {
