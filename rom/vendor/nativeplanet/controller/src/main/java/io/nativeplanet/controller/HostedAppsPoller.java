@@ -1,5 +1,7 @@
 package io.nativeplanet.controller;
 
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.system.ErrnoException;
@@ -35,6 +37,8 @@ public class HostedAppsPoller {
     private static final long POLL_INTERVAL_MS = 60000;
     private static final long RETRY_INTERVAL_MS = 15000;
 
+    private static final String TLON_ANDROID_PACKAGE = "network.tlon";
+
     private static final String DOCKET_CHARGES_HOON =
             "=/  m  (strand ,vase)  " +
             ";<  x=*  bind:m  (scry * /gx/docket/charges/noun)  " +
@@ -43,6 +47,11 @@ public class HostedAppsPoller {
     private HandlerThread handlerThread;
     private Handler handler;
     private boolean running = false;
+    private final Context context;
+
+    public HostedAppsPoller(Context context) {
+        this.context = context.getApplicationContext();
+    }
 
     private final Runnable pollRunnable = new Runnable() {
         @Override
@@ -247,7 +256,33 @@ public class HostedAppsPoller {
         app.put("website", fallback(atomToCord(get(docket, 7)), ""));
         app.put("license", fallback(atomToCord(get(docket, 8)), ""));
         app.put("availability", fallback(atomToCord(get(chad, 0)), "unknown"));
+        app.put("androidPackage", JSONObject.NULL);
+        app.put("pwaManifestUrl", JSONObject.NULL);
+        applyKnownCompanionMetadata(app);
         return app;
+    }
+
+    private void applyKnownCompanionMetadata(JSONObject app) throws JSONException {
+        String id = app.optString("id", "");
+        String desk = app.optString("desk", "");
+        if (!"groups".equals(id) && !"groups".equals(desk) && !"tlon".equals(id)) {
+            return;
+        }
+
+        if (isLaunchablePackageInstalled(TLON_ANDROID_PACKAGE)) {
+            app.put("launchMode", "native");
+            app.put("androidPackage", TLON_ANDROID_PACKAGE);
+        }
+    }
+
+    private boolean isLaunchablePackageInstalled(String packageName) {
+        if (packageName == null || packageName.isEmpty()) {
+            return false;
+        }
+
+        PackageManager packageManager = context.getPackageManager();
+        return packageManager != null
+                && packageManager.getLaunchIntentForPackage(packageName) != null;
     }
 
     private Href parseHref(NounCodec.Noun noun) {

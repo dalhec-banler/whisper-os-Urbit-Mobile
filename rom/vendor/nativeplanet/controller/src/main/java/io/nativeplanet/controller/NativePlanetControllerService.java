@@ -196,7 +196,7 @@ public class NativePlanetControllerService extends Service {
 
     private void startHostedAppsPoller() {
         Log.i(TAG, "Starting hosted apps poller");
-        hostedAppsPoller = new HostedAppsPoller();
+        hostedAppsPoller = new HostedAppsPoller(this);
         hostedAppsPoller.start();
     }
 

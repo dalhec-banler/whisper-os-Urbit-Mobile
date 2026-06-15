@@ -138,6 +138,10 @@ import remains the advanced fallback.
 - [x] Verify Landscape, Tlon/Groups, and Terminal/Webterm open from local Vere.
 - [x] Pin hosted apps to the Launcher3 workspace and relaunch them after reboot.
 - [x] Define the mobile app surface contract for native/PWA/local-web fallback.
+- [x] Add source support for known companion-app detection when installed.
+  - Current hook: `%groups` / Tlon can prefer the native Android package if
+    present; otherwise it keeps using the verified local WebView path.
+  - `NativePlanetController` module build passed; not flashed yet.
 - [ ] Build the mobile desk/moon pill so hosted apps expose phone-ready
   entrypoints.
 - [ ] Wire Docket tile images into Launcher3 icons where available.
