@@ -1797,10 +1797,10 @@ index 0000000000..ec874cb927
 +}
 diff --git a/src/com/android/launcher3/WhisperHostedWebActivity.java b/src/com/android/launcher3/WhisperHostedWebActivity.java
 new file mode 100644
-index 0000000000..92ef303933
+index 0000000000..b3f5b8852d
 --- /dev/null
 +++ b/src/com/android/launcher3/WhisperHostedWebActivity.java
-@@ -0,0 +1,292 @@
+@@ -0,0 +1,311 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -1814,6 +1814,7 @@ index 0000000000..92ef303933
 +package com.android.launcher3;
 +
 +import android.app.Activity;
++import android.content.Intent;
 +import android.graphics.Color;
 +import android.graphics.Typeface;
 +import android.graphics.drawable.GradientDrawable;
@@ -1946,6 +1947,16 @@ index 0000000000..92ef303933
 +        header.addView(copy, new LinearLayout.LayoutParams(0,
 +                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 +
++        TextView browser = text("Browser", 13, PAPER, Typeface.BOLD);
++        browser.setGravity(Gravity.CENTER);
++        browser.setPadding(dp(14), dp(8), dp(14), dp(8));
++        browser.setBackground(box(BLACK, HAIRLINE, dp(5)));
++        browser.setOnClickListener(v -> openInBrowser());
++        LinearLayout.LayoutParams browserParams = new LinearLayout.LayoutParams(
++                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
++        browserParams.setMargins(0, 0, dp(8), 0);
++        header.addView(browser, browserParams);
++
 +        TextView close = text("Close", 13, PAPER, Typeface.BOLD);
 +        close.setGravity(Gravity.CENTER);
 +        close.setPadding(dp(14), dp(8), dp(14), dp(8));
@@ -2011,6 +2022,14 @@ index 0000000000..92ef303933
 +                mProgress.setProgress(newProgress);
 +            }
 +        });
++    }
++
++    private void openInBrowser() {
++        if (mInitialUri == null || !isLaunchableHostedUri(mInitialUri)) {
++            Toast.makeText(this, "Hosted app URL is not available", Toast.LENGTH_SHORT).show();
++            return;
++        }
++        startActivity(new Intent(Intent.ACTION_VIEW, mInitialUri));
 +    }
 +
 +    private void showHostedError(String message) {
