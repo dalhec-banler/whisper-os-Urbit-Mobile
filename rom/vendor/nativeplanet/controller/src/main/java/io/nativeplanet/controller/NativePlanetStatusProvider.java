@@ -25,6 +25,7 @@ import java.nio.file.Files;
  *   content://io.nativeplanet.controller/network         - network state
  *   content://io.nativeplanet.controller/runtime         - runtime status
  *   content://io.nativeplanet.controller/bootpackage     - boot package status
+ *   content://io.nativeplanet.controller/hostedapps      - hosted Urbit app inventory
  *   content://io.nativeplanet.controller/diagnostics     - diagnostics summary
  *
  * Security:
@@ -48,12 +49,14 @@ public class NativePlanetStatusProvider extends ContentProvider {
     private static final String RUNTIME_STATUS_PATH = NATIVEPLANET_DIR + "/runtime-status.json";
     private static final String BOOT_PACKAGE_PATH = NATIVEPLANET_DIR + "/boot-package.json";
     private static final String BOOT_PACKAGE_STATUS_PATH = NATIVEPLANET_DIR + "/boot-package-status.json";
+    private static final String HOSTED_APPS_PATH = NATIVEPLANET_DIR + "/hosted-apps.json";
 
     private static final int MATCH_STATUS = 1;
     private static final int MATCH_NETWORK = 2;
     private static final int MATCH_RUNTIME = 3;
     private static final int MATCH_BOOTPACKAGE = 4;
     private static final int MATCH_DIAGNOSTICS = 5;
+    private static final int MATCH_HOSTED_APPS = 6;
 
     private static final UriMatcher sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
 
@@ -63,6 +66,7 @@ public class NativePlanetStatusProvider extends ContentProvider {
         sUriMatcher.addURI(AUTHORITY, "runtime", MATCH_RUNTIME);
         sUriMatcher.addURI(AUTHORITY, "bootpackage", MATCH_BOOTPACKAGE);
         sUriMatcher.addURI(AUTHORITY, "diagnostics", MATCH_DIAGNOSTICS);
+        sUriMatcher.addURI(AUTHORITY, "hostedapps", MATCH_HOSTED_APPS);
     }
 
     @Override
@@ -89,6 +93,9 @@ public class NativePlanetStatusProvider extends ContentProvider {
                 break;
             case MATCH_BOOTPACKAGE:
                 json = getBootPackageStatus();
+                break;
+            case MATCH_HOSTED_APPS:
+                json = getHostedApps();
                 break;
             case MATCH_DIAGNOSTICS:
                 json = getDiagnostics();
@@ -119,6 +126,9 @@ public class NativePlanetStatusProvider extends ContentProvider {
                 break;
             case "getBootPackage":
                 result.putString("json", getBootPackageStatus());
+                break;
+            case "getHostedApps":
+                result.putString("json", getHostedApps());
                 break;
             case "getDiagnostics":
                 result.putString("json", getDiagnostics());
@@ -188,6 +198,24 @@ public class NativePlanetStatusProvider extends ContentProvider {
             return json.toString();
         } catch (JSONException e) {
             return "{\"networkType\":\"NONE\",\"validated\":false}";
+        }
+    }
+
+    private String getHostedApps() {
+        String raw = readFile(HOSTED_APPS_PATH);
+        if (raw == null) {
+            return "{\"apps\":[]}";
+        }
+
+        try {
+            JSONObject parsed = new JSONObject(raw);
+            if (!parsed.has("apps")) {
+                return "{\"apps\":[]}";
+            }
+            return parsed.toString();
+        } catch (JSONException e) {
+            Log.w(TAG, "Malformed hosted-apps.json");
+            return "{\"apps\":[]}";
         }
     }
 
