@@ -1283,8 +1283,8 @@ index 0000000000..7c34524846
 +        title.setLineSpacing(0, 0.92f);
 +        root.addView(title);
 +
-+        TextView body = text("Apps from your running moon, using the same tile metadata your ship "
-+                + "uses for Landscape.", 16, PAPER_DIM, Typeface.NORMAL);
++        TextView body = text("Apps known by your running moon. Open and pin become available "
++                + "when a mobile surface is installed.", 16, PAPER_DIM, Typeface.NORMAL);
 +        body.setPadding(0, dp(12), 0, dp(24));
 +        body.setLineSpacing(dp(2), 1.0f);
 +        root.addView(body);
@@ -1771,6 +1771,9 @@ index 0000000000..7c34524846
 +        }
 +
 +        String subtitle() {
++            if (!canOpen()) {
++                return "recommended - waiting for mobile surface";
++            }
 +            if (TextUtils.isEmpty(desk)) {
 +                return "ship app";
 +            }
@@ -1792,7 +1795,7 @@ index 0000000000..7c34524846
 +            if (LAUNCH_PWA.equals(launchMode) || LAUNCH_LOCAL_WEBVIEW.equals(launchMode)) {
 +                return "Hosted app is missing a URL";
 +            }
-+            return "Waiting for ship app inventory";
++            return "Waiting for mobile app surface";
 +        }
 +    }
 +}

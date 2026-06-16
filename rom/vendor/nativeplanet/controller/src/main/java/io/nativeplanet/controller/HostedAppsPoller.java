@@ -16,6 +16,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,6 +40,8 @@ public class HostedAppsPoller {
     private static final int FILE_MODE_0640 = 0640;
     private static final long POLL_INTERVAL_MS = 60000;
     private static final long RETRY_INTERVAL_MS = 15000;
+    private static final int LOCAL_EYRE_PROBE_TIMEOUT_MS = 1500;
+    private static final String LOCAL_EYRE_ORIGIN = "http://127.0.0.1:8080";
 
     private static final String TLON_ANDROID_PACKAGE = "network.tlon";
 
@@ -321,10 +325,11 @@ public class HostedAppsPoller {
         String preferredLaunchMode = normalizeLaunchMode(
                 mobile.optString("preferredLaunchMode", ""));
         String mobilePath = optMetadataString(mobile, "mobilePath");
+        boolean mobilePathAvailable = !mobilePath.isEmpty() && isLocalEyrePathAvailable(mobilePath);
         String androidPackage = optMetadataString(mobile, "androidPackage");
         String pwaManifestPath = optMetadataString(mobile, "pwaManifestPath");
 
-        if (!mobilePath.isEmpty()) {
+        if (mobilePathAvailable) {
             app.put("basePath", mobilePath);
             app.put("startUrl", "");
         }
@@ -341,15 +346,15 @@ public class HostedAppsPoller {
             if (!androidPackage.isEmpty() && isLaunchablePackageInstalled(androidPackage)) {
                 app.put("launchMode", "native");
                 app.put("androidPackage", androidPackage);
-            } else if (!mobilePath.isEmpty()) {
+            } else if (mobilePathAvailable) {
                 app.put("launchMode", "local_webview");
             }
         } else if ("pwa".equals(preferredLaunchMode)) {
-            if (!mobilePath.isEmpty()) {
+            if (mobilePathAvailable) {
                 app.put("launchMode", "pwa");
             }
         } else if ("local_webview".equals(preferredLaunchMode)) {
-            if (!mobilePath.isEmpty()) {
+            if (mobilePathAvailable) {
                 app.put("launchMode", "local_webview");
             }
         } else if ("browser".equals(preferredLaunchMode)) {
@@ -447,6 +452,7 @@ public class HostedAppsPoller {
         app.put("androidPackage", JSONObject.NULL);
         app.put("pwaManifestUrl", JSONObject.NULL);
         applyKnownCompanionMetadata(app);
+        validateHostedLaunchPath(app);
         return app;
     }
 
@@ -487,6 +493,52 @@ public class HostedAppsPoller {
             return new Href("browser", null, sourceUrl);
         }
         return new Href("local_webview", "/apps/" + base + "/", sourceUrl);
+    }
+
+    private void validateHostedLaunchPath(JSONObject app) throws JSONException {
+        String launchMode = app.optString("launchMode", "");
+        if (!"local_webview".equals(launchMode) && !"pwa".equals(launchMode)) {
+            return;
+        }
+
+        String basePath = optMetadataString(app, "basePath");
+        if (basePath.isEmpty() || isLocalEyrePathAvailable(basePath)) {
+            return;
+        }
+
+        app.put("launchMode", "");
+        app.put("basePath", JSONObject.NULL);
+        app.put("startUrl", "");
+    }
+
+    private boolean isLocalEyrePathAvailable(String path) {
+        if (path == null || path.isEmpty() || path.charAt(0) != '/') {
+            return false;
+        }
+
+        HttpURLConnection connection = null;
+        try {
+            URL url = new URL(LOCAL_EYRE_ORIGIN + path);
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(LOCAL_EYRE_PROBE_TIMEOUT_MS);
+            connection.setReadTimeout(LOCAL_EYRE_PROBE_TIMEOUT_MS);
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestMethod("GET");
+            int status = connection.getResponseCode();
+            if (status == HttpURLConnection.HTTP_NOT_FOUND || status >= 500) {
+                Log.i(TAG, "Hosted app path unavailable: " + path + " status=" + status);
+                return false;
+            }
+            return status >= 200 && status < 500;
+        } catch (IOException e) {
+            Log.i(TAG, "Hosted app path probe failed: " + path + " error="
+                    + e.getClass().getSimpleName());
+            return false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
     }
 
     private List<NounCodec.Noun> tuple(NounCodec.Noun noun) {

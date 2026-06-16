@@ -65,46 +65,46 @@
       :-  %a
         :~  %-  pairs:enjs:format
               :~  ['desk' [%s 'groups']]
-                  ['preferredLaunchMode' [%s 'local_webview']]
+                  ['preferredLaunchMode' ~]
                   ['androidPackage' ~]
                   ['pwaManifestPath' ~]
-                  ['mobilePath' [%s '/apps/groups/']]
+                  ['mobilePath' ~]
                   ['recommended' [%b &]]
                   ['hidden' [%b |]]
               ==
             %-  pairs:enjs:format
               :~  ['desk' [%s 'webterm']]
-                  ['preferredLaunchMode' [%s 'local_webview']]
+                  ['preferredLaunchMode' ~]
                   ['androidPackage' ~]
                   ['pwaManifestPath' ~]
-                  ['mobilePath' [%s '/apps/webterm/']]
+                  ['mobilePath' ~]
                   ['recommended' [%b &]]
                   ['hidden' [%b |]]
               ==
             %-  pairs:enjs:format
               :~  ['desk' [%s 'landscape']]
-                  ['preferredLaunchMode' [%s 'local_webview']]
+                  ['preferredLaunchMode' ~]
                   ['androidPackage' ~]
                   ['pwaManifestPath' ~]
-                  ['mobilePath' [%s '/apps/landscape/']]
+                  ['mobilePath' ~]
                   ['recommended' [%b |]]
                   ['hidden' [%b |]]
               ==
             %-  pairs:enjs:format
               :~  ['desk' [%s 'grove']]
-                  ['preferredLaunchMode' [%s 'local_webview']]
+                  ['preferredLaunchMode' ~]
                   ['androidPackage' ~]
                   ['pwaManifestPath' ~]
-                  ['mobilePath' [%s '/apps/grove/']]
+                  ['mobilePath' ~]
                   ['recommended' [%b &]]
                   ['hidden' [%b |]]
               ==
             %-  pairs:enjs:format
               :~  ['desk' [%s 'kin']]
-                  ['preferredLaunchMode' [%s 'local_webview']]
+                  ['preferredLaunchMode' ~]
                   ['androidPackage' ~]
                   ['pwaManifestPath' ~]
-                  ['mobilePath' [%s '/apps/kin/']]
+                  ['mobilePath' ~]
                   ['recommended' [%b &]]
                   ['hidden' [%b |]]
               ==

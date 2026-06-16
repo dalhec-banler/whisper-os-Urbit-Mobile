@@ -17,9 +17,11 @@ Launcher3 My Urbit Apps and pinned shortcuts
 
 ## Problem
 
-The phone can now discover and open apps installed on the running moon. That is
-the correct foundation, but generic hosted web shells are not enough for a daily
-phone. Some Urbit apps have better mobile entrypoints:
+The phone can now discover apps installed on the running moon. That is the
+correct foundation, but app discovery is not the same thing as a launchable
+phone surface. A hosted app should only expose an Open action once the moon
+provides a route or package that actually renders. Some Urbit apps have better
+mobile entrypoints:
 
 - a native Android package
 - a PWA or installable web app shell
@@ -149,10 +151,10 @@ Suggested JSON:
   "apps": [
     {
       "desk": "groups",
-      "preferredLaunchMode": "local_webview",
+      "preferredLaunchMode": null,
       "androidPackage": null,
       "pwaManifestPath": null,
-      "mobilePath": "/apps/groups/",
+      "mobilePath": null,
       "recommended": true,
       "hidden": false
     }
@@ -161,6 +163,12 @@ Suggested JSON:
 ```
 
 This desk must not expose keys, `+code` values, cookies, or parent credentials.
+
+The v1 `%nativeplanet-mobile` desk is allowed to report inventory-only entries
+with null launch fields. The controller should keep those entries visible so the
+OS can show what the moon knows about, but Launcher3 should treat them as
+pending and disable pin/open actions. Once a desk serves a verified route, the
+metadata can add `preferredLaunchMode` and `mobilePath` for that app.
 
 ## Artemis Role
 
@@ -182,7 +190,8 @@ the controller provider backed by the local moon.
 3. Merge mobile metadata into `hosted-apps.json`.
 4. Add known companion-app package detection only after package names are
    verified.
-5. Validate Tlon, Terminal, Landscape, Grove, and Kin one at a time.
+5. Validate Tlon, Terminal, Landscape, Grove, and Kin launch surfaces one at a
+   time before marking them openable.
 6. Build a real satellite pill that includes `%nativeplanet-mobile` once the
    desk is useful.
 
