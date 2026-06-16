@@ -183,6 +183,27 @@ moons. Its next responsibility is to help define the policy for mobile moons:
 Artemis should not become the phone runtime API. The phone runtime API is still
 the controller provider backed by the local moon.
 
+## Parent Desk Install Probe
+
+The development tool `tools/install-parent-mobile-desks.sh` can read a parent
+ship's Kiln state, resolve the actual publisher for each app desk, and send
+Click/Khan `%kiln-install` requests to the connected phone moon.
+
+It is intentionally a dev tool rather than product API:
+
+```bash
+NP_PAIRING_URL=https://example.tlon.network ./tools/install-parent-mobile-desks.sh
+NP_PAIRING_URL=https://example.tlon.network ./tools/install-parent-mobile-desks.sh --apply
+```
+
+The script never prints the parent `+code`. Preview mode reports the publishers
+the parent is syncing from. Apply mode asks the phone moon to install those
+desks and reports whether they become live or remain held.
+
+The first live test showed the phone moon accepts `%kiln-install` requests over
+Click, but the requested desks can remain `held` with hash `0v0`. That means the
+next product problem is desk delivery/sync policy, not Launcher3 routing.
+
 ## Near-Term Implementation Steps
 
 1. Keep the verified Docket polling path as the baseline.
