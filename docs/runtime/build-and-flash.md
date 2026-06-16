@@ -229,6 +229,10 @@ PASS: hosted mobile app provider smoke check
   desks: groups, grove, kin, landscape, webterm
 ```
 
+On a fresh satellite pier, `%docket` can lag behind `%nativeplanet-mobile`.
+In that case `source: nativeplanet-mobile` is also valid as long as the same
+required desks are present and `mobileMetadataAvailable=true`.
+
 Graceful shutdown:
 
 - Preferred product path: controller-owned Click/conn.sock `|exit`.

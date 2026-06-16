@@ -120,11 +120,16 @@ public class HostedAppsPoller {
             return false;
         }
 
-        NounCodec.Noun response;
+        NounCodec.Noun docketValue = null;
         String mobileAppsJson = null;
         try (ConnSockClient client = new ConnSockClient(connSockPath)) {
             client.connect();
-            response = client.sendKhanEval(DOCKET_CHARGES_HOON);
+            try {
+                docketValue = parseKhanValue(client.sendKhanEval(DOCKET_CHARGES_HOON));
+            } catch (Exception e) {
+                Log.i(TAG, "No docket app inventory available: " + e.getMessage());
+            }
+
             try {
                 mobileAppsJson = NounCodec.parseFyrdCordResponse(
                         client.sendKhanEval(NATIVEPLANET_MOBILE_APPS_HOON));
@@ -133,8 +138,11 @@ public class HostedAppsPoller {
             }
         }
 
-        NounCodec.Noun value = parseKhanValue(response);
-        JSONObject json = buildHostedAppsJson(value, mobileAppsJson);
+        if (docketValue == null && (mobileAppsJson == null || mobileAppsJson.isEmpty())) {
+            throw new IOException("no hosted app inventory available");
+        }
+
+        JSONObject json = buildHostedAppsJson(docketValue, mobileAppsJson);
         writeFile(HOSTED_APPS_PATH, json.toString(2));
         return true;
     }
@@ -187,16 +195,19 @@ public class HostedAppsPoller {
 
     private JSONObject buildHostedAppsJson(NounCodec.Noun value, String mobileAppsJson)
             throws JSONException, IOException {
-        if (!(value instanceof NounCodec.Cell)) {
-            throw new IOException("docket response not a cell");
-        }
-        NounCodec.Cell update = (NounCodec.Cell) value;
-        if (!isCord(update.head, "initial")) {
-            throw new IOException("docket response not initial");
+        List<JSONObject> apps = new ArrayList<>();
+        boolean docketAvailable = value != null;
+        if (docketAvailable) {
+            if (!(value instanceof NounCodec.Cell)) {
+                throw new IOException("docket response not a cell");
+            }
+            NounCodec.Cell update = (NounCodec.Cell) value;
+            if (!isCord(update.head, "initial")) {
+                throw new IOException("docket response not initial");
+            }
+            walkMap(update.tail, apps);
         }
 
-        List<JSONObject> apps = new ArrayList<>();
-        walkMap(update.tail, apps);
         boolean mobileMetadataAvailable = applyMobileMetadata(apps, mobileAppsJson);
         apps.sort(Comparator.comparing(app -> app.optString("title", "")));
 
@@ -208,7 +219,7 @@ public class HostedAppsPoller {
         JSONObject json = new JSONObject();
         long now = System.currentTimeMillis();
         json.put("version", 1);
-        json.put("source", mobileMetadataAvailable ? "docket+nativeplanet-mobile" : "docket");
+        json.put("source", sourceName(docketAvailable, mobileMetadataAvailable));
         json.put("mobileMetadataAvailable", mobileMetadataAvailable);
         json.put("timestampMs", now);
         json.put("lastPollAttemptMs", now);
@@ -216,6 +227,16 @@ public class HostedAppsPoller {
         json.put("stale", false);
         json.put("apps", array);
         return json;
+    }
+
+    private String sourceName(boolean docketAvailable, boolean mobileMetadataAvailable) {
+        if (docketAvailable && mobileMetadataAvailable) {
+            return "docket+nativeplanet-mobile";
+        }
+        if (mobileMetadataAvailable) {
+            return "nativeplanet-mobile";
+        }
+        return "docket";
     }
 
     private boolean applyMobileMetadata(List<JSONObject> apps, String mobileAppsJson)

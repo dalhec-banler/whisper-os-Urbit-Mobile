@@ -3,7 +3,7 @@ set -euo pipefail
 
 ADB="${ADB:-adb}"
 CONTROLLER_URI="${NP_CONTROLLER_URI:-content://io.nativeplanet.controller}"
-EXPECTED_SOURCE="${NP_EXPECT_HOSTED_APPS_SOURCE:-docket+nativeplanet-mobile}"
+EXPECTED_SOURCES="${NP_EXPECT_HOSTED_APPS_SOURCES:-docket+nativeplanet-mobile,nativeplanet-mobile}"
 
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -57,13 +57,13 @@ extract_json "$provider_raw" > "$provider_json"
 
 node "$(dirname "$0")/conn-client.js" --adb mobile-apps > "$direct_json"
 
-python3 - "$provider_json" "$direct_json" "$EXPECTED_SOURCE" <<'PY'
+python3 - "$provider_json" "$direct_json" "$EXPECTED_SOURCES" <<'PY'
 import json
 import sys
 
 provider = json.load(open(sys.argv[1], encoding="utf-8"))
 direct = json.load(open(sys.argv[2], encoding="utf-8"))
-expected_source = sys.argv[3]
+expected_sources = {item.strip() for item in sys.argv[3].split(",") if item.strip()}
 
 
 def fail(message):
@@ -71,8 +71,9 @@ def fail(message):
 
 
 source = provider.get("source")
-if source != expected_source:
-    fail(f"provider source is {source!r}, expected {expected_source!r}")
+if source not in expected_sources:
+    expected = ", ".join(sorted(expected_sources))
+    fail(f"provider source is {source!r}, expected one of: {expected}")
 
 if provider.get("mobileMetadataAvailable") is not True:
     fail("provider mobileMetadataAvailable is not true")
