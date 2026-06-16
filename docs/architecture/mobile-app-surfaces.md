@@ -231,6 +231,13 @@ When that pattern appears, the launcher should keep the app visible only as
 inventory and disable Open/Pin. The next fix belongs in Urbit networking,
 parent/mobile desk policy, or desk delivery, not in the launcher route code.
 
+On Android, `can-send=false` is not enough by itself to prove the system socket
+is broken. With the current Mesa-backed runtime, packet capture can show UDP
+traffic leaving and returning while the legacy Ames info fields still report
+`can-send=false` and `can-scry=false`. In that case, treat Android transport as
+verified and investigate Urbit packet handling, parent/moon state, lane data, or
+desk delivery policy.
+
 ## Near-Term Implementation Steps
 
 1. Keep the verified Docket polling path as the baseline.

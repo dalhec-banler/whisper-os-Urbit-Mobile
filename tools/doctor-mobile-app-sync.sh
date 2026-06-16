@@ -179,6 +179,24 @@ charges_code="$(http_probe "http://127.0.0.1:18080/~/scry/docket/charges.json" "
 printf '%-12s /~/scry/docket/charges.json -> HTTP %s\n' "docket" "$charges_code"
 echo
 
+echo "== Controller Hosted Apps =="
+hosted_json="$(
+  adb shell content call --uri content://io.nativeplanet.controller --method getHostedApps 2>/dev/null |
+    extract_bundle_json || true
+)"
+if [[ -n "$hosted_json" ]]; then
+  echo "$hosted_json" |
+    jq -r '
+      "source=\(.source // "unknown") stale=\(.stale // true) lastError=\(.lastError // "null")",
+      ("launchable=" + ([.apps[]? | select((.launchMode // "") != "" and (.startUrl // "") != "")] | length | tostring)
+        + " inventoryOnly=" + ([.apps[]? | select((.launchMode // "") == "" or (.startUrl // "") == "")] | length | tostring)),
+      (.apps[]? | "  \(.desk): launchMode=\(.launchMode // "") startUrl=\(.startUrl // "") basePath=\(.basePath // "null")")
+    '
+else
+  echo "provider getHostedApps unavailable"
+fi
+echo
+
 if [[ -n "${NP_PAIRING_URL:-}" && -n "${NP_PAIRING_CODE:-}" ]]; then
   parent_url="${NP_PAIRING_URL%/}"
   case "$parent_url" in
@@ -222,8 +240,14 @@ if grep -q '%can-scry 0' <<<"$info"; then
   echo "- Ames reports can-scry=false; remote desk sync and Fine scries are expected to stall."
 fi
 if grep -q '%can-send 0' <<<"$info"; then
-  echo "- Ames reports can-send=false; check Urbit network reachability before debugging Launcher UI."
+  echo "- Ames reports can-send=false. On the current Mesa-backed Android runtime this is a legacy signal; confirm with packet capture before blaming Android UDP."
 fi
 if [[ "$charges_code" != "200" ]]; then
   echo "- Docket charges are unavailable locally; launcher should not mark local WebView routes open."
+fi
+if [[ -n "${hosted_json:-}" ]]; then
+  launchable_count="$(jq '[.apps[]? | select((.launchMode // "") != "" and (.startUrl // "") != "")] | length' <<<"$hosted_json")"
+  if [[ "$launchable_count" -eq 0 ]]; then
+    echo "- Controller is exposing hosted apps as inventory-only; Open/Pin should stay disabled until real routes or native/PWA targets exist."
+  fi
 fi

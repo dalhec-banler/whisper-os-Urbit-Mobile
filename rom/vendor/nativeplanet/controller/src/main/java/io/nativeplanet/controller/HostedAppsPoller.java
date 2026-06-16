@@ -441,11 +441,11 @@ public class HostedAppsPoller {
         app.put("info", fallback(atomToCord(get(docket, 2)), ""));
         app.put("tileColor", atomToColor(get(docket, 3)));
         app.put("launchMode", href.launchMode);
-        app.put("basePath", href.basePath != null ? href.basePath : JSONObject.NULL);
+        putNullableString(app, "basePath", href.basePath);
         app.put("startUrl", "");
-        app.put("sourceUrl", href.sourceUrl != null ? href.sourceUrl : JSONObject.NULL);
-        app.put("imageUrl", unitCord(get(docket, 5)));
-        app.put("version", versionString(get(docket, 6)));
+        putNullableString(app, "sourceUrl", href.sourceUrl);
+        putNullableString(app, "imageUrl", unitCord(get(docket, 5)));
+        putNullableString(app, "version", versionString(get(docket, 6)));
         app.put("website", fallback(atomToCord(get(docket, 7)), ""));
         app.put("license", fallback(atomToCord(get(docket, 8)), ""));
         app.put("availability", fallback(atomToCord(get(chad, 0)), "unknown"));
@@ -621,6 +621,14 @@ public class HostedAppsPoller {
 
     private String fallback(String value, String fallback) {
         return value == null || value.isEmpty() ? fallback : value;
+    }
+
+    private void putNullableString(JSONObject json, String key, String value) throws JSONException {
+        if (value == null) {
+            json.put(key, JSONObject.NULL);
+        } else {
+            json.put(key, value);
+        }
     }
 
     private void writeErrorState(String reason) {
