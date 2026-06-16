@@ -204,6 +204,33 @@ The first live test showed the phone moon accepts `%kiln-install` requests over
 Click, but the requested desks can remain `held` with hash `0v0`. That means the
 next product problem is desk delivery/sync policy, not Launcher3 routing.
 
+## Mobile App Sync Doctor
+
+The development tool `tools/doctor-mobile-app-sync.sh` checks whether the phone
+moon has genuinely launchable Urbit app surfaces.
+
+It reports:
+
+- current runtime/provider state
+- conn.sock Ames health from `%peel %info`
+- phone Kiln pike state
+- local `/apps/<desk>/` route availability
+- local Docket charge availability
+- optional parent comparison when `NP_PAIRING_URL` and `NP_PAIRING_CODE` are
+  supplied through an ignored local environment file
+
+The important diagnosis pattern is:
+
+```text
+desk is held with hash 0v0
+local /apps/<desk>/ returns 404
+Ames reports can-send=false or can-scry=false
+```
+
+When that pattern appears, the launcher should keep the app visible only as
+inventory and disable Open/Pin. The next fix belongs in Urbit networking,
+parent/mobile desk policy, or desk delivery, not in the launcher route code.
+
 ## Near-Term Implementation Steps
 
 1. Keep the verified Docket polling path as the baseline.
@@ -213,7 +240,9 @@ next product problem is desk delivery/sync policy, not Launcher3 routing.
    verified.
 5. Validate Tlon, Terminal, Landscape, Grove, and Kin launch surfaces one at a
    time before marking them openable.
-6. Build a real satellite pill that includes `%nativeplanet-mobile` once the
+6. Use `tools/doctor-mobile-app-sync.sh` to distinguish launcher bugs from
+   desk delivery or Ames reachability failures.
+7. Build a real satellite pill that includes `%nativeplanet-mobile` once the
    desk is useful.
 
 ## Non-Goals
