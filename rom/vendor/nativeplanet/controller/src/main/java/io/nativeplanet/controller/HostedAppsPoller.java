@@ -320,9 +320,9 @@ public class HostedAppsPoller {
     private void applyMobileAppMetadata(JSONObject app, JSONObject mobile) throws JSONException {
         String preferredLaunchMode = normalizeLaunchMode(
                 mobile.optString("preferredLaunchMode", ""));
-        String mobilePath = mobile.optString("mobilePath", "");
-        String androidPackage = mobile.optString("androidPackage", "");
-        String pwaManifestPath = mobile.optString("pwaManifestPath", "");
+        String mobilePath = optMetadataString(mobile, "mobilePath");
+        String androidPackage = optMetadataString(mobile, "androidPackage");
+        String pwaManifestPath = optMetadataString(mobile, "pwaManifestPath");
 
         if (!mobilePath.isEmpty()) {
             app.put("basePath", mobilePath);
@@ -369,6 +369,14 @@ public class HostedAppsPoller {
             return launchMode;
         }
         return "";
+    }
+
+    private String optMetadataString(JSONObject json, String key) {
+        if (!json.has(key) || json.isNull(key)) {
+            return "";
+        }
+        String value = json.optString(key, "");
+        return "null".equals(value) ? "" : value;
     }
 
     private String titleFromDesk(String desk) {
