@@ -215,6 +215,20 @@ node tools/conn-client.js --adb peel live
 node tools/conn-client.js --adb mobile-apps
 ```
 
+Hosted app merge:
+
+```bash
+./tools/smoke-hosted-mobile-apps.sh
+```
+
+Expected result after a ROM with the v1 satellite pill and current controller:
+
+```text
+PASS: hosted mobile app provider smoke check
+  source: docket+nativeplanet-mobile
+  desks: groups, grove, kin, landscape, webterm
+```
+
 Graceful shutdown:
 
 - Preferred product path: controller-owned Click/conn.sock `|exit`.
