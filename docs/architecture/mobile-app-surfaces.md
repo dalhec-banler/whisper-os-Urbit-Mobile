@@ -95,7 +95,8 @@ Preferred order:
 
 1. native Android app when installed and explicitly selected
 2. PWA when a reliable manifest exists
-3. local `%groups` hosted WebView
+3. browser fallback for the current `%groups` route
+4. local `%groups` hosted WebView only after interaction is proven stable
 
 ### Terminal / Dojo
 

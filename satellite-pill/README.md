@@ -8,22 +8,26 @@ The Satellite Pill is built using `+brass` from `pkg/arvo/gen/pill/brass.hoon`. 
 
 ## Pill Versions
 
-### Satellite Pill v0 (Current)
+### Satellite Pill v0 (Legacy Baseline)
 
 - Base: `%base` desk only
 - Purpose: Runtime validation, BootPackage testing
 - Source: Known-good brass pill renamed to `satellite.pill`
 
-### Satellite Pill v1 (Host Verified)
+### Satellite Pill v1 (Current)
 
 - Desks: `%base`, `%nativeplanet-mobile`
 - Purpose: Mobile-specific agents and marks
-- Status: builds with Brass and boots on a disposable local fake ship.
+- Status: builds with Brass, boots on host, and boots on Android Vere.
   `%nativeplanet-mobile` installs as an essential desk, reports
   `app status: running`, and serves `/apps/json`.
+- Current artifact hash:
+  `0e6e61a0362180c3954ac8dd8607c132dcbf2a92fc63a6113ac0007163fd204e`.
 
 The generated pill artifact is intentionally ignored by git. Build it locally
-and copy it into the ROM prebuilt path when preparing a ROM build.
+and copy it into the ROM prebuilt path when preparing a ROM build. Signed ROM
+`2026062201` includes this v1 artifact and has been flashed and verified on the
+test phone.
 
 ### Satellite Pill v2+ (Future)
 

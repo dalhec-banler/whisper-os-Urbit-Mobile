@@ -32,7 +32,7 @@ resolve the best available launch target for each app:
 
 The product goal is that most Urbit apps feel like phone apps even when they are
 served by the local ship. Users should not need to see or manage
-`127.0.0.1:12321` URLs during normal use.
+`127.0.0.1` URLs during normal use.
 
 ## Source of Truth
 
@@ -63,7 +63,7 @@ The controller should adapt that ship state into a launcher-friendly inventory:
       "source": "docket",
       "launchMode": "native|pwa|local_webview|browser",
       "androidPackage": "network.tlon",
-      "startUrl": "http://127.0.0.1:12321/apps/groups",
+      "startUrl": "http://127.0.0.1:8080/apps/groups",
       "pwaManifestUrl": null,
       "installed": true,
       "pinned": false
@@ -102,6 +102,21 @@ modes:
   shell without exposing the URL as normal user chrome.
 - `browser`: open an external browser as a fallback only.
 
+The controller treats `%nativeplanet-mobile` as the authority for whether an
+app is launchable on mobile. Docket/Glob data can prove that an app exists and
+provide tile metadata, but it is not enough by itself to expose an Open action.
+
+For local web launches, the controller probes the requested local Eyre path
+before publishing `local_webview`, `pwa`, or `browser` launch metadata. Routes
+that return server errors remain visible as inventory-only app entries. This
+keeps the launcher honest: users can see that Grove, Kin, Landscape, Terminal,
+or Tlon are present without being sent into a broken `500 hosed` screen.
+
+On the current Android runtime, hosted web routes are served by local Eyre on
+`127.0.0.1:8080`. The runtime control port is not a valid hosted web origin.
+The controller should probe Eyre routes through port `8080` and then publish
+only app-like launch metadata, not raw local URLs, to Launcher3.
+
 The hosted WebView shell is private to Launcher3, full-screen, and app-like. It
 keeps Android status/navigation gestures available, blocks arbitrary external
 navigation, and preserves WebView storage for web-app sessions.
@@ -111,10 +126,15 @@ navigation, and preserves WebView storage for web-app sessions.
 Use apps already expected on the moon as the first real validation targets:
 
 - Tlon
-- Dojo
+- Landscape
+- Terminal
+- Grove
 
-Tlon should prefer a native Android package when installed, then fall back to its
-PWA or local hosted route. Dojo will likely start as a local hosted surface.
+Tlon should prefer a native Android package when installed, then fall back to a
+PWA/browser route. The local `%groups` WebView path is valid on the current
+moon and can be used as the immediate web fallback. Landscape and Terminal are
+also valid local WebView routes. Grove is discovered by mobile metadata, and
+its PWA/install behavior is the next validation target.
 
 These validate the end-to-end loop before Grove/Kin installation UI is added.
 Do not seed these as fake launcher inventory. They should appear only after the
@@ -144,6 +164,7 @@ The controller should:
 - normalize Docket/Landscape metadata into `hosted-apps.json`
 - expose hosted app inventory through `getHostedApps`
 - enrich inventory entries with preferred launch targets when known
+- suppress local web launch targets when the route does not probe healthy
 - detect installed native Android packages for apps with native companions
 - avoid logging secrets, cookies, `+code`, or key material
 - expose the inventory through the status provider once stable

@@ -24,18 +24,27 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
   moon through Click/conn.sock and Docket
 - Hosted Urbit apps can be pinned to the normal Android workspace and opened in
   a Whisper-hosted WebView shell
-- Satellite Pill v1 now builds with `%nativeplanet-mobile`, boots on host,
-  boots on Android Vere, and is live-installed on the current userdebug phone
-  through adb remount
+- Satellite Pill v1 now builds with `%nativeplanet-mobile`, boots on host, and
+  boots on Android Vere
 - A fresh moon pier created from Satellite Pill v1 exposes
   `%nativeplanet-mobile` app metadata over Click/conn.sock
+- Signed ROM `2026062202` has been flashed without wiping data and verifies the
+  baked controller, Launcher3, hosted-app provider path, local Eyre-on-8080
+  launch fix, and rebuilt Satellite Pill v1 artifact
+- `My Urbit Apps` lists Grove, Kin, Landscape, Terminal, and Tlon from real
+  moon metadata after reboot
 
-Next step: package and flash the signed ROM that contains both Satellite Pill
-v1 and the current controller. The current test phone proves the fresh-pier
-runtime path, but the installed controller APK predates the
-`HostedAppsPoller` merge code, so provider-level `docket+nativeplanet-mobile`
-verification waits on the signed controller flash. Manual moon-key import stays
-available as an advanced fallback.
+Current Urbit-side correction: the controller treats `%nativeplanet-mobile`
+metadata as authoritative and does not expose local web launch actions unless
+the local Eyre route probes healthy. Signed ROM `2026062202` includes the
+rebuilt Satellite Pill v1 artifact and the controller uses local Eyre on
+`127.0.0.1:8080` for hosted app checks. The phone now publishes Landscape,
+Terminal, and Tlon as local WebView entries, while Grove and Kin remain
+discovered inventory entries until their mobile launch surfaces are verified.
+
+Next step: finish Grove/Kin mobile launch metadata and PWA behavior, then make
+Tlon and Grove installable from the phone browser/WebView flow. Manual moon-key
+import stays available as an advanced fallback.
 
 For detailed verification reports, see [docs/verification/](verification/).
 
@@ -87,7 +96,7 @@ home-screen behavior stay production-grade.
 - Network panel from provider
 - Import moon flow wired to controller
 - Launcher3/Quickstep branded as Whisper OS and verified as the active HOME role
-- Launcher3/Quickstep changes preserved as `rom/patches/launcher3-whisper-os.patch`
+- Launcher3/Quickstep changes preserved as `rom/patches/launcher3-whisper-os-v2.patch`
 - Start/stop controls through graceful shutdown
 - No demo fallback unless controller is genuinely unavailable
 - First-run setup path when no ship is configured
@@ -101,13 +110,10 @@ home-screen behavior stay production-grade.
   direct Launcher3 access to `/data/nativeplanet`
 
 **Next:**
-- Flash or otherwise package the v1 `satellite.pill` without relying on adb
-  remount.
-- Verify the current controller's hosted-app merge after a properly signed
-  flash.
 - Keep Artemis-backed parent provisioning current and use manual moon-key
   import as the advanced fallback.
-- Find the final mobile entrypoints for Tlon, Dojo, Grove, and Kin.
+- Find the final mobile entrypoints for Tlon, Dojo, Grove, and Kin. Until a
+  route is verified, it must appear as inventory only, not as an openable app.
 - Use Grove and Kin as candidate paths for installing or syncing Urbit web apps
   after the first mobile app surfaces are stable.
 - Add richer Launcher3 actions for hosted apps: pin, unpin, open locally, and
