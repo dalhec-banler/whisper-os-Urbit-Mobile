@@ -51,6 +51,8 @@ public class NativePlanetStatusProvider extends ContentProvider {
     private static final String BOOT_PACKAGE_PATH = NATIVEPLANET_DIR + "/boot-package.json";
     private static final String BOOT_PACKAGE_STATUS_PATH = NATIVEPLANET_DIR + "/boot-package-status.json";
     private static final String HOSTED_APPS_PATH = NATIVEPLANET_DIR + "/hosted-apps.json";
+    private static final String HOSTED_APP_ICONS_DIR = NATIVEPLANET_DIR + "/hosted-app-icons";
+    private static final int HOSTED_APP_ICON_MAX_BYTES = 512 * 1024;
     private static final String CONN_SOCK_SUFFIX = "/.urb/conn.sock";
 
     private static final int MATCH_STATUS = 1;
@@ -132,6 +134,12 @@ public class NativePlanetStatusProvider extends ContentProvider {
             case "getHostedApps":
                 result.putString("json", getHostedApps());
                 break;
+            case "getHostedAppIcon":
+                byte[] icon = readHostedAppIcon(arg);
+                if (icon != null) {
+                    result.putByteArray("bytes", icon);
+                }
+                break;
             case "getWebLoginCode":
                 result.putString("json", getWebLoginCode());
                 break;
@@ -155,6 +163,23 @@ public class NativePlanetStatusProvider extends ContentProvider {
         }
 
         return result;
+    }
+
+    /** Serves tile image bytes cached by HostedAppsPoller. Id is a desk-name slug. */
+    private byte[] readHostedAppIcon(String id) {
+        if (id == null || !id.matches("[a-z0-9-]{1,64}")) {
+            return null;
+        }
+        File iconFile = new File(HOSTED_APP_ICONS_DIR, id + ".img");
+        if (!iconFile.isFile() || iconFile.length() > HOSTED_APP_ICON_MAX_BYTES) {
+            return null;
+        }
+        try {
+            return Files.readAllBytes(iconFile.toPath());
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to read hosted app icon: " + e.getClass().getSimpleName());
+            return null;
+        }
     }
 
     private String getCombinedStatus() {

@@ -27,10 +27,27 @@ val json: String? = result?.getString("json")
 | `getNetwork` | Network state |
 | `getRuntime` | Runtime status |
 | `getBootPackage` | Boot package status |
+| `getHostedApps` | Hosted Urbit app inventory |
+| `getHostedAppIcon` | Cached Docket tile image bytes |
 | `getDiagnostics` | Diagnostics summary |
 
 **Bundle keys returned:**
 - `"json"` → JSON string response
+- `"bytes"` → raw bytes (only `getHostedAppIcon`; absent when no icon cached)
+
+---
+
+## Endpoint: method `getHostedAppIcon`
+
+Returns the raw tile image bytes for a hosted app, cached by
+`HostedAppsPoller` from the app's Docket/mobile `imageUrl` (TLS or local
+Eyre sources only, 512 KB cap). Pass the app `id` as the `arg` parameter.
+The id must match `[a-z0-9-]{1,64}`; anything else returns an empty
+Bundle. Image format is whatever the ship serves — callers must handle
+decode failure (e.g. SVG) and fall back to a generated glyph.
+
+Each entry in `getHostedApps` carries `"iconCached": true|false` so
+clients can skip the call when no image exists.
 
 ---
 

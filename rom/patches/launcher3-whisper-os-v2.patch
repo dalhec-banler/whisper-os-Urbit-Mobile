@@ -23129,10 +23129,10 @@ index 0000000000..192dac512c
 +}
 diff --git a/src/com/android/launcher3/WhisperHostedAppsActivity.java b/src/com/android/launcher3/WhisperHostedAppsActivity.java
 new file mode 100644
-index 0000000000..9fdb8d22b8
+index 0000000000..7a725a1e6d
 --- /dev/null
 +++ b/src/com/android/launcher3/WhisperHostedAppsActivity.java
-@@ -0,0 +1,901 @@
+@@ -0,0 +1,967 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -23361,8 +23361,7 @@ index 0000000000..9fdb8d22b8
 +                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 +
 +        ImageView glyphView = new ImageView(this);
-+        Bitmap glyphBitmap = WhisperAppGlyphs.createIcon(app.id, app.desk,
-+                !TextUtils.isEmpty(app.hostPatp) ? app.hostPatp : mShipName, dp(58));
++        Bitmap glyphBitmap = createHostedIcon(this, app);
 +        glyphView.setImageBitmap(glyphBitmap);
 +        glyphView.setScaleType(ImageView.ScaleType.FIT_CENTER);
 +        LinearLayout.LayoutParams glyphParams = new LinearLayout.LayoutParams(dp(58), dp(58));
@@ -23493,7 +23492,8 @@ index 0000000000..9fdb8d22b8
 +                android.os.Process.myUserHandle(), launch);
 +        info.container = LauncherSettings.Favorites.CONTAINER_ALL_APPS;
 +        info.sectionName = "HOSTED";
-+        info.bitmap = BitmapInfo.of(createHostedIcon(app), app.tileColor, IconShape.EMPTY);
++        info.bitmap = BitmapInfo.of(createHostedIcon(context, app), app.tileColor,
++                IconShape.EMPTY);
 +        info.contentDescription = app.title;
 +        return info;
 +    }
@@ -23555,6 +23555,7 @@ index 0000000000..9fdb8d22b8
 +                        mShipName,
 +                        parseColor(cleanJsonString(app, "tileColor"), AMBER)));
 +            }
++            sHostedIconCache.clear();
 +        } catch (Exception ignored) {
 +            apps.clear();
 +        }
@@ -23844,7 +23845,8 @@ index 0000000000..9fdb8d22b8
 +        info.title = app.title;
 +        info.intent = launch;
 +        info.user = android.os.Process.myUserHandle();
-+        info.bitmap = BitmapInfo.of(createHostedIcon(app), app.tileColor, IconShape.EMPTY);
++        info.bitmap = BitmapInfo.of(createHostedIcon(context, app), app.tileColor,
++                IconShape.EMPTY);
 +        info.contentDescription = app.title;
 +        return info;
 +    }
@@ -23861,8 +23863,72 @@ index 0000000000..9fdb8d22b8
 +                .putExtra("hostPatp", app.hostPatp);
 +    }
 +
-+    private static Bitmap createHostedIcon(HostedApp app) {
-+        return WhisperAppGlyphs.createIcon(app.id, app.desk, app.hostPatp, 144);
++    private static final int HOSTED_ICON_SIZE = 144;
++    private static final java.util.Map<String, Bitmap> sHostedIconCache =
++            java.util.Collections.synchronizedMap(new java.util.HashMap<>());
++
++    /**
++     * Real Docket tile image (cached by the controller, served through the
++     * provider) composed over the tile color; Whisper glyph as fallback.
++     */
++    private static Bitmap createHostedIcon(Context context, HostedApp app) {
++        Bitmap cached = sHostedIconCache.get(app.id);
++        if (cached != null) {
++            return cached;
++        }
++
++        Bitmap icon = null;
++        Bitmap tile = loadTileImage(context, app.id);
++        if (tile != null) {
++            icon = composeTileIcon(tile, app.tileColor);
++        }
++        if (icon == null) {
++            icon = WhisperAppGlyphs.createIcon(app.id, app.desk, app.hostPatp,
++                    HOSTED_ICON_SIZE);
++        }
++        sHostedIconCache.put(app.id, icon);
++        return icon;
++    }
++
++    private static Bitmap loadTileImage(Context context, String id) {
++        if (TextUtils.isEmpty(id)) {
++            return null;
++        }
++        try {
++            Bundle result = context.getContentResolver().call(
++                    Uri.parse(CONTROLLER_AUTHORITY), "getHostedAppIcon", id, null);
++            if (result == null) {
++                return null;
++            }
++            byte[] bytes = result.getByteArray("bytes");
++            if (bytes == null || bytes.length == 0) {
++                return null;
++            }
++            return android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
++        } catch (Exception e) {
++            Log.w(TAG, "tile image load failed for " + id + ": "
++                    + e.getClass().getSimpleName());
++            return null;
++        }
++    }
++
++    private static Bitmap composeTileIcon(Bitmap tile, int tileColor) {
++        Bitmap bitmap = Bitmap.createBitmap(HOSTED_ICON_SIZE, HOSTED_ICON_SIZE,
++                Bitmap.Config.ARGB_8888);
++        Canvas canvas = new Canvas(bitmap);
++        canvas.drawColor(tileColor);
++
++        // Center-crop the tile image full-bleed, the way Landscape draws tiles.
++        float scale = Math.max(
++                (float) HOSTED_ICON_SIZE / tile.getWidth(),
++                (float) HOSTED_ICON_SIZE / tile.getHeight());
++        float width = tile.getWidth() * scale;
++        float height = tile.getHeight() * scale;
++        float left = (HOSTED_ICON_SIZE - width) / 2f;
++        float top = (HOSTED_ICON_SIZE - height) / 2f;
++        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
++        canvas.drawBitmap(tile, null, new RectF(left, top, left + width, top + height), paint);
++        return bitmap;
 +    }
 +
 +    private static int inkFor(int color) {

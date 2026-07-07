@@ -38,7 +38,11 @@ public class HostedAppsPoller {
     private static final String NATIVEPLANET_DIR = "/data/nativeplanet";
     private static final String BOOT_PACKAGE_PATH = NATIVEPLANET_DIR + "/boot-package.json";
     private static final String HOSTED_APPS_PATH = NATIVEPLANET_DIR + "/hosted-apps.json";
+    private static final String ICONS_DIR = NATIVEPLANET_DIR + "/hosted-app-icons";
     private static final String CONN_SOCK_SUFFIX = "/.urb/conn.sock";
+
+    private static final int ICON_MAX_BYTES = 512 * 1024;
+    private static final int ICON_FETCH_TIMEOUT_MS = 5000;
 
     private static final int FILE_MODE_0640 = 0640;
     private static final long POLL_INTERVAL_MS = 60000;
@@ -160,10 +164,133 @@ public class HostedAppsPoller {
         try {
             localEyreCookie = webLoginCode == null ? null : createLocalEyreCookie(webLoginCode);
             JSONObject json = buildHostedAppsJson(docketValue, mobileAppsJson);
+            cacheTileIcons(json.optJSONArray("apps"));
             writeFile(HOSTED_APPS_PATH, json.toString(2));
             return true;
         } finally {
             localEyreCookie = null;
+        }
+    }
+
+    /**
+     * Downloads and caches Docket tile images so the launcher can render real
+     * app icons. Cached bytes are served through the provider; the launcher
+     * never fetches URLs itself. Marks each app with iconCached.
+     */
+    private void cacheTileIcons(JSONArray apps) {
+        if (apps == null) {
+            return;
+        }
+
+        File iconsDir = new File(ICONS_DIR);
+        if (!iconsDir.isDirectory() && !iconsDir.mkdirs()) {
+            Log.w(TAG, "Failed to create icon cache dir");
+            return;
+        }
+
+        for (int i = 0; i < apps.length(); i++) {
+            JSONObject app = apps.optJSONObject(i);
+            if (app == null) {
+                continue;
+            }
+            String id = sanitizeIconId(app.optString("id", ""));
+            String imageUrl = app.isNull("imageUrl") ? "" : app.optString("imageUrl", "");
+            boolean cached = false;
+            if (!id.isEmpty() && isAllowedIconUrl(imageUrl)) {
+                cached = ensureIconCached(id, imageUrl);
+            }
+            try {
+                app.put("iconCached", cached);
+            } catch (JSONException ignored) {
+            }
+        }
+    }
+
+    /** Icon ids become file names; restrict to the safe desk-name alphabet. */
+    private String sanitizeIconId(String id) {
+        return id.matches("[a-z0-9-]{1,64}") ? id : "";
+    }
+
+    /** Only ship-served or TLS sources; never arbitrary cleartext hosts. */
+    private boolean isAllowedIconUrl(String url) {
+        return url.startsWith("https://") || url.startsWith(LOCAL_EYRE_ORIGIN + "/");
+    }
+
+    private boolean ensureIconCached(String id, String imageUrl) {
+        File iconFile = new File(ICONS_DIR, id + ".img");
+        File sourceFile = new File(ICONS_DIR, id + ".src");
+
+        try {
+            if (iconFile.isFile() && sourceFile.isFile()
+                    && imageUrl.equals(new String(
+                            Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8))) {
+                return true;
+            }
+        } catch (IOException ignored) {
+        }
+
+        byte[] bytes = fetchIconBytes(imageUrl);
+        if (bytes == null) {
+            return false;
+        }
+
+        File tempFile = new File(ICONS_DIR, id + ".img.tmp");
+        try {
+            Files.write(tempFile.toPath(), bytes);
+            Os.chmod(tempFile.getPath(), FILE_MODE_0640);
+            if (!tempFile.renameTo(iconFile)) {
+                tempFile.delete();
+                return false;
+            }
+            writeFile(sourceFile.getPath(), imageUrl);
+            return true;
+        } catch (IOException | ErrnoException e) {
+            Log.w(TAG, "Failed to cache icon for " + id + ": " + e.getClass().getSimpleName());
+            tempFile.delete();
+            return false;
+        }
+    }
+
+    private byte[] fetchIconBytes(String imageUrl) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(imageUrl).openConnection();
+            connection.setConnectTimeout(ICON_FETCH_TIMEOUT_MS);
+            connection.setReadTimeout(ICON_FETCH_TIMEOUT_MS);
+            connection.setInstanceFollowRedirects(true);
+            if (imageUrl.startsWith(LOCAL_EYRE_ORIGIN + "/")
+                    && localEyreCookie != null && !localEyreCookie.isEmpty()) {
+                connection.setRequestProperty("Cookie", localEyreCookie);
+            }
+
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
+                return null;
+            }
+            String contentType = connection.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return null;
+            }
+
+            java.io.InputStream in = connection.getInputStream();
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+                if (out.size() > ICON_MAX_BYTES) {
+                    Log.i(TAG, "Icon exceeds size cap, skipping");
+                    return null;
+                }
+            }
+            return out.size() > 0 ? out.toByteArray() : null;
+        } catch (IOException e) {
+            Log.i(TAG, "Icon fetch failed: " + e.getClass().getSimpleName());
+            return null;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
     }
 
