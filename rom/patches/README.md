@@ -3,9 +3,20 @@
 Patch sets in this directory are source-only changes that apply to upstream
 Android or GrapheneOS projects outside `vendor/nativeplanet`.
 
-## `launcher3-whisper-os.patch`
+## `launcher3-whisper-os-v2.patch`
 
 Applies the current Whisper OS Launcher3/Quickstep integration.
+
+Generated against the GrapheneOS `2026040800` tag of `packages/apps/Launcher3`
+with:
+
+```bash
+cd packages/apps/Launcher3
+git diff --binary 2026040800 > /path/to/whisper-os-Urbit-Mobile/rom/patches/launcher3-whisper-os-v2.patch
+```
+
+Regenerate it the same way whenever Launcher3 source changes so the product
+repo stays in sync with the build tree.
 
 This patch keeps native Android launcher behavior as the product shell:
 
@@ -23,5 +34,5 @@ Apply from the root of a compatible GrapheneOS checkout:
 
 ```bash
 cd packages/apps/Launcher3
-git apply /path/to/whisper-os-Urbit-Mobile/rom/patches/launcher3-whisper-os.patch
+git apply /path/to/whisper-os-Urbit-Mobile/rom/patches/launcher3-whisper-os-v2.patch
 ```
