@@ -344,8 +344,10 @@ function readFrame(socket) {
   });
 }
 
-async function send(port, noun) {
-  const socket = net.createConnection({ host: "127.0.0.1", port });
+async function send(endpoint, noun) {
+  const socket = endpoint.path
+    ? net.createConnection(endpoint.path)
+    : net.createConnection({ host: "127.0.0.1", port: endpoint.port });
   await new Promise((resolve, reject) => {
     socket.once("connect", resolve);
     socket.once("error", reject);
@@ -421,12 +423,13 @@ function extractBundleJson(text) {
 
 function usage() {
   console.error(`Usage:
-  node tools/conn-client.js [--adb] [--port 12321] peel live|who|v|info
-  node tools/conn-client.js [--adb] [--port 12321] eval '<hoon>'
-  node tools/conn-client.js [--adb] [--port 12321] mobile-apps
+  node tools/conn-client.js [--adb] [--port 12321] [--socket /path/to/conn.sock] peel live|who|v|info
+  node tools/conn-client.js [--adb] [--port 12321] [--socket /path/to/conn.sock] eval '<hoon>'
+  node tools/conn-client.js [--adb] [--port 12321] [--socket /path/to/conn.sock] mobile-apps
 
 Examples:
   node tools/conn-client.js --adb peel live
+  node tools/conn-client.js --socket /tmp/nativeplanet-pill-zod/.urb/conn.sock mobile-apps
   node tools/conn-client.js --adb mobile-apps
 `);
 }
@@ -435,6 +438,7 @@ async function main() {
   const args = process.argv.slice(2);
   let port = DEFAULT_PORT;
   let useAdb = false;
+  let socketPath = null;
 
   while (args.length > 0) {
     if (args[0] === "--adb") {
@@ -443,6 +447,9 @@ async function main() {
     } else if (args[0] === "--port") {
       args.shift();
       port = Number(args.shift());
+    } else if (args[0] === "--socket") {
+      args.shift();
+      socketPath = args.shift();
     } else {
       break;
     }
@@ -453,12 +460,17 @@ async function main() {
     process.exit(2);
   }
 
+  if (useAdb && socketPath) {
+    throw new Error("--adb and --socket are mutually exclusive");
+  }
+
   if (useAdb) {
     const sockPath = setupAdbForward(port);
     console.error(`forwarded localhost:${port} -> ${sockPath}`);
   }
 
   const command = args.shift();
+  const endpoint = socketPath ? { path: socketPath } : { port };
   let request;
   if (command === "peel") {
     const peel = args.shift();
@@ -467,7 +479,7 @@ async function main() {
       process.exit(2);
     }
     request = buildPeel(1n, peel);
-    const response = await send(port, request);
+    const response = await send(endpoint, request);
     const parsed = parsePeel(response);
     console.log(JSON.stringify({
       requestId: parsed.rid,
@@ -482,7 +494,7 @@ async function main() {
       1n,
       "=/  m  (strand ,vase)  ;<  x=json  bind:m  (scry json /gx/nativeplanet-mobile/apps/json)  (pure:m !>((en:json:html x)))",
     );
-    const response = await send(port, request);
+    const response = await send(endpoint, request);
     const value = parseFyrdNounValue(response);
     if (!isAtom(value)) {
       throw new Error(`mobile apps response is not a cord: ${pretty(value)}`);
@@ -498,7 +510,7 @@ async function main() {
       process.exit(2);
     }
     request = buildKhanEval(1n, hoon);
-    const response = await send(port, request);
+    const response = await send(endpoint, request);
     console.log(pretty(response));
     return;
   }

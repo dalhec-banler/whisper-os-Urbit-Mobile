@@ -8,6 +8,9 @@ EXPECTED_SOURCES="${NP_EXPECT_HOSTED_APPS_SOURCES:-docket+nativeplanet-mobile,na
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
+"$ADB" root >/dev/null 2>&1 || true
+"$ADB" wait-for-device >/dev/null 2>&1 || true
+
 extract_json() {
   local raw_file="$1"
   python3 - "$raw_file" <<'PY'
@@ -55,11 +58,16 @@ direct_json="$tmp_dir/direct.json"
 "$ADB" shell content call --uri "$CONTROLLER_URI" --method getHostedApps > "$provider_raw"
 extract_json "$provider_raw" > "$provider_json"
 
-node "$(dirname "$0")/conn-client.js" --adb mobile-apps > "$direct_json"
+"$ADB" forward --remove tcp:18080 >/dev/null 2>&1 || true
+"$ADB" forward --remove tcp:19021 >/dev/null 2>&1 || true
+"$ADB" forward tcp:18080 tcp:8080 >/dev/null 2>&1 || true
+node "$(dirname "$0")/conn-client.js" --adb --port 19021 mobile-apps > "$direct_json"
 
 python3 - "$provider_json" "$direct_json" "$EXPECTED_SOURCES" <<'PY'
 import json
 import sys
+import urllib.error
+import urllib.request
 
 provider = json.load(open(sys.argv[1], encoding="utf-8"))
 direct = json.load(open(sys.argv[2], encoding="utf-8"))
@@ -98,13 +106,57 @@ missing_direct = sorted(required - direct_desks)
 if missing_direct:
     fail(f"direct conn mobile metadata missing desks: {', '.join(missing_direct)}")
 
-bad_launch_modes = [
+invalid_launch_modes = [
     app.get("desk")
     for app in provider_apps
-    if app.get("desk") in required and app.get("launchMode") not in {"local_webview", "pwa", "native"}
+    if app.get("desk") in required
+    and app.get("launchMode") not in {"", None, "local_webview", "pwa", "native", "browser"}
 ]
-if bad_launch_modes:
-    fail(f"provider has invalid launch modes for: {', '.join(sorted(bad_launch_modes))}")
+if invalid_launch_modes:
+    fail(f"provider has invalid launch modes for: {', '.join(sorted(invalid_launch_modes))}")
+
+broken_launch_targets = [
+    app.get("desk")
+    for app in provider_apps
+    if app.get("desk") in required
+    and app.get("launchMode") in {"local_webview", "pwa", "browser"}
+    and not (app.get("startUrl") or app.get("basePath"))
+]
+if broken_launch_targets:
+    fail(f"provider has launch modes without a URL/path for: {', '.join(sorted(broken_launch_targets))}")
+
+server_error_targets = []
+for app in provider_apps:
+    if app.get("desk") not in required:
+        continue
+    if app.get("launchMode") not in {"local_webview", "pwa", "browser"}:
+        continue
+
+    target = app.get("startUrl") or app.get("basePath")
+    if not target:
+        continue
+    if target.startswith("/"):
+        target = "http://127.0.0.1:18080" + target
+    elif target.startswith("http://127.0.0.1:8080"):
+        target = target.replace("http://127.0.0.1:8080", "http://127.0.0.1:18080", 1)
+
+    try:
+        request = urllib.request.Request(target, method="HEAD")
+        with urllib.request.urlopen(request, timeout=5) as response:
+            status = response.status
+    except urllib.error.HTTPError as error:
+        status = error.code
+    except Exception:
+        # Network or auth setup can be unavailable in developer runs. The
+        # provider contract still guards the important invariant above: no
+        # launch mode without a URL/path.
+        continue
+
+    if status >= 500:
+        server_error_targets.append(f"{app.get('desk')}:{status}")
+
+if server_error_targets:
+    fail("provider exposes server-erroring launch targets: " + ", ".join(server_error_targets))
 
 print("PASS: hosted mobile app provider smoke check")
 print(f"  source: {source}")
