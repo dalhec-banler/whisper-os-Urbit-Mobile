@@ -84,10 +84,54 @@ class StubNativePlanetClient @Inject constructor() : NativePlanetClient {
         )
     )
 
+    private val _hostedApps = MutableStateFlow(
+        listOf(
+            HostedApp(
+                id = "groups",
+                desk = "groups",
+                title = "Tlon",
+                info = "Messaging and groups",
+                launchMode = "local_webview",
+                basePath = "/apps/groups/",
+                startUrl = "",
+                sourceUrl = null,
+                imageUrl = null,
+                version = null,
+                website = "https://tlon.io",
+                availability = "demo",
+                androidPackage = null,
+                pwaManifestUrl = null,
+                recommended = true,
+                hidden = false,
+                mobileMetadata = true
+            ),
+            HostedApp(
+                id = "webterm",
+                desk = "webterm",
+                title = "Dojo",
+                info = "Terminal",
+                launchMode = "local_webview",
+                basePath = "/apps/webterm/",
+                startUrl = "",
+                sourceUrl = null,
+                imageUrl = null,
+                version = null,
+                website = "",
+                availability = "demo",
+                androidPackage = null,
+                pwaManifestUrl = null,
+                recommended = true,
+                hidden = false,
+                mobileMetadata = true
+            )
+        )
+    )
+
     override fun observeRuntimeStatus(): Flow<RuntimeStatus> = _runtimeStatus.asStateFlow()
     override fun observeNetworkStatus(): Flow<NetworkStatus> = _networkStatus.asStateFlow()
     override fun observeBootPackageStatus(): Flow<BootPackageStatus> = _bootPackageStatus.asStateFlow()
     override fun observeDiagnostics(): Flow<DiagnosticsSummary> = _diagnostics.asStateFlow()
+    override fun observeHostedApps(): Flow<List<HostedApp>> = _hostedApps.asStateFlow()
 
     override suspend fun startRuntime(): ControlResult {
         val current = _runtimeStatus.value

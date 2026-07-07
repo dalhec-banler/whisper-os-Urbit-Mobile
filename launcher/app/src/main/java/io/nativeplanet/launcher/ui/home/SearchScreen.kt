@@ -46,7 +46,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import io.nativeplanet.launcher.domain.model.HostedApp
 import io.nativeplanet.launcher.platform.GuestLauncher
+import io.nativeplanet.launcher.platform.HostedWebActivity
 import io.nativeplanet.launcher.theme.NPColors
 import io.nativeplanet.launcher.theme.NPSpacing
 import io.nativeplanet.launcher.theme.NPType
@@ -103,6 +105,21 @@ fun SearchScreen(
         }
         filtered.take(16)
     }
+    val hostedResults = remember(uiState.hostedApps, query) {
+        val q = query.trim()
+        val filtered = uiState.hostedApps
+            .filter { it.isLaunchable }
+            .filter {
+                q.isEmpty() ||
+                    it.title.contains(q, ignoreCase = true) ||
+                    it.desk.contains(q, ignoreCase = true)
+            }
+            .sortedWith(
+                compareByDescending<HostedApp> { it.recommended }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.title }
+            )
+        filtered.take(8)
+    }
     val people = listOfNotNull(
         uiState.runtimeStatus.shipName?.withPatpSig()?.let { PersonHit("your satellite", it, "this phone") },
         uiState.bootPackageStatus.parent?.withPatpSig()?.let { PersonHit("your planet", it, "root identity") }
@@ -131,7 +148,7 @@ fun SearchScreen(
             }
     ) {
         StatusStrip(
-            text = "search · ${appResults.size + people.size} hits across ${listOf(appResults.isNotEmpty(), people.isNotEmpty()).count { it }} kinds",
+            text = "search · ${hostedResults.size + appResults.size + people.size} hits across ${listOf(hostedResults.isNotEmpty(), appResults.isNotEmpty(), people.isNotEmpty()).count { it }} kinds",
             inverted = true,
             modifier = Modifier.align(Alignment.TopCenter)
         )
@@ -156,8 +173,34 @@ fun SearchScreen(
                     .weight(1f)
                     .nestedScroll(closeScrollConnection)
             ) {
+                if (hostedResults.isNotEmpty()) {
+                    item {
+                        SectionLabel(text = "urbit apps · ${hostedResults.size}", dark = true)
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+                    items(hostedResults, key = { "hosted:${it.id}" }) { app ->
+                        AppSearchRow(
+                            name = app.title,
+                            sub = "urbit · ${app.desk}",
+                            world = AppWorld.URBIT,
+                            glyph = glyphForHostedSearchApp(app),
+                            packageName = null,
+                            onClick = {
+                                GuestLauncher.launchHostedApp(
+                                    context,
+                                    app.title,
+                                    HostedWebActivity.LOCAL_EYRE_ORIGIN + app.basePath
+                                )
+                            }
+                        )
+                    }
+                }
+
                 if (appResults.isNotEmpty()) {
                     item {
+                        if (hostedResults.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(18.dp))
+                        }
                         SectionLabel(text = "apps · ${appResults.size}", dark = true)
                         Spacer(modifier = Modifier.height(10.dp))
                     }
@@ -209,6 +252,18 @@ private data class PersonHit(
     val patp: String,
     val meta: String
 )
+
+private fun glyphForHostedSearchApp(app: HostedApp): GlyphKind {
+    return when (app.id.lowercase()) {
+        "groups", "tlon", "talk" -> GlyphKind.Messages
+        "webterm", "dojo" -> GlyphKind.Dojo
+        "grove", "files" -> GlyphKind.Files
+        "kin", "memex" -> GlyphKind.Memex
+        "landscape" -> GlyphKind.Browser
+        "hark" -> GlyphKind.Hark
+        else -> GlyphKind.Browser
+    }
+}
 
 @Composable
 private fun SearchInput(

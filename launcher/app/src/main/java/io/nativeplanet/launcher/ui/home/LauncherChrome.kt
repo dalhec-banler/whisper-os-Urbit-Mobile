@@ -159,12 +159,12 @@ fun LauncherGridCell(
     hostPatp: String? = null,
     provenance: Boolean = false,
     size: Dp = NPSpacing.appCell,
-    onClick: () -> Unit
+    onClick: (() -> Unit)?
 ) {
     Column(
         modifier = modifier
             .width(size)
-            .clickable(onClick = onClick),
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         SigilGlyph(

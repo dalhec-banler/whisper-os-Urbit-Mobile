@@ -1,6 +1,7 @@
 package io.nativeplanet.launcher.ui.home
 
 import android.content.Context
+import io.nativeplanet.launcher.domain.model.HostedApp
 import io.nativeplanet.launcher.platform.LauncherAppInfo
 import io.nativeplanet.launcher.ui.components.GlyphKind
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -13,6 +14,7 @@ data class HomeTileSpec(
     val action: String? = null,
     val packageName: String? = null,
     val className: String? = null,
+    val hostedPath: String? = null,
     val glyphName: String? = null,
     val worldName: String = AppWorld.SYSTEM.name,
     val hostPatp: String? = null,
@@ -35,6 +37,7 @@ object HomeLayoutStore {
     const val ROWS = 5
     const val PAGE_SIZE = COLUMNS * ROWS
     const val ACTION_HOSTED_PENDING = "hosted_pending"
+    const val ACTION_HOSTED_LOCAL = "hosted_local"
 
     fun load(context: Context, hostPatp: String?): List<HomeTileSpec> {
         val encoded = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -67,6 +70,26 @@ object HomeLayoutStore {
             existing.add(tile.withFirstOpenCell(existing))
             save(context, existing)
         }
+        return existing
+    }
+
+    fun addHostedApp(context: Context, app: HostedApp, hostPatp: String?): List<HomeTileSpec> {
+        val existing = load(context, hostPatp).toMutableList()
+        val tile = app.toHomeTile(hostPatp)
+        val index = existing.indexOfFirst { it.id == tile.id }
+        if (index >= 0) {
+            existing[index] = existing[index].copy(
+                label = tile.label,
+                action = tile.action,
+                hostedPath = tile.hostedPath,
+                glyphName = tile.glyphName,
+                worldName = tile.worldName,
+                hostPatp = tile.hostPatp
+            )
+        } else {
+            existing.add(tile.withFirstOpenCell(existing))
+        }
+        save(context, existing)
         return existing
     }
 
@@ -132,6 +155,19 @@ object HomeLayoutStore {
         )
     }
 
+    private fun HostedApp.toHomeTile(hostPatp: String?): HomeTileSpec {
+        return HomeTileSpec(
+            id = homeIdForHostedApp(this),
+            label = title.lowercase(),
+            action = ACTION_HOSTED_LOCAL,
+            hostedPath = basePath,
+            glyphName = glyphForHostedAppId(id).name,
+            worldName = AppWorld.URBIT.name,
+            hostPatp = hostPatp,
+            cell = -1
+        )
+    }
+
     private fun migrateTile(tile: HomeTileSpec, hostPatp: String?): HomeTileSpec {
         var updated = tile
         if (updated.world == AppWorld.URBIT && updated.hostPatp == null) {
@@ -150,6 +186,16 @@ object HomeLayoutStore {
                     action = "settings",
                     packageName = null,
                     className = null,
+                    hostedPath = null,
+                    worldName = AppWorld.URBIT.name,
+                    hostPatp = updated.hostPatp ?: hostPatp
+                )
+
+            updated.id.startsWith("hosted:") && updated.hostedPath != null ->
+                updated.copy(
+                    action = ACTION_HOSTED_LOCAL,
+                    packageName = null,
+                    className = null,
                     worldName = AppWorld.URBIT.name,
                     hostPatp = updated.hostPatp ?: hostPatp
                 )
@@ -159,6 +205,7 @@ object HomeLayoutStore {
                     action = ACTION_HOSTED_PENDING,
                     packageName = null,
                     className = null,
+                    hostedPath = null,
                     worldName = AppWorld.URBIT.name,
                     hostPatp = updated.hostPatp ?: hostPatp
                 )
@@ -242,6 +289,7 @@ object HomeLayoutStore {
                 put("action", tile.action)
                 put("packageName", tile.packageName)
                 put("className", tile.className)
+                put("hostedPath", tile.hostedPath)
                 put("glyphName", tile.glyphName)
                 put("worldName", tile.worldName)
                 put("hostPatp", tile.hostPatp)
@@ -263,6 +311,7 @@ object HomeLayoutStore {
                     action = obj.optString("action").takeIf { it.isNotBlank() && it != "null" },
                     packageName = obj.optString("packageName").takeIf { it.isNotBlank() && it != "null" },
                     className = obj.optString("className").takeIf { it.isNotBlank() && it != "null" },
+                    hostedPath = obj.optString("hostedPath").takeIf { it.isNotBlank() && it != "null" },
                     glyphName = obj.optString("glyphName").takeIf { it.isNotBlank() && it != "null" },
                     worldName = obj.optString("worldName", AppWorld.DEV.name),
                     hostPatp = obj.optString("hostPatp").takeIf { it.isNotBlank() && it != "null" },
@@ -279,5 +328,25 @@ object HomeLayoutEvents {
 
     fun notifyChanged() {
         changes.tryEmit(Unit)
+    }
+}
+
+private fun homeIdForHostedApp(app: HostedApp): String {
+    return when (app.id.lowercase()) {
+        "groups" -> "hosted:tlon"
+        "webterm" -> "hosted:dojo"
+        else -> "hosted:${app.id.lowercase()}"
+    }
+}
+
+private fun glyphForHostedAppId(id: String): GlyphKind {
+    return when (id.lowercase()) {
+        "groups", "tlon", "talk" -> GlyphKind.Messages
+        "webterm", "dojo" -> GlyphKind.Dojo
+        "grove", "files" -> GlyphKind.Files
+        "kin", "memex" -> GlyphKind.Memex
+        "landscape" -> GlyphKind.Browser
+        "hark" -> GlyphKind.Hark
+        else -> GlyphKind.Browser
     }
 }

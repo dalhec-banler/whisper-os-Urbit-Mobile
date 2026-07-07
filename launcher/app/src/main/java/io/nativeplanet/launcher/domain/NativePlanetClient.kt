@@ -8,6 +8,7 @@ interface NativePlanetClient {
     fun observeNetworkStatus(): Flow<NetworkStatus>
     fun observeBootPackageStatus(): Flow<BootPackageStatus>
     fun observeDiagnostics(): Flow<DiagnosticsSummary>
+    fun observeHostedApps(): Flow<List<HostedApp>>
 
     suspend fun startRuntime(): ControlResult
     suspend fun stopRuntime(): ControlResult

@@ -17,6 +17,7 @@ data class RuntimeStatusUiState(
     val networkStatus: NetworkStatus = NetworkStatus.DISCONNECTED,
     val bootPackageStatus: BootPackageStatus = BootPackageStatus.NONE,
     val diagnostics: DiagnosticsSummary = DiagnosticsSummary.EMPTY,
+    val hostedApps: List<HostedApp> = emptyList(),
     val isLoading: Boolean = false,
     val actionResult: String? = null,
     val controllerAvailable: Boolean = false,
@@ -81,6 +82,12 @@ class RuntimeStatusViewModel @Inject constructor(
         viewModelScope.launch {
             client.observeDiagnostics().collect { diagnostics ->
                 _uiState.update { it.copy(diagnostics = diagnostics) }
+            }
+        }
+
+        viewModelScope.launch {
+            client.observeHostedApps().collect { apps ->
+                _uiState.update { it.copy(hostedApps = apps) }
             }
         }
     }

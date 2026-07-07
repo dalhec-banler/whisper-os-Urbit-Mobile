@@ -4,7 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,6 +68,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 private data class HomeDragPreview(
@@ -117,6 +120,10 @@ fun RuntimeStatusScreen(
         shipLabel?.let { add(it) }
         parentLabel?.let { add("under $it") }
     }.joinToString(" · ")
+    val homeSwipeModifier = Modifier.quickSwipeUpToOpenDrawer(
+        enabled = isConfigured && !editMode,
+        onSwipeUp = onNavigateToApps
+    )
 
     LaunchedEffect(context, hostPatp) {
         homeTiles = HomeLayoutStore.load(context, hostPatp)
@@ -136,6 +143,7 @@ fun RuntimeStatusScreen(
             .fillMaxSize()
             .background(if (isConfigured) NPColors.paper else colors.background)
             .navigationBarsPadding()
+            .then(homeSwipeModifier)
     ) {
         StatusStrip(
             text = stripText.ifBlank { "whisper os" },
@@ -253,9 +261,12 @@ fun RuntimeStatusScreen(
                             )
                         },
                         onMove = { fromTile, toTile ->
-                            val from = homeTiles.indexOfFirst { it.id == fromTile.id }
-                            val to = homeTiles.indexOfFirst { it.id == toTile.id }
-                            homeTiles = HomeLayoutStore.move(homeTiles, from, to)
+                            homeTiles = HomeLayoutStore.moveToCell(
+                                tiles = homeTiles,
+                                tileId = fromTile.id,
+                                page = toTile.page,
+                                cell = toTile.cell
+                            )
                             HomeLayoutStore.save(context, homeTiles)
                         },
                         onMoveToCell = { tile, cell ->
@@ -298,8 +309,8 @@ fun RuntimeStatusScreen(
                 )
             } else {
                 FindAskBar(
-                    text = "find an app, or ask…",
-                    onClick = onNavigateToSearch,
+                    text = "all apps, or ask…",
+                    onClick = onNavigateToApps,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(horizontal = NPSpacing.screenPadX)
@@ -409,16 +420,115 @@ private fun HomeWorkspacePage(
     Column(modifier = modifier.fillMaxWidth()) {
         SectionLabel(text = if (page == 0) "home" else "page ${page + 1}")
         Spacer(modifier = Modifier.height(12.dp))
+        var gridPosition by remember(page) { mutableStateOf(Offset.Zero) }
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .onGloballyPositioned { coordinates ->
+                    gridPosition = coordinates.positionInRoot()
+                }
         ) {
             val cellWidth = maxWidth / HomeLayoutStore.COLUMNS
             val cellHeight = maxHeight / HomeLayoutStore.ROWS
             val cellWidthPx = with(density) { cellWidth.toPx() }
             val cellHeightPx = with(density) { cellHeight.toPx() }
             val pageWidthPx = with(density) { maxWidth.toPx() }
+            val appCellPx = with(density) { NPSpacing.appCell.toPx() }
+            val removeThresholdPx = with(density) { -92.dp.toPx() }
+            val pageEdgeThreshold = pageWidthPx * 0.42f
+
+            fun cellForPosition(position: Offset): Int? {
+                if (position.x < 0f || position.y < 0f) return null
+                val col = floor(position.x / cellWidthPx).toInt()
+                val row = floor(position.y / cellHeightPx).toInt()
+                if (col !in 0 until HomeLayoutStore.COLUMNS ||
+                    row !in 0 until HomeLayoutStore.ROWS
+                ) {
+                    return null
+                }
+                return row * HomeLayoutStore.COLUMNS + col
+            }
+
+            fun cellOrigin(cell: Int): Offset {
+                val col = cell % HomeLayoutStore.COLUMNS
+                val row = cell / HomeLayoutStore.COLUMNS
+                val x = cellWidthPx * col + ((cellWidthPx - appCellPx) / 2f)
+                val y = cellHeightPx * row
+                return Offset(x, y)
+            }
+
+            Box(
+                modifier = Modifier
+                    .zIndex(50f)
+                    .fillMaxSize()
+                    .pointerInput(tiles, page, pageCount, cellWidthPx, cellHeightPx, pageWidthPx) {
+                        val touchSlop = viewConfiguration.touchSlop
+                        val touchSlopSquared = touchSlop * touchSlop
+
+                        awaitEachGesture {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            val start = down.position
+                            val startCell = cellForPosition(start) ?: return@awaitEachGesture
+                            val tile = tiles.firstOrNull { it.cell == startCell } ?: return@awaitEachGesture
+                            val startOrigin = cellOrigin(startCell)
+                            var dragging = false
+                            var totalDelta = Offset.Zero
+
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id }
+                                    ?: return@awaitEachGesture
+
+                                if (!change.pressed) {
+                                    if (dragging) {
+                                        if (totalDelta.y < removeThresholdPx) {
+                                            onRemove(tile)
+                                        } else if (totalDelta.x > pageEdgeThreshold && page < pageCount - 1) {
+                                            onMoveToPage(tile, page + 1)
+                                        } else if (totalDelta.x < -pageEdgeThreshold && page > 0) {
+                                            onMoveToPage(tile, page - 1)
+                                        } else {
+                                            val targetCell = cellForPosition(start + totalDelta) ?: startCell
+                                            if (targetCell != startCell) {
+                                                val targetTile = tiles.firstOrNull { it.cell == targetCell }
+                                                if (targetTile != null) {
+                                                    onMove(tile, targetTile)
+                                                } else {
+                                                    onMoveToCell(tile, targetCell)
+                                                }
+                                            }
+                                        }
+                                        onDragState(false)
+                                        onRemoveHover(false)
+                                        onDragPreview(null)
+                                    } else {
+                                        onTileClick(tile)
+                                    }
+                                    return@awaitEachGesture
+                                }
+
+                                val current = change.position
+                                totalDelta = current - start
+                                val movedPastSlop =
+                                    (totalDelta.x * totalDelta.x) + (totalDelta.y * totalDelta.y) > touchSlopSquared
+                                val heldLongEnough =
+                                    change.uptimeMillis - down.uptimeMillis >= viewConfiguration.longPressTimeoutMillis
+
+                                if (!dragging && (movedPastSlop || heldLongEnough)) {
+                                    dragging = true
+                                    onDragState(true)
+                                }
+
+                                if (dragging) {
+                                    change.consume()
+                                    onDragPreview(HomeDragPreview(tile, gridPosition + startOrigin + totalDelta))
+                                    onRemoveHover(totalDelta.y < removeThresholdPx)
+                                }
+                            }
+                        }
+                    }
+            )
 
             tiles.forEach { tile ->
                 val cell = tile.cell.coerceIn(0, HomeLayoutStore.PAGE_SIZE - 1)
@@ -497,89 +607,17 @@ private fun DraggableHomeTile(
     onDragPreview: (HomeDragPreview?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val density = LocalDensity.current
-    val removeThreshold = with(density) { -92.dp.toPx() }
-    val pageEdgeThreshold = pageWidthPx * 0.42f
-    var dragOffset by remember(tile.id) { mutableStateOf(Offset.Zero) }
-    var cellPosition by remember(tile.id) { mutableStateOf(Offset.Zero) }
-    var dragging by remember(tile.id) { mutableStateOf(false) }
-    var removeArmed by remember(tile.id) { mutableStateOf(false) }
-
-    HomeTileCell(
-        tile = tile,
+    Box(
         modifier = modifier
-            .zIndex(if (dragging) 10f else 0f)
-            .graphicsLayer(
-                scaleX = if (dragging) 1.08f else 1f,
-                scaleY = if (dragging) 1.08f else 1f,
-                alpha = if (dragging) 0.20f else 1f
-            )
-            .onGloballyPositioned { coordinates ->
-                cellPosition = coordinates.positionInRoot()
-            }
-            .pointerInput(tile.id, cell, pageTiles.size, cellWidthPx, cellHeightPx) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = {
-                        dragging = true
-                        onDragState(true)
-                        dragOffset = Offset.Zero
-                        removeArmed = false
-                        onRemoveHover(false)
-                        onDragPreview(HomeDragPreview(tile, cellPosition))
-                    },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        dragOffset += dragAmount
-                        onDragPreview(HomeDragPreview(tile, cellPosition + dragOffset))
-                        val nextRemoveArmed = dragOffset.y < removeThreshold
-                        if (nextRemoveArmed != removeArmed) {
-                            removeArmed = nextRemoveArmed
-                            onRemoveHover(nextRemoveArmed)
-                        }
-                    },
-                    onDragEnd = {
-                        if (removeArmed) {
-                            onRemove(tile)
-                        } else if (dragOffset.x > pageEdgeThreshold && page < pageCount - 1) {
-                            onMoveToPage(tile, page + 1)
-                        } else if (dragOffset.x < -pageEdgeThreshold && page > 0) {
-                            onMoveToPage(tile, page - 1)
-                        } else {
-                            val currentCol = cell % HomeLayoutStore.COLUMNS
-                            val currentRow = cell / HomeLayoutStore.COLUMNS
-                            val targetCol = (currentCol + (dragOffset.x / cellWidthPx).roundToInt())
-                                .coerceIn(0, HomeLayoutStore.COLUMNS - 1)
-                            val targetRow = (currentRow + (dragOffset.y / cellHeightPx).roundToInt())
-                                .coerceIn(0, HomeLayoutStore.ROWS - 1)
-                            val targetCell = targetRow * HomeLayoutStore.COLUMNS + targetCol
-                            if (targetCell != cell) {
-                                val targetTile = pageTiles.firstOrNull { it.cell == targetCell }
-                                if (targetTile != null) {
-                                    onMove(tile, targetTile)
-                                } else {
-                                    onMoveToCell(tile, targetCell)
-                                }
-                            }
-                        }
-                        dragging = false
-                        onDragState(false)
-                        dragOffset = Offset.Zero
-                        removeArmed = false
-                        onRemoveHover(false)
-                        onDragPreview(null)
-                    },
-                    onDragCancel = {
-                        dragging = false
-                        onDragState(false)
-                        dragOffset = Offset.Zero
-                        removeArmed = false
-                        onRemoveHover(false)
-                        onDragPreview(null)
-                    }
-                )
-            },
-        onClick = { onTileClick(tile) }
-    )
+            .width(NPSpacing.appCell)
+            .height(NPSpacing.appCell + 30.dp)
+    ) {
+        HomeTileCell(
+            tile = tile,
+            modifier = Modifier.align(Alignment.TopCenter),
+            onClick = null
+        )
+    }
 }
 
 @Composable
@@ -618,14 +656,21 @@ private fun HomeEditRail(
 private fun HomeTileCell(
     tile: HomeTileSpec,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    onClick: (() -> Unit)?
 ) {
     val glyph = tile.glyph
+    val tileAlpha = if (tile.action == HomeLayoutStore.ACTION_HOSTED_PENDING &&
+        hostedPathForTile(tile) == null
+    ) {
+        0.44f
+    } else {
+        1f
+    }
     if (glyph != null) {
         LauncherGridCell(
             label = tile.label,
             glyph = glyph,
-            modifier = modifier,
+            modifier = modifier.graphicsLayer(alpha = tileAlpha),
             hostPatp = tile.hostPatp,
             provenance = false,
             onClick = onClick
@@ -633,8 +678,9 @@ private fun HomeTileCell(
     } else {
         Column(
             modifier = modifier
+                .graphicsLayer(alpha = tileAlpha)
                 .width(NPSpacing.appCell)
-                .clickable(onClick = onClick),
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AppGlyph(
@@ -677,7 +723,13 @@ private fun launchHomeTile(
         "apps" -> onNavigateToApps()
         "details" -> onNavigateToDetails()
         "search" -> onNavigateToSearch()
-        HomeLayoutStore.ACTION_HOSTED_PENDING -> onNotice("${tile.label} is waiting for app sync")
+        HomeLayoutStore.ACTION_HOSTED_LOCAL,
+        HomeLayoutStore.ACTION_HOSTED_PENDING -> {
+            val path = hostedPathForTile(tile)
+            if (path == null || !GuestLauncher.launchHostedApp(context, tile.label, LOCAL_EYRE_ORIGIN + path)) {
+                onNotice("${tile.label} is not available yet")
+            }
+        }
         else -> {
             if (tile.packageName != null && tile.className != null) {
                 val launched = GuestLauncher.launchApp(
@@ -693,6 +745,57 @@ private fun launchHomeTile(
                 }
             } else {
                 onNotice("${tile.label} is not available yet")
+            }
+        }
+    }
+}
+
+private const val LOCAL_EYRE_ORIGIN = "http://127.0.0.1:8080"
+
+private fun hostedPathForTile(tile: HomeTileSpec): String? {
+    tile.hostedPath?.takeIf { it.isNotBlank() }?.let { return it }
+    return when (tile.id.removePrefix("hosted:")) {
+        "tlon", "talk" -> "/apps/groups/"
+        "dojo" -> "/apps/webterm/"
+        "notes", "hark" -> "/apps/landscape/"
+        else -> null
+    }
+}
+
+private fun Modifier.quickSwipeUpToOpenDrawer(
+    enabled: Boolean,
+    onSwipeUp: () -> Unit
+): Modifier {
+    if (!enabled) return this
+    return pointerInput(onSwipeUp) {
+        val threshold = 96.dp.toPx()
+        val maxHorizontalDrift = 96.dp.toPx()
+        val maxGestureMs = 450L
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val start = down.position
+            val startTime = down.uptimeMillis
+            var triggered = false
+
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id }
+                    ?: event.changes.firstOrNull()
+                if (change != null) {
+                    val last = change.position
+                    val elapsedMs = change.uptimeMillis - startTime
+                    val deltaY = last.y - start.y
+                    val deltaX = abs(last.x - start.x)
+                    if (!triggered &&
+                        elapsedMs <= maxGestureMs &&
+                        deltaY < -threshold &&
+                        deltaX < maxHorizontalDrift
+                    ) {
+                        triggered = true
+                        onSwipeUp()
+                    }
+                }
+                if (event.changes.none { it.pressed }) break
             }
         }
     }

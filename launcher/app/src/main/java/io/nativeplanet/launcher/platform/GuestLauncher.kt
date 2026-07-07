@@ -51,6 +51,10 @@ object GuestLauncher {
         return start(context, intent)
     }
 
+    fun launchHostedApp(context: Context, title: String, url: String): Boolean {
+        return start(context, HostedWebActivity.intent(context, title, url))
+    }
+
     fun launchMessaging(context: Context): Boolean {
         return start(context, Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MESSAGING))
     }

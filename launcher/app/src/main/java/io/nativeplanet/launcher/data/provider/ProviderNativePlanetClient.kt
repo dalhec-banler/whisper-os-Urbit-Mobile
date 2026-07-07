@@ -63,6 +63,13 @@ class ProviderNativePlanetClient @Inject constructor(
         }
     }
 
+    override fun observeHostedApps(): Flow<List<HostedApp>> = flow {
+        while (true) {
+            emit(fetchHostedApps())
+            delay(POLL_INTERVAL_MS * 2)
+        }
+    }
+
     override suspend fun startRuntime(): ControlResult {
         return callProviderControl("startRuntime")
     }
@@ -209,6 +216,43 @@ class ProviderNativePlanetClient @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse diagnostics", e)
             DiagnosticsSummary.EMPTY
+        }
+    }
+
+    private fun fetchHostedApps(): List<HostedApp> {
+        val json = queryProvider("getHostedApps") ?: run {
+            controllerAvailable = false
+            return emptyList()
+        }
+        controllerAvailable = true
+
+        return try {
+            val array = JSONObject(json).optJSONArray("apps") ?: JSONArray()
+            (0 until array.length()).mapNotNull { index ->
+                val obj = array.optJSONObject(index) ?: return@mapNotNull null
+                HostedApp(
+                    id = obj.optString("id", obj.optString("desk", "")),
+                    desk = obj.optString("desk", obj.optString("id", "")),
+                    title = obj.optString("title", obj.optString("desk", "Urbit")),
+                    info = obj.optString("info", ""),
+                    launchMode = obj.optString("launchMode", ""),
+                    basePath = obj.optStringOrNull("basePath"),
+                    startUrl = obj.optStringOrNull("startUrl"),
+                    sourceUrl = obj.optStringOrNull("sourceUrl"),
+                    imageUrl = obj.optStringOrNull("imageUrl"),
+                    version = obj.optStringOrNull("version"),
+                    website = obj.optStringOrNull("website"),
+                    availability = obj.optString("availability", "unknown"),
+                    androidPackage = obj.optStringOrNull("androidPackage"),
+                    pwaManifestUrl = obj.optStringOrNull("pwaManifestUrl"),
+                    recommended = obj.optBoolean("recommended", false),
+                    hidden = obj.optBoolean("hidden", false),
+                    mobileMetadata = obj.optBoolean("mobileMetadata", false)
+                )
+            }.filterNot { it.hidden }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse hosted apps", e)
+            emptyList()
         }
     }
 

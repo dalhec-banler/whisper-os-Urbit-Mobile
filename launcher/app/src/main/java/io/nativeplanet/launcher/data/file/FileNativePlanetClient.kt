@@ -29,6 +29,10 @@ class FileNativePlanetClient @Inject constructor(
         return stubClient.observeDiagnostics()
     }
 
+    override fun observeHostedApps(): Flow<List<HostedApp>> {
+        return stubClient.observeHostedApps()
+    }
+
     override suspend fun startRuntime(): ControlResult {
         return stubClient.startRuntime()
     }
