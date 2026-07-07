@@ -15,10 +15,13 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -59,6 +62,7 @@ public class HostedAppsPoller {
     private Handler handler;
     private boolean running = false;
     private final Context context;
+    private String localEyreCookie;
 
     public HostedAppsPoller(Context context) {
         this.context = context.getApplicationContext();
@@ -126,6 +130,7 @@ public class HostedAppsPoller {
 
         NounCodec.Noun docketValue = null;
         String mobileAppsJson = null;
+        String webLoginCode = null;
         try (ConnSockClient client = new ConnSockClient(connSockPath)) {
             client.connect();
             try {
@@ -140,15 +145,26 @@ public class HostedAppsPoller {
             } catch (Exception e) {
                 Log.i(TAG, "No nativeplanet-mobile app metadata available: " + e.getMessage());
             }
+
+            try {
+                webLoginCode = client.getWebLoginCode();
+            } catch (Exception e) {
+                Log.i(TAG, "No local web login code available: " + e.getClass().getSimpleName());
+            }
         }
 
         if (docketValue == null && (mobileAppsJson == null || mobileAppsJson.isEmpty())) {
             throw new IOException("no hosted app inventory available");
         }
 
-        JSONObject json = buildHostedAppsJson(docketValue, mobileAppsJson);
-        writeFile(HOSTED_APPS_PATH, json.toString(2));
-        return true;
+        try {
+            localEyreCookie = webLoginCode == null ? null : createLocalEyreCookie(webLoginCode);
+            JSONObject json = buildHostedAppsJson(docketValue, mobileAppsJson);
+            writeFile(HOSTED_APPS_PATH, json.toString(2));
+            return true;
+        } finally {
+            localEyreCookie = null;
+        }
     }
 
     private String readPierPath() {
@@ -325,12 +341,33 @@ public class HostedAppsPoller {
         String preferredLaunchMode = normalizeLaunchMode(
                 mobile.optString("preferredLaunchMode", ""));
         String mobilePath = optMetadataString(mobile, "mobilePath");
-        boolean mobilePathAvailable = !mobilePath.isEmpty() && isLocalEyrePathAvailable(mobilePath);
         String androidPackage = optMetadataString(mobile, "androidPackage");
         String pwaManifestPath = optMetadataString(mobile, "pwaManifestPath");
 
-        if (mobilePathAvailable) {
-            app.put("basePath", mobilePath);
+        String docketLaunchMode = app.optString("launchMode", "");
+        String docketBasePath = optMetadataString(app, "basePath");
+
+        // Mobile metadata can override Docket launchability, but if it only
+        // describes inventory we still allow a healthy Docket /apps/<desk>/
+        // route. That keeps Landscape and other standard web apps usable in a
+        // browser/WebView while still suppressing broken hosed routes.
+        app.put("launchMode", "");
+        app.put("basePath", JSONObject.NULL);
+        app.put("startUrl", "");
+        app.put("androidPackage", JSONObject.NULL);
+        app.put("pwaManifestUrl", JSONObject.NULL);
+
+        boolean mobilePathAvailable = !mobilePath.isEmpty();
+        boolean mobilePathReachable = mobilePathAvailable && isLocalEyrePathAvailable(mobilePath);
+        boolean docketPathReachable = !mobilePathAvailable
+                && !docketBasePath.isEmpty()
+                && isLocalWebLaunchMode(docketLaunchMode)
+                && isLocalEyrePathAvailable(docketBasePath);
+        String reachablePath = mobilePathReachable ? mobilePath
+                : (docketPathReachable ? docketBasePath : "");
+
+        if (!reachablePath.isEmpty()) {
+            app.put("basePath", reachablePath);
             app.put("startUrl", "");
         }
 
@@ -346,19 +383,23 @@ public class HostedAppsPoller {
             if (!androidPackage.isEmpty() && isLaunchablePackageInstalled(androidPackage)) {
                 app.put("launchMode", "native");
                 app.put("androidPackage", androidPackage);
-            } else if (mobilePathAvailable) {
+            } else if (!reachablePath.isEmpty()) {
                 app.put("launchMode", "local_webview");
             }
         } else if ("pwa".equals(preferredLaunchMode)) {
-            if (mobilePathAvailable) {
+            if (!reachablePath.isEmpty()) {
                 app.put("launchMode", "pwa");
             }
         } else if ("local_webview".equals(preferredLaunchMode)) {
-            if (mobilePathAvailable) {
+            if (!reachablePath.isEmpty()) {
                 app.put("launchMode", "local_webview");
             }
         } else if ("browser".equals(preferredLaunchMode)) {
-            app.put("launchMode", "browser");
+            if (!reachablePath.isEmpty()) {
+                app.put("launchMode", "browser");
+            }
+        } else if (docketPathReachable) {
+            app.put("launchMode", docketLaunchMode);
         }
 
         app.put("recommended", mobile.optBoolean("recommended", false));
@@ -374,6 +415,12 @@ public class HostedAppsPoller {
             return launchMode;
         }
         return "";
+    }
+
+    private boolean isLocalWebLaunchMode(String launchMode) {
+        return "local_webview".equals(launchMode)
+                || "pwa".equals(launchMode)
+                || "browser".equals(launchMode);
     }
 
     private String optMetadataString(JSONObject json, String key) {
@@ -452,7 +499,7 @@ public class HostedAppsPoller {
         app.put("androidPackage", JSONObject.NULL);
         app.put("pwaManifestUrl", JSONObject.NULL);
         applyKnownCompanionMetadata(app);
-        validateHostedLaunchPath(app);
+        preserveDeclaredLaunchPath(app);
         return app;
     }
 
@@ -495,24 +542,22 @@ public class HostedAppsPoller {
         return new Href("local_webview", "/apps/" + base + "/", sourceUrl);
     }
 
-    private void validateHostedLaunchPath(JSONObject app) throws JSONException {
+    private void preserveDeclaredLaunchPath(JSONObject app) throws JSONException {
         String launchMode = app.optString("launchMode", "");
         if (!"local_webview".equals(launchMode) && !"pwa".equals(launchMode)) {
             return;
         }
 
         String basePath = optMetadataString(app, "basePath");
-        if (basePath.isEmpty() || isLocalEyrePathAvailable(basePath)) {
-            return;
+        if (basePath.isEmpty()) {
+            app.put("launchMode", "");
+            app.put("basePath", JSONObject.NULL);
+            app.put("startUrl", "");
         }
-
-        app.put("launchMode", "");
-        app.put("basePath", JSONObject.NULL);
-        app.put("startUrl", "");
     }
 
     private boolean isLocalEyrePathAvailable(String path) {
-        if (path == null || path.isEmpty() || path.charAt(0) != '/') {
+        if (path == null || path.isEmpty() || !path.startsWith("/")) {
             return false;
         }
 
@@ -523,17 +568,57 @@ public class HostedAppsPoller {
             connection.setConnectTimeout(LOCAL_EYRE_PROBE_TIMEOUT_MS);
             connection.setReadTimeout(LOCAL_EYRE_PROBE_TIMEOUT_MS);
             connection.setInstanceFollowRedirects(false);
-            connection.setRequestMethod("GET");
-            int status = connection.getResponseCode();
-            if (status == HttpURLConnection.HTTP_NOT_FOUND || status >= 500) {
-                Log.i(TAG, "Hosted app path unavailable: " + path + " status=" + status);
-                return false;
+            if (localEyreCookie != null && !localEyreCookie.isEmpty()) {
+                connection.setRequestProperty("Cookie", localEyreCookie);
             }
-            return status >= 200 && status < 500;
+
+            int status = connection.getResponseCode();
+            return status >= 200 && status < 400;
         } catch (IOException e) {
-            Log.i(TAG, "Hosted app path probe failed: " + path + " error="
+            Log.i(TAG, "Local Eyre path probe failed for " + path + ": "
                     + e.getClass().getSimpleName());
             return false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private String createLocalEyreCookie(String code) {
+        HttpURLConnection connection = null;
+        try {
+            URL url = new URL(LOCAL_EYRE_ORIGIN + "/~/login");
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(LOCAL_EYRE_PROBE_TIMEOUT_MS);
+            connection.setReadTimeout(LOCAL_EYRE_PROBE_TIMEOUT_MS);
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+            String form = "password=" + URLEncoder.encode(code, StandardCharsets.UTF_8.name());
+            try (OutputStreamWriter writer =
+                         new OutputStreamWriter(connection.getOutputStream(), StandardCharsets.UTF_8)) {
+                writer.write(form);
+            }
+
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 400) {
+                return null;
+            }
+
+            List<String> cookies = connection.getHeaderFields().get("Set-Cookie");
+            if (cookies == null || cookies.isEmpty()) {
+                return null;
+            }
+
+            String cookie = cookies.get(0);
+            int separator = cookie.indexOf(';');
+            return separator > 0 ? cookie.substring(0, separator) : cookie;
+        } catch (IOException e) {
+            Log.i(TAG, "Local Eyre cookie bootstrap failed: " + e.getClass().getSimpleName());
+            return null;
         } finally {
             if (connection != null) {
                 connection.disconnect();

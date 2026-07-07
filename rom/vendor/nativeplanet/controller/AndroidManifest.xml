@@ -29,7 +29,8 @@
     <application
         android:label="NativePlanet Controller"
         android:persistent="true"
-        android:directBootAware="true">
+        android:directBootAware="true"
+        android:usesCleartextTraffic="true">
 
         <!-- Network observer service - starts on boot -->
         <service
