@@ -236,23 +236,23 @@ public class RuntimeStatusPoller {
     }
 
     /**
-     * Format @p as ship name with ~ prefix.
-     * For now, just returns hex representation since full @p encoding is complex.
-     * TODO: Implement proper @p formatting.
+     * Format @p as ship name with ~ prefix, derived from the ship id the
+     * runtime actually reports over conn.sock. The boot package is only a
+     * cross-check: a mismatch means vere is running a different ship than
+     * the one we provisioned, which must surface loudly.
      */
     private String formatShipName(BigInteger shipId) {
-        // Full @p encoding is complex. For bootstrap, just return a recognizable format.
-        // The boot-package.json ship name is authoritative anyway.
-        // This provides verification that we're talking to the expected ship.
-
-        // Read ship name from boot-package as authoritative source
+        String derived = PatpFormatter.format(shipId);
         String bootShipName = readBootPackageShipName();
-        if (bootShipName != null) {
-            return bootShipName;
-        }
 
-        // Fallback to hex
-        return "~0x" + shipId.toString(16);
+        if (derived == null) {
+            return bootShipName != null ? bootShipName : "~0x" + shipId.toString(16);
+        }
+        if (bootShipName != null && !derived.equals(bootShipName)) {
+            Log.w(TAG, "Running ship " + derived + " does not match boot package "
+                    + bootShipName);
+        }
+        return derived;
     }
 
     private String readBootPackageShipName() {
