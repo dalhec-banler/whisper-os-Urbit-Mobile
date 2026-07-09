@@ -1,102 +1,77 @@
 # Fresh-phone E2E test (Product Step 3) — 2026-07-09
 
-**Device:** Pixel 8 Pro (husky), ROM 2026062202, controller rebuilt 2026-07-07
-**Outcome:** BLOCKED at the pairing step. Parent authentication failed; the
-rest of the fresh-provision chain could not run. Device restored to the
-working moon afterward.
+**Device:** Pixel 8 Pro (husky), ROM 2026062202
+**Outcome:** Provisioning path now works end-to-end and a fresh moon boots and
+reaches its sponsor. Two real bugs found (one fixed), and first-boot does not
+yet settle. Details below.
 
-## What ran
+## Result summary
 
-1. **Backup.** Full `/data/nativeplanet` (2.36 GB, 743 entries, live pier
-   event log intact) streamed to
-   `~/whisper-backups/nativeplanet-full-pre-e2e-20260709.tar.gz` before any
-   destructive step.
-2. **Graceful stop.** Controller `stopRuntime` → `STOP_REQUESTED`; init
-   service reached `stopped`, `runtime-status.json` reported `stopped` with
-   no error. (Graceful conn.sock shutdown path confirmed working.)
-3. **Wipe.** `/data/nativeplanet/*` cleared; directory + SELinux label
-   preserved. Controller correctly reported `state=stopped`,
-   `lastError="no boot-package"`.
-4. **Pairing — BLOCKED.** See below.
-5. **Restore.** Original moon restored from backup and brought back to
-   `running` (see "Restore" below).
+- **Pairing + provisioning: WORKING.** Controller `pairWithPlanet` against
+  `~hobdem` (`https://hobdem.startram.io`) authenticated, Artemis minted
+  `~sabwel-winwen-dozzod-hobdem`, and the controller wrote a valid boot
+  package and key file.
+- **Bug #1 (FIXED): fresh-provision directory permissions.**
+  `ProvisioningManager.ensureDirectory()` created `keys/` and `ships/` with
+  `mkdirs()` only, which under the controller's 0077 umask yields `0700`
+  (no group access). vere runs as group `shell` and must traverse `keys/`
+  to read its key and write into `ships/` to create its pier, so first boot
+  died with "Key file not found". Fixed by `Os.chmod(dir, 0770)` after
+  create (idempotent). Rebuilt, signed with the release platform key, and
+  deployed.
+- **Bug #2 (NOT fixed, characterized): vere HTTPS is broken on this Android
+  build.** During dawn, vere fetches the Azimuth galaxy table by POSTing a
+  256-call `getPoint` batch to `https://roller.urbit.org/v1/azimuth`
+  (overridable with `-e`). That endpoint is **alive** (POST-only; a GET 404s,
+  which is what made it look dead). The real failure is that vere's embedded-CA
+  TLS handshake fails for every HTTPS host on this build — proven by an
+  `adb reverse` test where vere's *plain-HTTP* POST reached a host listener
+  while every HTTPS attempt returned a generic curl "Error" (the build
+  disables curl verbose strings, hiding the specific code). Root shell, so
+  not SELinux.
+- **Moon boots via a one-time host proxy.** Standing up a plain-HTTP→`roller`
+  forwarding proxy on the host (over `adb reverse`, so vere talks plain HTTP
+  and the host does the TLS) let dawn complete: galaxy table retrieved,
+  sponsor keys for `~hobdem`/`~dem` fetched, pier created, Arvo booted (1770
+  jets), Ames came up and resolved the galaxies, conn.sock served, and
+  `peel who` returned `995073605278680554` = `~sabwel-winwen-dozzod-hobdem`
+  (cross-checked with urbit-ob and the on-device PatpFormatter). The moon
+  reached its sponsor and began `kiln: install %base from ~hobdem/%kids`.
+- **First boot does NOT settle (open).** The moon then loops roughly every
+  60 s: `kiln: downloading update for %base from ~hobdem/%kids` →
+  `activated install` → the docket agent queries `/charges/noun`, spider
+  crashes (`%arvo-response`, `bail: 2/4`), repeat. It never reaches a stable
+  live state. This looks like a satellite.pill `%base` vs `~hobdem/%kids`
+  desk-compatibility problem and needs separate investigation.
 
-## Blocker: parent authentication to ~hobdem
+## What this means
 
-Pairing target: `https://hobdem.startram.io`, parent `~hobdem`,
-provisioning `+code` supplied by the operator.
+The controller/launcher provisioning stack is now correct on a genuinely
+fresh `/data/nativeplanet` (bug #1 was only reachable on a true fresh wipe,
+which is exactly the fresh-phone scenario prior non-wiped runs never hit).
+The remaining blockers to an autonomous fresh moon on the phone are both
+below the controller:
 
-`/~/host` returns `~hobdem` and `/apps/artemis/` answers, so the ship and
-Artemis are reachable. But **login is rejected**:
+1. **vere TLS on Android** — vere must be able to fetch the Azimuth galaxy
+   table over HTTPS on-device (today it can't; a host proxy is a lab-only
+   workaround). Fix in the vere fork's curl/CA setup (`_setup_ssl_curl` /
+   `_curl_ssl_ctx_cb` in `pkg/vere/main.c`) or bake an Azimuth snapshot.
+2. **first-boot %base loop** — reconcile the satellite.pill `%base` with the
+   sponsor's `%kids` so the initial install settles.
 
-| Probe                                   | Result |
-|-----------------------------------------|--------|
-| `POST /~/login` with supplied `+code`   | HTTP 400, base session cookie set |
-| `POST /~/login` with a known-wrong code | HTTP 400, base session cookie set (same) |
-| `GET /~/scry/hood/kiln/pikes.json`      | HTTP 403 (unauthenticated) |
-| `GET /~/scry/hood/our.json`             | HTTP 403 |
+## Device state left
 
-A correct Urbit `+code` login returns 204 + `urbauth` cookie and unlocks
-scries. Both the supplied code and a deliberately wrong code produce the
-identical 400 + 403 pattern, so the supplied code is **not being accepted
-by ~hobdem**. Most likely the code has rotated/is stale, or it is for a
-different ship than the one hosted at that URL.
+Idle and stable: no ship running, `nativeplanet.vere.enabled=0`, autostart
+off. The `~sabwel-winwen-dozzod-hobdem` pier (~540 MB, past dawn) is preserved
+on disk. The prior `~pacbyr-balteb-palrum-roclur` moon is in the host backup
+`~/whisper-backups/nativeplanet-full-pre-e2e-20260709.tar.gz` and can be
+restored. Key-material audit of the run was clean (no `+code` or key bytes in
+logs; the launch wrapper redacts key refs).
 
-The controller's `ParentPairingManager.pairWithPlanet` uses exactly this
-path — `POST /~/login` then `confirmAuthenticated` via the
-`hood/kiln/pikes.json` scry requiring HTTP 200 — so it would (correctly)
-return `PARENT_AUTH_FAILED`. Driving the flow was not attempted because it
-cannot succeed until a working credential is available. **No security gate
-was bypassed.**
+## To finish (needs decisions/deeper work)
 
-### Secondary observations (for the ship owner, not blockers)
-
-- Artemis `/moons` streamed moon **seed material** to a session carrying a
-  *failed-login* cookie during probing. A fully unauthenticated session
-  (no cookie at all) got HTTP 204 on subscribe and **zero** seed records,
-  so this is not an open-to-the-world leak, but Artemis treating a
-  failed-login session as authorized enough to receive seeds is worth a
-  look on the parent.
-- If a StarTram-fronted parent ever blocks `hood/kiln` scries for an
-  otherwise-valid session, `confirmAuthenticated` would false-negative.
-  Pairing is verified working against Tlon hosting (`palrum-roclur`); the
-  StarTram auth-confirm path is unverified. Latent robustness note only.
-
-## Restore (and a bug found + fixed)
-
-Restoring the backup surfaced a real ownership bug in the manual restore
-procedure (not in product code): a blanket `chown -R system:shell` on the
-restored tree broke boot. The moon runs as user **shell**; its pier and
-`logs/` are natively `shell:shell`, while only the controller-written
-metadata (`keys/`, `*.json`, the `ships/` container) is `system:shell`.
-Forcing everything to `system` made the launch wrapper unable to open its
-log (silent 99 ms `exit 1`) and vere unable to open its own pier.
-
-Correct ownership, taken from the backup's preserved per-path owners:
-
-- `ships/<ship>/**`, `logs/**` → `shell:shell`
-- `ships/` container, `keys/**`, `*.json`, `resolv.conf`, top dir → `system:shell`
-
-After applying that and `restorecon -RF`, a clean reboot auto-started the
-moon: `~pacbyr-balteb-palrum-roclur`, `running`, `connSockAvailable=true`,
-`lastError=null`. conn.sock `peel who` returned ship id
-`10805379437197648590`, which decodes to `~pacbyr-balteb-palrum-roclur`
-(identical from urbit-ob and the on-device PatpFormatter) — the derived-@p
-live path validated end-to-end.
-
-## Key-material audit — PASS
-
-28,344 lines of logcat captured across the whole session plus all
-on-device `/data/nativeplanet/logs`: **zero** occurrences of the `+code`,
-no `password=` values, no PEM/seed key material. The launch wrapper
-redacts key references (`keyMaterialRef: [redacted]`). The staged `+code`
-file used for probing was `shred`-removed.
-
-## To resume the fresh-provision test
-
-1. Operator supplies a **current** `+code` for the parent (from `+code`
-   in the parent's dojo, or `|code %reset` then read it), and the exact
-   hosting URL that authenticates.
-2. Re-run steps 1–3 above (backup, stop, wipe).
-3. Drive `pairWithPlanet` (UI or controller) and complete the checklist
-   items in `docs/product/provisioning-mvp-checklist.md` §"Product Step 3".
+- Decide phone's ship: keep debugging the hobdem moon's %base loop, or restore
+  the working pacbyr moon meanwhile.
+- Fix vere HTTPS on Android so dawn works without a host proxy.
+- Re-run the checklist in `docs/product/provisioning-mvp-checklist.md`
+  §"Product Step 3" once the moon boots to a stable live state.

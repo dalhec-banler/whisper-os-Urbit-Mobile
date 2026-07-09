@@ -37,6 +37,11 @@ public final class ProvisioningManager {
 
     private static final int FILE_MODE_0640 = 0640;
     private static final int KEY_FILE_MODE_0640 = 0640;
+    //  vere runs as group "shell"; it must traverse keys/ to read its key
+    //  and write into ships/ to create its pier, so these dirs need group
+    //  rwx. mkdirs() alone yields 0700 under the controller's 0077 umask,
+    //  which locks the runtime out on a fresh /data/nativeplanet.
+    private static final int DIR_MODE_0770 = 0770;
     private ProvisioningManager() {
     }
 
@@ -224,6 +229,14 @@ public final class ProvisioningManager {
         }
         if (!dir.isDirectory()) {
             throw new ProvisioningException("DIRECTORY_INVALID", "Ship storage path is not a directory");
+        }
+        //  Force group rwx so the shell-group runtime can reach the key and
+        //  create its pier; mkdirs() would otherwise leave 0700 under umask.
+        try {
+            Os.chmod(dir.getAbsolutePath(), DIR_MODE_0770);
+        } catch (ErrnoException e) {
+            throw new ProvisioningException("DIRECTORY_PERMISSION_FAILED",
+                    "Could not set ship storage permissions");
         }
     }
 
