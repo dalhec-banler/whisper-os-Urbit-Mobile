@@ -52,13 +52,23 @@ public class HostedAppsPoller {
 
     private static final String TLON_ANDROID_PACKAGE = "network.tlon";
 
+    //  Guard each scry with a %gu agent-liveness check. On a freshly
+    //  provisioned moon the docket / nativeplanet-mobile agents are not yet
+    //  running while %base installs, and scrying a not-running agent bails,
+    //  crashing the strand (spider %arvo-response) on every poll. Repeated
+    //  crashes destabilize the ship and stall kiln's initial %base install
+    //  in a retry loop. Skipping the scry until the agent is live avoids it.
     private static final String DOCKET_CHARGES_HOON =
             "=/  m  (strand ,vase)  " +
+            ";<  up=?  bind:m  (scry ? /gu/docket)  " +
+            "?.  up  (pure:m !>(~))  " +
             ";<  x=*  bind:m  (scry * /gx/docket/charges/noun)  " +
             "(pure:m !>(x))";
 
     private static final String NATIVEPLANET_MOBILE_APPS_HOON =
             "=/  m  (strand ,vase)  " +
+            ";<  up=?  bind:m  (scry ? /gu/nativeplanet-mobile)  " +
+            "?.  up  (pure:m !>((en:json:html ~)))  " +
             ";<  x=json  bind:m  (scry json /gx/nativeplanet-mobile/apps/json)  " +
             "(pure:m !>((en:json:html x)))";
 
