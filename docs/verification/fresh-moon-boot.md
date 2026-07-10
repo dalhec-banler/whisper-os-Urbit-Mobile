@@ -42,10 +42,12 @@ network-live.
 (`(scry ? /gu/docket)`, `(scry ? /gu/nativeplanet-mobile)`) and skips the scry
 until the agent is live.
 
-A related provisioning fix landed alongside: the controller created the `keys/`
-and `ships/` directories at mode 0700 under its umask, which locked the
-shell-group runtime out of a truly fresh `/data/nativeplanet`; those
-directories are now created group-accessible.
+Provisioning note: `keys/` and `ships/` must be group-accessible so the
+shell-group runtime can traverse `keys/` and create its pier under `ships/`.
+The `nativeplanet-vere` init service creates both at mode 2770 on
+`post-fs-data`, which is the correct owner of these permissions — the
+controller's SELinux domain cannot `setattr` a directory, so the controller
+relies on the init-created mode rather than adjusting it itself.
 
 ## Results
 
