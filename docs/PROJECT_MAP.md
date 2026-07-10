@@ -80,7 +80,7 @@ changes should be preserved as patch sets under `rom/patches`.
 Use these in order:
 
 1. [ROADMAP.md](ROADMAP.md)
-2. [verification/2026-06-08-flash-verification.md](verification/2026-06-08-flash-verification.md)
+2. [verification/fresh-moon-boot.md](verification/fresh-moon-boot.md) and the [verification history](verification/verification-history.md)
 3. [research/2026-06-08-graceful-shutdown-research.md](research/2026-06-08-graceful-shutdown-research.md)
 4. [controller/controller-api-contract.md](controller/controller-api-contract.md)
 

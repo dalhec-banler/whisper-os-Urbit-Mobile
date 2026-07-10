@@ -126,14 +126,6 @@ lick.send("hardware", "location", locationJson.toByteArray())
 - No network exposure of Lick channel
 - Data validation on both sides
 
-## Implementation Status
-
-- [x] Lick vane in vere (upstream)
-- [ ] Android socket client
-- [ ] Kotlin bridge library
-- [ ] Example Gall agent
-- [ ] Documentation for agent authors
-
 ## Testing
 
 ```bash

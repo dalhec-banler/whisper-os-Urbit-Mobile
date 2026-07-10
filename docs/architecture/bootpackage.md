@@ -67,10 +67,10 @@ The runtime BootPackage is a JSON file at `/data/nativeplanet/boot-package.json`
 
 ### Boot Modes
 
-| Mode | Description | v0 Support |
-|------|-------------|------------|
+| Mode | Description | Support |
+|------|-------------|---------|
 | FAKE_TEST | Fake ship for development | Yes |
-| MOON | Real satellite moon | No (v1) |
+| MOON | Real satellite moon | Yes (device runtime) |
 
 ### Path Constraints
 
@@ -89,9 +89,12 @@ No path traversal (`..`) allowed.
 4. Invalid pillPath prefix: service fails
 5. Invalid pierPath prefix: service fails
 6. Path traversal detected: service fails
-7. bootMode=MOON: service fails (v0)
-8. keyMaterialRef not "none" in FAKE_TEST: service fails
-9. keyMaterialRef looks like raw secret: service fails
+7. keyMaterialRef not "none" in FAKE_TEST: service fails
+8. keyMaterialRef looks like raw secret: service fails
+
+Both `FAKE_TEST` and `MOON` boot modes are accepted. In `MOON` mode the
+launch wrapper boots an existing moon pier, or provisions a new one from the
+satellite pill on first boot.
 
 ### Launcher Behavior
 

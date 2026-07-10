@@ -4,7 +4,7 @@ Status: recommended developer tooling, not part of the phone runtime.
 
 [`gwbtc/urbit-mcp`](https://github.com/gwbtc/urbit-mcp) is a general-purpose
 MCP desk for Urbit. It exposes an authenticated HTTP MCP endpoint at `/mcp` on a
-ship and gives Codex, Claude Code, and similar agents direct access to Urbit
+ship and gives MCP-capable coding agents direct access to Urbit
 development operations.
 
 ## Why It Matters Here
@@ -45,7 +45,7 @@ the narrow controller/provider/runtime APIs.
 - Do not commit cookies, `+code` values, moon keys, or MCP headers.
 - Prefer a development ship or short-lived credential while testing.
 
-## Codex Configuration Shape
+## MCP Client Configuration
 
 The upstream README shows this shape:
 

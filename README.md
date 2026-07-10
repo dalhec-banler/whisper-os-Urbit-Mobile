@@ -11,16 +11,21 @@ Source of truth: [docs/ROADMAP.md](docs/ROADMAP.md)
 Current baseline:
 
 - Pixel 8 Pro / husky ROM boots as userdebug with SELinux enforcing.
-- `vere64` runs as an init-managed Android service.
-- A Palrum child moon boots through `nativeplanet_vere`.
-- `conn.sock` works and replaces Lens for runtime health.
-- `NativePlanetController` polls conn.sock and exposes provider status to the launcher.
+- `vere` runs as an init-managed Android service (`nativeplanet_vere`).
+- A moon provisioned from a parent planet boots and reaches its sponsor over
+  Ames. A freshly provisioned moon now boots end-to-end on device — including
+  the Azimuth galaxy-table fetch over HTTPS — with no host-side tooling.
+- `conn.sock` is the runtime truth path and replaces Lens for runtime health.
+- `NativePlanetController` polls conn.sock, derives the ship's `@p` from the
+  runtime-reported ship id, and exposes provider status to the launcher.
 - Whisper OS uses Launcher3/Quickstep as HOME, with native Android gestures,
   recents, drag/drop, app drawer, widgets, and workspace behavior preserved.
 - Launcher3 includes a first-party My Urbit Apps surface for Urbit-hosted app
-  inventory.
-- Reboot auto-start from a healthy pier is verified.
-- GroundSeg-compatible graceful shutdown through Click/conn.sock `%hood %drum-exit` is verified on device and queued in controller source.
+  inventory. The onboarding app ships as "Planet Link".
+- Reboot auto-start from a healthy pier is verified, including for a
+  freshly provisioned moon.
+- GroundSeg-compatible graceful shutdown through Click/conn.sock
+  `%hood %drum-exit` is verified on device and implemented in the controller.
 
 ## Repository Layout
 

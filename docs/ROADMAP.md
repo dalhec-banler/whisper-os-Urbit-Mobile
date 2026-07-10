@@ -33,18 +33,26 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
   launch fix, and rebuilt Satellite Pill v1 artifact
 - `My Urbit Apps` lists Grove, Kin, Landscape, Terminal, and Tlon from real
   moon metadata after reboot
+- A freshly provisioned moon now boots to a stable, network-live ship on device
+  and auto-starts across reboots — no host-side tooling. This closed two
+  device-only issues: the Vere binary's HTTPS stack (the dawn Azimuth
+  galaxy-table fetch failed the TLS handshake until the fork was rebuilt with
+  the current toolchain) and a controller poller that scried a not-yet-running
+  `%docket` agent on a fresh moon, crashing the ship's strand every poll and
+  stalling the initial `%base` install. Both are fixed.
 
-Current Urbit-side correction: the controller treats `%nativeplanet-mobile`
-metadata as authoritative and does not expose local web launch actions unless
-the local Eyre route probes healthy. Signed ROM `2026062202` includes the
-rebuilt Satellite Pill v1 artifact and the controller uses local Eyre on
-`127.0.0.1:8080` for hosted app checks. The phone now publishes Landscape,
-Terminal, and Tlon as local WebView entries, while Grove and Kin remain
-discovered inventory entries until their mobile launch surfaces are verified.
+Runtime truth path: the controller treats `%nativeplanet-mobile` metadata as
+authoritative and does not expose local web launch actions unless the local
+Eyre route probes healthy. The phone publishes Landscape, Terminal, and Tlon as
+local WebView entries. Grove and Kin remain discovered inventory entries: Grove
+is not published by the current parent, and installing a modern app desk onto a
+moon booted from the v1 pill needs the pill-vs-sponsor version gap resolved
+first.
 
-Next step: finish Grove/Kin mobile launch metadata and PWA behavior, then make
-Tlon and Grove installable from the phone browser/WebView flow. Manual moon-key
-import stays available as an advanced fallback.
+Next: reconcile the Satellite Pill base with the sponsor's published desks so
+Grove/Kin (and other app desks) install cleanly, then finish their mobile launch
+metadata and PWA behavior. Manual moon-key import stays available as an advanced
+fallback.
 
 For detailed verification reports, see [docs/verification/](verification/).
 
@@ -77,9 +85,9 @@ For detailed verification reports, see [docs/verification/](verification/).
 - Graceful stop/start through controller
 - Controller provisioning API (key import, boot-package write, start runtime)
 - Launcher import flow wired to provisioning
-- Fresh-phone end-to-end test
-
-For the active checklist, see [docs/product/provisioning-mvp-checklist.md](product/provisioning-mvp-checklist.md).
+- Fresh-phone end-to-end test: a freshly provisioned moon boots to a stable,
+  network-live ship and auto-starts across reboots
+  (see [docs/verification/fresh-moon-boot.md](verification/fresh-moon-boot.md))
 
 ---
 

@@ -1,7 +1,7 @@
-# 2026-07-07 Hosted App Surface Validation
+# Hosted app surface validation
 
-Validates ROADMAP Product Step 6 item: "Validate Tlon, Terminal, Landscape,
-Grove, and Kin as real phone surfaces."
+Verified 2026-07-07. Per-app status for the phone's hosted Urbit app surfaces:
+Tlon, Terminal, Landscape, Grove, and Kin.
 
 ## Environment
 
@@ -17,11 +17,11 @@ Grove, and Kin as real phone surfaces."
 
 | App | Desk | Launch mode | Result |
 |-----|------|-------------|--------|
-| Landscape | `%landscape` | `local_webview` | PASS — opens authenticated, Landscape grid renders real tiles, no login page |
-| Terminal | `%webterm` | `local_webview` | PASS — live dojo prompt `~pacbyr-balteb-palrum-roclur:dojo>` renders |
-| Tlon | `%groups` | `local_webview` | PASS — Home surface renders; empty state expected (moon has no groups joined) |
-| Grove | `%grove` | (none) | PASS as inventory-only — honest "moon metadata - no launch URL yet", no fake launch |
-| Kin | `%kin` | (none) | PASS as inventory-only — same honest state |
+| Landscape | `%landscape` | `local_webview` | Pass. Opens authenticated; the Landscape grid renders real tiles with no login page. |
+| Terminal | `%webterm` | `local_webview` | Pass. Live dojo prompt renders. |
+| Tlon | `%groups` | `local_webview` | Pass. Home surface renders; the empty state is expected (the moon has no groups joined). |
+| Grove | `%grove` | (none) | Inventory-only, as intended. Shows "moon metadata, no launch URL yet" with no fake launch. |
+| Kin | `%kin` | (none) | Inventory-only, as intended. Same honest state. |
 
 ## Behaviors verified
 
@@ -35,13 +35,13 @@ Grove, and Kin as real phone surfaces."
 - `My Urbit Apps` list shows correct affordances per app state:
   `Open`/`Unpin` for launchable apps, `No URL`/`Pin` for inventory-only.
 
-## Findings
+## Known issues
 
-1. NIT: Grove and Kin rows render a `Browser` action even though they have
-   no launch URL and an empty `website` field. The button is a dead control
-   in this state; it should be hidden or disabled until a URL exists.
+- Grove and Kin rows render a `Browser` action even though they have no launch
+  URL and an empty `website` field. The button is a dead control in that state
+  and should be hidden or disabled until a URL exists.
 
-## Remaining for Product Step 6
+## Remaining
 
 - Grove and Kin need real mobile launch metadata (`%nativeplanet-mobile`
   entrypoints) before they can leave inventory-only state.

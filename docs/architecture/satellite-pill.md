@@ -25,15 +25,16 @@ cp urbit-v4.3.pill satellite.pill
 
 This validates the runtime infrastructure before building custom pills.
 
-### Satellite Pill v1 (Host Verified)
+### Satellite Pill v1 (Device Verified)
 
 Built from `+brass` with:
 - `%base` desk (core urbit)
 - `%nativeplanet-mobile` desk (mobile-specific agents)
 
-Host verification passed on a disposable fake ship: the generated pill boots,
-installs `%nativeplanet-mobile` as an essential desk, reports the app as
-running, and serves mobile app metadata from `/apps/json`.
+A fresh moon provisioned from Satellite Pill v1 boots to a stable,
+network-live ship on device. See
+[../verification/fresh-moon-boot.md](../verification/fresh-moon-boot.md) for
+the verification record.
 
 ### Satellite Pill v2+ (Future)
 
@@ -137,12 +138,12 @@ The pill is generic. Identity is provisioned through the BootPackage at runtime.
 ## Current Status
 
 v0 validated the runtime and BootPackage path with the known-good brass pill.
-v1 has now been host-built and boot-tested with `%nativeplanet-mobile`.
+v1 is now built with `%nativeplanet-mobile`, shipped in the ROM prebuilt path,
+and boot-verified on device: a fresh moon from Satellite Pill v1 comes up
+network-live and auto-starts across reboots. See
+[../verification/fresh-moon-boot.md](../verification/fresh-moon-boot.md).
 
-The remaining v1 work is product integration: copy the generated
-`satellite.pill` into the ROM prebuilt path, build a ROM with it, and verify a
-fresh moon boot on device. v2+ adds parent sync, delegation, Lick bridge, and
-launcher API desks.
+v2+ adds parent sync, delegation, Lick bridge, and launcher API desks.
 
 ## Next Steps
 

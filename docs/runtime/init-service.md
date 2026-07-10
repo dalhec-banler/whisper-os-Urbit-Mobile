@@ -156,4 +156,8 @@ on property:sys.boot_completed=1
     setprop nativeplanet.vere.enabled 1
 ```
 
-**Note:** Not recommended until launcher app is ready to manage lifecycle and prepare BootPackage.
+**Note:** The Planet Link launcher and controller now own runtime lifecycle and
+prepare the BootPackage, and the controller derives the ship's `@p` on-device
+from the runtime-reported ship id over `conn.sock`. Auto-start on boot is
+therefore safe: the provisioned moon boots network-live and resumes across
+reboots with no host-side tooling.

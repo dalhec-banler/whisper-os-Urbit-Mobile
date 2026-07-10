@@ -1,4 +1,4 @@
-# Whisper Launcher
+# Planet Link
 
 Native Android launcher shell for NativePlanet Mobile.
 
@@ -9,6 +9,7 @@ Current status:
 - Provider fallback/demo mode exists for development.
 - Onboarding screens are scaffolded.
 - Real provisioning/start/stop should go through controller provider calls, not direct pier access.
+- The on-device ship @p name is derived by the controller from the runtime-reported ship id.
 
 Build locally:
 
@@ -18,5 +19,3 @@ cd launcher
 ```
 
 Output APKs are build artifacts and must not be committed.
-
-Source is periodically synced from the working whisper-launcher checkout.

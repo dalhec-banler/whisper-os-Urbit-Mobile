@@ -201,10 +201,6 @@ The script never prints the parent `+code`. Preview mode reports the publishers
 the parent is syncing from. Apply mode asks the phone moon to install those
 desks and reports whether they become live or remain held.
 
-The first live test showed the phone moon accepts `%kiln-install` requests over
-Click, but the requested desks can remain `held` with hash `0v0`. That means the
-next product problem is desk delivery/sync policy, not Launcher3 routing.
-
 ## Mobile App Sync Doctor
 
 The development tool `tools/doctor-mobile-app-sync.sh` checks whether the phone
@@ -231,13 +227,6 @@ Ames reports can-send=false or can-scry=false
 When that pattern appears, the launcher should keep the app visible only as
 inventory and disable Open/Pin. The next fix belongs in Urbit networking,
 parent/mobile desk policy, or desk delivery, not in the launcher route code.
-
-On Android, `can-send=false` is not enough by itself to prove the system socket
-is broken. With the current Mesa-backed runtime, packet capture can show UDP
-traffic leaving and returning while the legacy Ames info fields still report
-`can-send=false` and `can-scry=false`. In that case, treat Android transport as
-verified and investigate Urbit packet handling, parent/moon state, lane data, or
-desk delivery policy.
 
 ## Near-Term Implementation Steps
 

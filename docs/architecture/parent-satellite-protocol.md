@@ -120,14 +120,6 @@ The Lick vane provides native Android bridge for:
 
 See [Lick Android Bridge](lick-android-bridge.md).
 
-## Implementation Status
-
-- [ ] Sync protocol definition
-- [ ] Offline queue implementation
-- [ ] Parent-side satellite manager
-- [ ] Reconnection handling
-- [ ] Conflict resolution
-
 ## Security Considerations
 
 - All sync traffic over encrypted Ames

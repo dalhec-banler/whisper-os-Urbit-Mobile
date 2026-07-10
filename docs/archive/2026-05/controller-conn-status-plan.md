@@ -144,38 +144,6 @@ external fun cueNoun(bytes: ByteArray): ByteArray
 **Pros:** Fast, native performance
 **Cons:** JNI complexity, library management
 
-## Implementation Tasks
-
-### Phase 1: Core Protocol (Controller)
-
-1. [x] Add `android.system.Os` conn.sock client to Controller
-2. [x] Port minimal jam/cue to Java (atoms + cells only, no jets)
-3. [x] Implement newt framing encode/decode
-4. [x] Add %peel %live health check
-5. [x] Write runtime-status.json on state change
-
-### Phase 2: Full Status (Controller)
-
-6. [x] Add %peel %who for ship identity
-7. [x] Add %peel %v for version
-8. [x] Add %peel %info for metrics (lower frequency)
-9. [ ] Parse $mass tree for event number, ports
-10. [x] Add PID detection via /proc scan
-
-### Phase 3: Provider Integration
-
-11. [x] Update NativePlanetStatusProvider to read runtime-status.json
-12. [x] Map JSON fields to existing provider columns
-13. [x] Add fields for version, lastSuccessfulPoll, connSockAvailable
-14. [ ] Test launcher queries after next ROM flash
-
-### Phase 4: Error Handling
-
-15. [x] Classify conn failures (refused, timeout, protocol)
-16. [x] Populate lastError field
-17. [x] Add slower polling when stopped
-18. [x] Handle pier restart detection
-
 ## SELinux Considerations
 
 Current policy includes:

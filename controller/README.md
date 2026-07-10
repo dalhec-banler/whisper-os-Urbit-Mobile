@@ -4,7 +4,7 @@ Android-side service for managing the Urbit runtime.
 
 ## Overview
 
-The NativePlanet Controller provides a clean API for Whisper Launcher to:
+The NativePlanet Controller provides a clean API for Planet Link to:
 
 - Manage runtime lifecycle (start/stop/restart)
 - Prepare and validate BootPackages
@@ -15,7 +15,7 @@ The NativePlanet Controller provides a clean API for Whisper Launcher to:
 
 ```
 ┌─────────────────────────────────────────┐
-│         Whisper Launcher                │
+│         Planet Link                     │
 │           (Kotlin App)                  │
 ├─────────────────────────────────────────┤
 │      INativePlanetController            │
@@ -101,11 +101,3 @@ getprop init.svc.nativeplanet_vere  // running, stopped, etc.
 - Do not pass secrets in system properties
 - Do not print environment variables
 - Validate all BootPackage fields before writing
-
-## Status
-
-- [x] Interface definition
-- [x] Model definitions
-- [ ] Stub implementation
-- [ ] Binder service (if needed)
-- [ ] Integration with Whisper Launcher

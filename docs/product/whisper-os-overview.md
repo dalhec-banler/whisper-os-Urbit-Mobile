@@ -44,15 +44,12 @@ Verified:
 - GrapheneOS-derived ROM on husky
 - `vere64` ARM64 runtime
 - init-managed `nativeplanet_vere`
-- dev moon `~namfeb-rossyp-palrum-roclur`
+- the provisioned moon boots network-live on device and auto-starts across reboots
 - `conn.sock` runtime control plane
 - controller status polling via `android.system.Os`
+- controller-owned graceful shutdown via conn.sock
 - launcher reads provider data
-
-Queued:
-
-- flash controller graceful shutdown implementation after the next ROM build
-- wire launcher start/stop to provider control calls after live verification
+- launcher start/stop wired to provider control calls
 
 ## Development Phases
 
@@ -62,7 +59,7 @@ Mostly complete. Android can boot and host modern Vere safely.
 
 ### Phase 0.5: Runtime Truth And Provisioning Spine
 
-Current priority. The controller must own runtime truth, provisioning, lifecycle operations, and structured errors.
+Complete. The controller owns runtime truth, provisioning, lifecycle operations, and structured errors.
 
 ### Phase 1: Launcher MVP On Real Truth
 

@@ -1,8 +1,7 @@
-# PatpFormatter @p scramble — vector verification
+# @p encoding vector verification
 
-**Date:** 2026-07-08
-**Component:** `rom/vendor/nativeplanet/controller/.../PatpFormatter.java`
-**Result:** PASS — 3,229 / 3,229 vectors match urbit-ob
+Verified 2026-07-08 against the controller's `PatpFormatter.java`. All 3,229
+vectors match urbit-ob.
 
 ## What was verified
 
@@ -35,18 +34,14 @@ All 3,229 outputs are byte-identical to urbit-ob. Zero mismatches.
 
 ## Notes
 
-- The initial code-read suspicion that the round-modulus parity and final
-  recombination were inverted was **wrong** — the C jet (not hoon.hoon
-  read from memory) is the correct reference, and the Java port matches
-  it exactly.
-- `RuntimeStatusPoller.formatShipName()` now treats the conn.sock-derived
-  name as authoritative and logs a loud warning if it disagrees with
-  `boot-package.json` (a mismatch means vere is running a different ship
-  than provisioned).
-- Remaining on-device step: flash/install the rebuilt
-  `NativePlanetController.apk` (built 2026-07-07, includes this change)
-  and confirm `runtime-status.json` reports
-  `~pacbyr-balteb-palrum-roclur` derived from the live `%who` peel.
+- The C jet (`fein_ob.c`), not a hoon reference, is the authority for the
+  scramble; the Java port matches it exactly across the whole vector set.
+- `RuntimeStatusPoller.formatShipName()` treats the conn.sock-derived name as
+  authoritative and logs a warning if it disagrees with `boot-package.json`, on
+  the basis that a mismatch means Vere is running a different ship than the one
+  provisioned.
+- Confirmed on device: `runtime-status.json` reports the ship name derived from
+  the live `%who` peel.
 
 ## Reproduce
 

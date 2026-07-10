@@ -57,7 +57,7 @@ runtime.
 
 ## Current Recommendation
 
-Do not add this MCP server to Codex or Claude for the MVP phone build loop.
+Do not add this MCP server to AI coding agents / MCP clients for the MVP phone build loop.
 
 Keep using:
 
