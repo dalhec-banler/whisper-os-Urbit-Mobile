@@ -52,25 +52,23 @@ public class HostedAppsPoller {
 
     private static final String TLON_ANDROID_PACKAGE = "network.tlon";
 
-    //  Guard each scry with a %gu agent-liveness check. On a freshly
-    //  provisioned moon the docket / nativeplanet-mobile agents are not yet
-    //  running while %base installs, and scrying a not-running agent bails,
-    //  crashing the strand (spider %arvo-response) on every poll. Repeated
-    //  crashes destabilize the ship and stall kiln's initial %base install
-    //  in a retry loop. Skipping the scry until the agent is live avoids it.
+    //  Soft-scry each source with +mole. On a freshly provisioned moon the
+    //  docket / nativeplanet-mobile agents are not yet running while apps
+    //  install, and a hard scry of a not-running agent bails, crashing the
+    //  strand (spider %arvo-response) on every poll. +mole makes the .^ soft,
+    //  returning ~ instead of crashing, so the poll degrades to "no inventory
+    //  yet" and retries cleanly until the agent is live.
     private static final String DOCKET_CHARGES_HOON =
             "=/  m  (strand ,vase)  " +
-            ";<  up=?  bind:m  (scry ? /gu/docket)  " +
-            "?.  up  (pure:m !>(~))  " +
-            ";<  x=*  bind:m  (scry * /gx/docket/charges/noun)  " +
-            "(pure:m !>(x))";
+            ";<  b=beak  bind:m  get-beak  " +
+            "=/  u  (mole |.(.^(* %gx /(scot %p p.b)/docket/(scot r.b)/charges/noun)))  " +
+            "(pure:m !>(?~(u ~ u.u)))";
 
     private static final String NATIVEPLANET_MOBILE_APPS_HOON =
             "=/  m  (strand ,vase)  " +
-            ";<  up=?  bind:m  (scry ? /gu/nativeplanet-mobile)  " +
-            "?.  up  (pure:m !>((en:json:html ~)))  " +
-            ";<  x=json  bind:m  (scry json /gx/nativeplanet-mobile/apps/json)  " +
-            "(pure:m !>((en:json:html x)))";
+            ";<  b=beak  bind:m  get-beak  " +
+            "=/  u  (mole |.(.^(json %gx /(scot %p p.b)/nativeplanet-mobile/(scot r.b)/apps/json)))  " +
+            "(pure:m !>((en:json:html ?~(u ~ u.u))))";
 
     private HandlerThread handlerThread;
     private Handler handler;
