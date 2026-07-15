@@ -10,6 +10,8 @@ device. Current, standalone verification references live alongside this file:
   conformance vectors.
 - [hosted-app-surfaces.md](hosted-app-surfaces.md) — per-app hosted-surface
   status.
+- [tlon-hosted-app.md](tlon-hosted-app.md) — Tlon Messenger runs as a hosted app
+  from a provisioned moon.
 
 ## Timeline
 
