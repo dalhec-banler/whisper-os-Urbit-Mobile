@@ -12,6 +12,8 @@ device. Current, standalone verification references live alongside this file:
   status.
 - [tlon-hosted-app.md](tlon-hosted-app.md) — Tlon Messenger runs as a hosted app
   from a provisioned moon.
+- [nativeplanet-mobile-desk.md](nativeplanet-mobile-desk.md) — the mobile metadata
+  desk installed on a running moon and merged by the controller.
 
 ## Timeline
 
