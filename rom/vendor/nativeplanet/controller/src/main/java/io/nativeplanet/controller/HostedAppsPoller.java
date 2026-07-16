@@ -64,6 +64,23 @@ public class HostedAppsPoller {
             "=/  u  (mole |.(.^(* %gx /(scot %p p.b)/docket/(scot r.b)/charges/noun)))  " +
             "(pure:m !>(?~(u ~ u.u)))";
 
+    //  Bundled mobile app curation, used only when the ship does not carry a
+    //  %nativeplanet-mobile desk (e.g. a moon booted from a stock pill). It
+    //  mirrors what the desk serves at /gx/nativeplanet-mobile/apps/json. When
+    //  the desk is present its scry takes precedence, so a ship can still
+    //  override this. Installing the desk cannot be automated on-ship (clay is
+    //  not pokeable from a strand and the runtime's mount directory is not
+    //  writable by the controller), so this fallback keeps the curation present
+    //  on every moon.
+    private static final String DEFAULT_MOBILE_APPS_JSON =
+            "{\"version\":1,\"apps\":["
+            + "{\"desk\":\"groups\",\"recommended\":true,\"hidden\":false},"
+            + "{\"desk\":\"webterm\",\"recommended\":true,\"hidden\":false},"
+            + "{\"desk\":\"landscape\",\"recommended\":false,\"hidden\":false},"
+            + "{\"desk\":\"grove\",\"recommended\":true,\"hidden\":false},"
+            + "{\"desk\":\"kin\",\"recommended\":true,\"hidden\":false}"
+            + "]}";
+
     private static final String NATIVEPLANET_MOBILE_APPS_HOON =
             "=/  m  (strand ,vase)  " +
             ";<  b=beak  bind:m  get-beak  " +
@@ -156,6 +173,14 @@ public class HostedAppsPoller {
                         client.sendKhanEval(NATIVEPLANET_MOBILE_APPS_HOON));
             } catch (Exception e) {
                 Log.i(TAG, "No nativeplanet-mobile app metadata available: " + e.getMessage());
+            }
+
+            //  Fall back to the bundled curation when the ship has no
+            //  %nativeplanet-mobile desk, so the mobile app curation is present
+            //  on every moon, not only those where the desk was installed.
+            if (mobileAppsJson == null || mobileAppsJson.isEmpty()
+                    || "null".equals(mobileAppsJson.trim())) {
+                mobileAppsJson = DEFAULT_MOBILE_APPS_JSON;
             }
 
             try {

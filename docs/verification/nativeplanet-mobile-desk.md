@@ -41,9 +41,25 @@ this same sequence — a follow-up).
   curation applied: Tlon, Terminal, Grove, and Kin marked recommended; Landscape
   not. Tlon continues to open and render as before.
 
-## Follow-up
+## Automatic on every moon: controller fallback
 
-Teach provisioning to run the same merge/mount/overlay/commit/install sequence
-after a fresh moon reaches `running`, so new moons get the desk automatically.
-The mechanism is proven; the remaining work is wiring it into the controller and
-testing it against a fresh provision.
+Automating the on-ship install turned out not to be workable from the
+controller: `clay` is a vane and cannot be poked from a strand, and the runtime
+mounts the desk under a `shell`-owned directory the `system`-uid controller
+cannot write. Rather than a shell-context helper, the curation is now made
+automatic in the controller itself.
+
+`HostedAppsPoller` carries a bundled default curation (`DEFAULT_MOBILE_APPS_JSON`)
+that mirrors what the desk serves. When a moon has no `%nativeplanet-mobile`
+desk, the poller uses the bundled default; when the desk is present, its scry
+takes precedence, so a ship can still override. This makes the mobile app
+curation present on every moon — fresh provisions included — with no per-moon
+install.
+
+Verified on `~hadwyn-taslyx-dozzod-hobdem`: with the desk uninstalled, the
+controller reports `source: docket+nativeplanet-mobile`,
+`mobileMetadataAvailable: true`, and the same curation (Tlon, Terminal, Grove,
+Kin recommended; Landscape not). Tlon continues to serve and launch.
+
+The per-moon install tool (`tools/install-mobile-metadata-desk.sh`) remains for
+placing the actual desk on a ship when an on-ship, OTA-updatable copy is wanted.
