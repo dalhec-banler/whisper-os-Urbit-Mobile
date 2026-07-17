@@ -28,12 +28,14 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
   `%docket` agent, crashing the ship's strand every poll and stalling the initial
   `%base` install
 - `My Urbit Apps` discovers installed Urbit apps from the running moon through
-  Click/conn.sock and Docket, and opens them in a hosted WebView. **Tlon
-  Messenger** opens and renders — its ~7 MB PWA glob downloads over HTTPS and the
-  app loads against the moon (full in-app messaging is still being verified).
-  **Grove** (a file-storage app) installs ship-to-ship from its publisher and
-  runs as a launchable, `site`-served app. Landscape and Terminal launch the same
-  way
+  Click/conn.sock and Docket, and opens them in a hosted WebView. Hosted apps
+  open full-screen, with no launcher chrome, so an Urbit app behaves like any
+  other app on the device. **Tlon Messenger** works end to end: its PWA glob
+  downloads over HTTPS, the app loads against the moon, and creating a new direct
+  message — selecting a contact and sending — reaches the recipient and persists
+  across reboots. **Grove** (a file-storage app) installs ship-to-ship from its
+  publisher and runs as a launchable, `site`-served app. Landscape and Terminal
+  launch the same way
 - The satellite pill carries a full base (`%groups`/Tlon, `%landscape`/docket,
   `%webterm`), so a provisioned moon comes up with Tlon already installed
 - The controller supplies the mobile app curation (recommended apps and

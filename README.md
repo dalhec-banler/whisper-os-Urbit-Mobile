@@ -22,9 +22,11 @@ Current baseline:
   recents, drag/drop, app drawer, widgets, and workspace behavior preserved.
 - Launcher3 includes a first-party My Urbit Apps surface for Urbit-hosted apps.
   The onboarding app ships as "Planet Link".
-- Hosted apps run in a hosted WebView. Tlon Messenger (a glob PWA) and Grove (a
-  `site`-served file app installed ship-to-ship) both launch and render against
-  the moon, alongside Landscape and Terminal.
+- Hosted apps run full-screen in a hosted WebView with no launcher chrome, so an
+  Urbit app behaves like any other app on the device. Tlon Messenger (a glob PWA)
+  works end to end, including creating and sending a new direct message; Grove (a
+  `site`-served file app installed ship-to-ship) launches and serves its UI. Both
+  run against the moon, alongside Landscape and Terminal.
 - Reboot auto-start from a healthy pier is verified, including for a
   freshly provisioned moon and its installed hosted apps.
 - GroundSeg-compatible graceful shutdown through Click/conn.sock

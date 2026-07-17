@@ -1,7 +1,8 @@
 # Tlon runs as a hosted app
 
-Verified 2026-07-15 on a Pixel 8 Pro (husky) device. A provisioned moon serves
-the full Tlon Messenger PWA, and the launcher lists it as a hosted app.
+Verified 2026-07-17 on a Pixel 8 Pro (husky) device. A provisioned moon serves
+the full Tlon Messenger PWA, the launcher opens it full-screen as a hosted app,
+and creating and sending a new direct message works end to end.
 
 ## Summary
 
@@ -33,6 +34,32 @@ its parent):
 - The controller's hosted-app inventory lists Tlon (`groups`, title "Tlon")
   alongside Landscape and Terminal, each as a `local_webview` surface, with the
   Tlon tile icon cached.
+- Creating a new direct message works end to end: the compose sheet opens, a
+  contact resolves in the filter, selecting it routes to `/apps/groups/dm/<ship>`
+  with a working composer, and a sent message posts to the thread and survives a
+  device reboot (event replay).
+
+## Full-screen hosted apps
+
+The hosted WebView previously drew a launcher header (title plus browser/close
+actions) above the app. That header is removed: a hosted app now fills the
+screen and is exited with the system back gesture, so an Urbit app behaves like
+any other app on the device.
+
+## WebView fix: Tamagui sheet animations
+
+Tlon Messenger animates its Tamagui bottom-sheets (New direct message, New
+group, context menus) with react-native-reanimated. In the Android System
+WebView, reanimated cannot resolve a sheet's DOM node, so the enter animation
+never runs and the sheet's wrapper is left translated far below the viewport —
+mounted but invisible. Every sheet-driven action, including starting a new
+conversation, was therefore unreachable even though the underlying client and
+channel worked.
+
+The hosted WebView now injects a small observer that settles any parked sheet
+wrapper back to rest and reveals its backdrop, so the sheets are usable. It
+keys only on Tamagui's sheet classes and is a no-op for hosted apps that do not
+use them.
 
 ## Controller fix
 

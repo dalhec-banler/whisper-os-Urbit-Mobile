@@ -24102,10 +24102,10 @@ index 0000000000..7a725a1e6d
 +}
 diff --git a/src/com/android/launcher3/WhisperHostedWebActivity.java b/src/com/android/launcher3/WhisperHostedWebActivity.java
 new file mode 100644
-index 0000000000..495d8c2047
+index 0000000000..605d2cc17f
 --- /dev/null
 +++ b/src/com/android/launcher3/WhisperHostedWebActivity.java
-@@ -0,0 +1,677 @@
+@@ -0,0 +1,658 @@
 +/*
 + * Copyright (C) 2026 The Android Open Source Project
 + *
@@ -24174,13 +24174,10 @@ index 0000000000..495d8c2047
 +    private static final String LOCAL_EYRE_ORIGIN = "http://127.0.0.1:8080";
 +    private static final int EYRE_LOGIN_TIMEOUT_MS = 5000;
 +
-+    private static final int DEEP = WhisperTokens.DEEP;
 +    private static final int INK = WhisperTokens.INK;
 +    private static final int INK_DIM = WhisperTokens.INK_DIM;
 +    private static final int PAPER = WhisperTokens.PAPER;
-+    private static final int PAPER_DIM = WhisperTokens.PAPER_DIM;
 +    private static final int AMBER = WhisperTokens.ACCENT_AMBER;
-+    private static final int HAIRLINE = WhisperTokens.PAPER_HAIR;
 +
 +    private WebView mWebView;
 +    private ProgressBar mProgress;
@@ -24240,9 +24237,9 @@ index 0000000000..495d8c2047
 +        root.setBackgroundColor(PAPER);
 +        root.setPadding(0, getStatusBarHeight(), 0, 0);
 +
-+        root.addView(createHeader(), new LinearLayout.LayoutParams(
-+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-+
++        //  No hosted chrome. The app fills the screen like any other app; the
++        //  system back gesture exits it (see onBackPressed). A thin top progress
++        //  line is the only affordance while the page loads.
 +        mProgress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
 +        mProgress.setIndeterminate(false);
 +        mProgress.setMax(100);
@@ -24263,64 +24260,6 @@ index 0000000000..495d8c2047
 +                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 +
 +        return root;
-+    }
-+
-+    private View createHeader() {
-+        LinearLayout header = new LinearLayout(this);
-+        header.setOrientation(LinearLayout.HORIZONTAL);
-+        header.setGravity(Gravity.CENTER_VERTICAL);
-+        header.setPadding(dp(22), dp(12), dp(22), dp(12));
-+        header.setBackgroundColor(INK);
-+
-+        LinearLayout copy = new LinearLayout(this);
-+        copy.setOrientation(LinearLayout.VERTICAL);
-+
-+        String title = getIntent().getStringExtra(EXTRA_TITLE);
-+        TextView eyebrow = text("── HOSTED", 10, AMBER, Typeface.BOLD, Typeface.MONOSPACE);
-+        eyebrow.setLetterSpacing(0.16f);
-+        copy.addView(eyebrow);
-+
-+        TextView titleView = text(TextUtils.isEmpty(title) ? "Urbit App" : title, 20, PAPER,
-+                Typeface.BOLD, Typeface.DEFAULT);
-+        titleView.setPadding(0, dp(4), 0, 0);
-+        copy.addView(titleView);
-+
-+        String subtitle = getIntent().getStringExtra(EXTRA_SUBTITLE);
-+        TextView subtitleView = text(TextUtils.isEmpty(subtitle) ? "hosted by your moon" : subtitle,
-+                11, PAPER_DIM, Typeface.NORMAL, Typeface.MONOSPACE);
-+        subtitleView.setPadding(0, dp(2), 0, 0);
-+        copy.addView(subtitleView);
-+
-+        header.addView(copy, new LinearLayout.LayoutParams(0,
-+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-+
-+        TextView browser = text("BROWSER", 11, PAPER, Typeface.BOLD, Typeface.MONOSPACE);
-+        browser.setGravity(Gravity.CENTER);
-+        browser.setLetterSpacing(0.08f);
-+        browser.setPadding(dp(12), dp(10), dp(12), dp(10));
-+        browser.setBackground(box(DEEP, HAIRLINE, 0));
-+        browser.setOnClickListener(v -> openInBrowser());
-+        LinearLayout.LayoutParams browserParams = new LinearLayout.LayoutParams(
-+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-+        browserParams.setMargins(0, 0, dp(8), 0);
-+        header.addView(browser, browserParams);
-+
-+        TextView close = text("CLOSE", 11, PAPER, Typeface.BOLD, Typeface.MONOSPACE);
-+        close.setGravity(Gravity.CENTER);
-+        close.setLetterSpacing(0.08f);
-+        close.setPadding(dp(12), dp(10), dp(12), dp(10));
-+        close.setBackground(box(DEEP, HAIRLINE, 0));
-+        close.setOnClickListener(v -> finish());
-+        header.addView(close);
-+
-+        View hairline = new View(this);
-+        hairline.setBackgroundColor(HAIRLINE);
-+        LinearLayout outer = new LinearLayout(this);
-+        outer.setOrientation(LinearLayout.VERTICAL);
-+        outer.addView(header);
-+        outer.addView(hairline, new LinearLayout.LayoutParams(
-+                ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
-+        return outer;
 +    }
 +
 +    private View createLoadingOverlay() {
@@ -24410,6 +24349,7 @@ index 0000000000..495d8c2047
 +                if (mLoadingOverlay != null) {
 +                    mLoadingOverlay.setVisibility(View.GONE);
 +                }
++                injectSheetAnimationFix(view);
 +                logBootstrapState(view);
 +            }
 +        });
@@ -24550,6 +24490,55 @@ index 0000000000..495d8c2047
 +                + "})()", value -> Log.d("WhisperHostedWeb", "bootstrap=" + value));
 +    }
 +
++    //  Tlon's web build animates its Tamagui bottom-sheets with react-native-
++    //  reanimated. In the Android System WebView reanimated cannot resolve the
++    //  sheet's DOM node, so the enter animation never runs and the sheet's wrapper
++    //  is left translated far below the viewport. That leaves every sheet-driven
++    //  action (New DM, New group, context menus) invisible. This observer settles
++    //  any parked sheet wrapper back to rest and reveals its backdrop, so the
++    //  sheets are usable. It is a no-op for hosted apps that do not use Tamagui.
++    private void injectSheetAnimationFix(WebView view) {
++        if (view == null) {
++            return;
++        }
++        view.evaluateJavascript(""
++                + "(function(){"
++                + "  if (window.__whisperSheetFix) return;"
++                + "  window.__whisperSheetFix = true;"
++                + "  function translateY(el){"
++                + "    var t = getComputedStyle(el).transform;"
++                + "    if (!t || t === 'none') return 0;"
++                + "    var m = t.match(/matrix\\(([^)]+)\\)/);"
++                + "    if (m) return Math.abs(parseFloat(m[1].split(',')[5]) || 0);"
++                + "    var m2 = t.match(/translateY\\(([-0-9.]+)/);"
++                + "    return m2 ? Math.abs(parseFloat(m2[1])) : 0;"
++                + "  }"
++                + "  function settle(){"
++                + "    document.querySelectorAll('.is_SheetFrame').forEach(function(frame){"
++                + "      var el = frame;"
++                + "      for (var i = 0; i < 6 && el; i++){"
++                + "        if (translateY(el) > 1000) el.style.setProperty('transform','none','important');"
++                + "        el = el.parentElement;"
++                + "      }"
++                + "      frame.style.setProperty('opacity','1','important');"
++                + "    });"
++                + "    document.querySelectorAll('.is_SheetOverlay').forEach(function(o){"
++                + "      o.style.setProperty('opacity','0.32','important');"
++                + "      o.style.setProperty('pointer-events','auto','important');"
++                + "    });"
++                + "  }"
++                + "  var scheduled = false;"
++                + "  function schedule(){"
++                + "    if (scheduled) return;"
++                + "    scheduled = true;"
++                + "    requestAnimationFrame(function(){ scheduled = false; settle(); });"
++                + "  }"
++                + "  new MutationObserver(schedule).observe("
++                + "    document.documentElement, {childList:true, subtree:true});"
++                + "  settle();"
++                + "})();", null);
++    }
++
 +    private String requestLocalWebLoginCode() throws Exception {
 +        Bundle result = getContentResolver().call(Uri.parse(CONTROLLER_AUTHORITY),
 +                "getWebLoginCode", null, null);
@@ -24644,14 +24633,6 @@ index 0000000000..495d8c2047
 +
 +    private String encode(String value) throws Exception {
 +        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8.name());
-+    }
-+
-+    private void openInBrowser() {
-+        if (mInitialUri == null || !isLaunchableHostedUri(mInitialUri)) {
-+            Toast.makeText(this, "Hosted app URL is not available", Toast.LENGTH_SHORT).show();
-+            return;
-+        }
-+        startActivity(new Intent(Intent.ACTION_VIEW, mInitialUri));
 +    }
 +
 +    private void showHostedError(String message) {
