@@ -17,42 +17,38 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
 - Launcher can provision a moon from manually entered moon name, parent, and moon key
 - Controller can pair with a parent ship through Artemis and provision a
   `%mobile` moon from the returned boot fields
-- Whisper OS now uses the platform Launcher3/Quickstep launcher as HOME, with
+- Whisper OS uses the platform Launcher3/Quickstep launcher as HOME, with
   NativePlanet runtime surfaces integrated as OS-level launcher features instead
   of a standalone app icon
-- `My Urbit Apps` discovers real installed Urbit app metadata from the running
-  moon through Click/conn.sock and Docket
-- Hosted Urbit apps can be pinned to the normal Android workspace and opened in
-  a Whisper-hosted WebView shell
-- Satellite Pill v1 now builds with `%nativeplanet-mobile`, boots on host, and
-  boots on Android Vere
-- A fresh moon pier created from Satellite Pill v1 exposes
-  `%nativeplanet-mobile` app metadata over Click/conn.sock
-- Signed ROM `2026062202` has been flashed without wiping data and verifies the
-  baked controller, Launcher3, hosted-app provider path, local Eyre-on-8080
-  launch fix, and rebuilt Satellite Pill v1 artifact
-- `My Urbit Apps` lists Grove, Kin, Landscape, Terminal, and Tlon from real
-  moon metadata after reboot
-- A freshly provisioned moon now boots to a stable, network-live ship on device
-  and auto-starts across reboots — no host-side tooling. This closed two
+- A freshly provisioned moon boots to a stable, network-live ship on device and
+  auto-starts across reboots, with no host-side tooling. This closed two
   device-only issues: the Vere binary's HTTPS stack (the dawn Azimuth
-  galaxy-table fetch failed the TLS handshake until the fork was rebuilt with
-  the current toolchain) and a controller poller that scried a not-yet-running
-  `%docket` agent on a fresh moon, crashing the ship's strand every poll and
-  stalling the initial `%base` install. Both are fixed.
+  galaxy-table fetch failed the TLS handshake until the fork was rebuilt with the
+  current toolchain) and a controller poller that scried a not-yet-running
+  `%docket` agent, crashing the ship's strand every poll and stalling the initial
+  `%base` install
+- `My Urbit Apps` discovers installed Urbit apps from the running moon through
+  Click/conn.sock and Docket, and opens them in a hosted WebView. **Tlon
+  Messenger** opens and renders — its ~7 MB PWA glob downloads over HTTPS and the
+  app loads against the moon (full in-app messaging is still being verified).
+  **Grove** (a file-storage app) installs ship-to-ship from its publisher and
+  runs as a launchable, `site`-served app. Landscape and Terminal launch the same
+  way
+- The satellite pill carries a full base (`%groups`/Tlon, `%landscape`/docket,
+  `%webterm`), so a provisioned moon comes up with Tlon already installed
+- The controller supplies the mobile app curation (recommended apps and
+  launch-mode hints) on every moon: it prefers a ship-side `%nativeplanet-mobile`
+  desk when present and falls back to a bundled default otherwise
+- Signed ROM `2026062202` verifies the baked controller, Launcher3, and the
+  hosted-app provider path on device without wiping data
 
-Runtime truth path: the controller treats `%nativeplanet-mobile` metadata as
-authoritative and does not expose local web launch actions unless the local
-Eyre route probes healthy. The phone publishes Landscape, Terminal, and Tlon as
-local WebView entries. Grove and Kin remain discovered inventory entries: Grove
-is not published by the current parent, and installing a modern app desk onto a
-moon booted from the v1 pill needs the pill-vs-sponsor version gap resolved
-first.
+Hosted-app launch policy: the controller does not expose a local WebView launch
+for an app unless its route probes healthy on local Eyre. Glob apps (Tlon) and
+`site`-served apps (Grove) are both launchable; an app that only reports
+inventory stays inventory-only rather than opening a broken page.
 
-Next: reconcile the Satellite Pill base with the sponsor's published desks so
-Grove/Kin (and other app desks) install cleanly, then finish their mobile launch
-metadata and PWA behavior. Manual moon-key import stays available as an advanced
-fallback.
+Next: finish the remaining app surfaces (Kin) and richer per-app mobile launch
+metadata. Manual moon-key import stays available as an advanced fallback.
 
 For detailed verification reports, see [docs/verification/](verification/).
 

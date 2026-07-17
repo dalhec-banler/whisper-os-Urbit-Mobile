@@ -20,10 +20,13 @@ Current baseline:
   runtime-reported ship id, and exposes provider status to the launcher.
 - Whisper OS uses Launcher3/Quickstep as HOME, with native Android gestures,
   recents, drag/drop, app drawer, widgets, and workspace behavior preserved.
-- Launcher3 includes a first-party My Urbit Apps surface for Urbit-hosted app
-  inventory. The onboarding app ships as "Planet Link".
+- Launcher3 includes a first-party My Urbit Apps surface for Urbit-hosted apps.
+  The onboarding app ships as "Planet Link".
+- Hosted apps run in a hosted WebView. Tlon Messenger (a glob PWA) and Grove (a
+  `site`-served file app installed ship-to-ship) both launch and render against
+  the moon, alongside Landscape and Terminal.
 - Reboot auto-start from a healthy pier is verified, including for a
-  freshly provisioned moon.
+  freshly provisioned moon and its installed hosted apps.
 - GroundSeg-compatible graceful shutdown through Click/conn.sock
   `%hood %drum-exit` is verified on device and implemented in the controller.
 
