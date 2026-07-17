@@ -639,7 +639,7 @@ public class HostedAppsPoller {
         NounCodec.Cell chargeCell = (NounCodec.Cell) charge;
         List<NounCodec.Noun> docket = tuple(chargeCell.head);
         List<NounCodec.Noun> chad = tuple(chargeCell.tail);
-        Href href = parseHref(get(docket, 4));
+        Href href = parseHref(desk, get(docket, 4));
 
         JSONObject app = new JSONObject();
         app.put("id", desk);
@@ -686,9 +686,16 @@ public class HostedAppsPoller {
                 && packageManager.getLaunchIntentForPackage(packageName) != null;
     }
 
-    private Href parseHref(NounCodec.Noun noun) {
+    private Href parseHref(String desk, NounCodec.Noun noun) {
         List<NounCodec.Noun> parts = tuple(noun);
         String type = atomToCord(get(parts, 0));
+        //  %site apps serve their own files from the desk (docket `site+/apps/<desk>`),
+        //  as opposed to %glob apps that ship a downloadable glob. A site app is
+        //  launchable in the local WebView at its site path; by docket convention
+        //  that is /apps/<desk>/. (Grove serves its UI this way.)
+        if ("site".equals(type)) {
+            return new Href("local_webview", "/apps/" + desk + "/", null);
+        }
         if (!"glob".equals(type)) {
             return new Href("browser", null, null);
         }

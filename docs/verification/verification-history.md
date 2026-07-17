@@ -14,6 +14,8 @@ device. Current, standalone verification references live alongside this file:
   from a provisioned moon.
 - [nativeplanet-mobile-desk.md](nativeplanet-mobile-desk.md) — the mobile metadata
   desk installed on a running moon and merged by the controller.
+- [grove-hosted-app.md](grove-hosted-app.md) — Grove installed from its publisher
+  over Ames and launchable as a site-served hosted app.
 
 ## Timeline
 
