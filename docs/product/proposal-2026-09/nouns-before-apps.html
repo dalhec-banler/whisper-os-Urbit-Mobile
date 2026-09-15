@@ -57,15 +57,16 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">Whisper OS · design proposal · 15 September 2026</div>
+  <div class="eyebrow">Whisper OS · design proposal · 15 September 2026 · revised the same day</div>
   <h1>Nouns before apps</h1>
-  <p class="deck">The front of the phone shows your people, what is happening, and your things. Apps are verbs you type. Nothing on the phone is labeled Urbit, and nothing is sorted by where it came from.</p>
+  <p class="deck">The front of the phone is quiet: a clock, the one thing that is next, and a short list of tools. Your people and your things are a swipe away. Apps are verbs you type. Nothing is labeled Urbit, nothing is sorted by where it came from, and nobody reaches you unless you said they could.</p>
 </header>
 
 <h2>The argument</h2>
 <p>Every phone shell of the last fifteen years has been an app grid with a notification tray bolted on. The exceptions are the ones people still talk about: webOS linked one person across every account into a single record. BlackBerry 10 put every conversation in one Hub and let you peek at it from inside any app. Windows Phone pinned <em>people</em> to the home screen, not apps. All three had to fake it with cloud connectors, and all three died on distribution, not on the idea.</p>
 <p>This phone does not have to fake it. Every app's state already lives in one place, with one identity, under one permission model. A Person screen that shows every message, file, invite and poll you ever exchanged with someone is a handful of scries, not a partnership program. A home-screen line that updates the instant a friend posts is a subscription, not a fifteen-minute background fetch. That is the magic worth building the shell around, and it is invisible if the shell is a grid of tiles.</p>
-<p>So the proposal is to stop organizing the phone by app and by provenance, and organize it by the three nouns the server already unifies: <b>who</b>, <b>what is happening</b>, and <b>what you have</b>. The word Urbit does not appear. The distinction between an Urbit app and an Android app is not a section header. It shows up only where it matters: an Urbit app's things can appear in your stream, be sent to a friend, and be scrubbed back in time. An Android app's cannot. The capability is the label.</p>
+<p>So the proposal is to stop organizing the phone by app and by provenance, and organize it by the nouns the server already unifies: <b>who</b> and <b>what you have</b>, with <b>what is happening</b> demoted to a place you go rather than a thing you are shown. The word Urbit does not appear. The distinction between an Urbit app and an Android app is not a section header. It shows up only where it matters: an Urbit app's things can be sent to a friend and scrubbed back in time. An Android app's cannot. The capability is the label.</p>
+<p>And the phone is quiet. Light Phone proved that a home screen with nothing on it is a relief, not a loss, and that the reflex to check dies in two days. What Light Phone cannot do is the exception everyone actually needs: the meeting in twenty minutes, the one person whose message should get through. That exception is the only ambient information this phone shows, and it is decided by <em>who</em> and <em>when</em>, never by which app is loudest.</p>
 
 <h2>What the research says</h2>
 <p>Three passes: phone shells shipping today and the historical ones worth stealing from, the best app interaction patterns of the last four years, and every attempt to give Urbit a friendly face. The findings that shape this proposal:</p>
@@ -94,10 +95,20 @@
 <p>Kept: Launcher3 as the HOME role for gestures, recents, drag and drop; the controller and provider as the only truth path; graceful lifecycle through conn.sock; no fake success states.</p>
 
 <h2>The shape of it</h2>
-<p>Four surfaces. Three are places, one is a verb. The phone opens on Now and everything else is one gesture away.</p>
+<p>Four surfaces plus a quiet home. Three are places, one is a verb. The phone opens on the home page and everything else is one gesture away.</p>
 
-<h3>Now</h3>
-<p>The home screen and the lock screen are the same thing at two depths. A large clock, then a single chronological stream of what happened across every source: a message, a file someone shared, a plan that got two more yeses, a group post, a note you captured, an Android app's notification. Each line is a person or a thing first, and the source is a small mono tag at the end of the line, in the same opacity as the timestamp. There are no sections, because sections are apps in disguise. At the top, under the clock, at most three <em>ongoing</em> lines: a call, a sync, a timer, a sensor reading. They earn that spot only by Google's rule: ongoing, started by you, time-sensitive. Everything low-priority folds into one line at the bottom of the day ("14 more, mostly from Play apps") that opens into a digest. Swipe a line: open, later, done, mute. Mute a person here and they are muted in chat, comments, calls and calendar, because the mute is a fact on the server, not a setting in an app.</p>
+<h3>Home</h3>
+<p>The clock, large. Under it, at most two lines, and usually none:</p>
+<ul>
+  <li><b>Next.</b> The one time-bound thing coming up, from the calendar or a plan someone made with you: <span class="mono">3:15 · kids pickup</span>. It appears when it is near, and disappears when it has passed. Nothing else about the day is shown.</li>
+  <li><b>Reach.</b> A line that appears only when someone on your reach list wrote to you: <span class="mono">Anna · can you get the kids</span>. The reach list is small and yours: a few people, and a few groups, chosen once. Everyone else waits.</li>
+</ul>
+<p>Then a short vertical list of tools, in words, no icons: the six or eight things you actually do on a phone. Messages, People, Things, Camera, Notes, Maps, Calls. Which tools appear, and in what order, is set once in Settings, the way Light Phone's dashboard does it. That is the whole home screen. No stream, no counts, no badges, no wallpaper. The lock screen is the same page without the tool list.</p>
+<p>Everything else that happened goes to <b>Later</b>, a page you reach by pulling up from the bottom edge. It is the full chronological record across every source, the Hub, with the same swipe vocabulary (open, later, done, mute) and low-priority items folded into a digest. It is there when you want it and never on the home screen. Muting a person in Later mutes them in chat, comments, calls and calendar, because the mute is a fact on the server, not a setting in an app.</p>
+<p>Ongoing states (a call, a timer, a sync) still get a status-bar chip under Google's eligibility rule, because you started them. They never appear as home-screen lines.</p>
+
+<h3>The reach list</h3>
+<p>This is the one place the phone's architecture makes a familiar idea better. Every quiet-phone product has a priority-sender list, and every one of them is per app: a favorite in Messages does nothing in Signal, WhatsApp or the calendar. Here a person is one fact on the server, so "Anna can reach me" holds for messages, calls, plans, shared files and anything an app adds later. The same is true of a group: "Cabin Crew can reach me on Saturdays" is a rule about a group, not about an app, and it can be tied to time. Reach, Next and Later are the whole notification model. There are no per-app notification settings anywhere on the phone.</p>
 
 <h3>People</h3>
 <p>Swipe from the right edge. A list of everyone you know, most recent first, avatars as monochrome glyphs, names as names. Open a person and you get the only-on-this-phone moment: one scroll of everything between you, across every app: messages, files, events, polls, voice rooms, with the source as a tag. Actions at the top are verbs, not apps: message, call, send a file, send an app, share to. "Send an app" installs it on their phone from yours; no store. The person's address is one tap away under their name, in mono, for the day you need it.</p>
@@ -113,36 +124,28 @@
 
 <div class="sketches">
   <div class="sketch">
-    <svg viewBox="0 0 240 520" role="img" aria-label="Now surface sketch">
+    <svg viewBox="0 0 240 520" role="img" aria-label="Home surface sketch">
       <rect x="0" y="0" width="240" height="520" fill="var(--wire-bg)"></rect>
-      <text x="20" y="80" font-family="'Source Serif 4', Georgia, serif" font-size="56" font-weight="300" fill="var(--wire-fg)">9:41</text>
-      <text x="20" y="100" font-family="'JetBrains Mono', monospace" font-size="8" letter-spacing="1.2" fill="var(--wire-fg)" opacity="0.6">TUE 15 SEP</text>
-      <rect x="20" y="118" width="200" height="1" fill="var(--wire-fg)" opacity="0.14"></rect>
-      <rect x="20" y="130" width="4" height="4" fill="var(--wire-fg)"></rect>
-      <text x="32" y="135" font-family="'JetBrains Mono', monospace" font-size="8" fill="var(--wire-fg)">ongoing · syncing with home · 2m</text>
-      <g font-family="'Source Serif 4', Georgia, serif" font-size="11" fill="var(--wire-fg)">
-        <text x="20" y="170">Sam · the pecans came in</text>
-        <text x="20" y="184" font-size="10" opacity="0.6">photo · <tspan fill="var(--link)" text-decoration="underline">field notes</tspan></text>
-        <text x="20" y="214">Cabin Crew · 2 more yes for Saturday</text>
-        <text x="20" y="228" font-size="10" opacity="0.6">plan</text>
-        <text x="20" y="258">Dad · shared a folder</text>
-        <text x="20" y="272" font-size="10" opacity="0.6">3 files</text>
-        <text x="20" y="302">You · captured a page</text>
-        <text x="20" y="316" font-size="10" opacity="0.6">note</text>
+      <text x="20" y="96" font-family="'Source Serif 4', Georgia, serif" font-size="64" font-weight="300" fill="var(--wire-fg)">9:41</text>
+      <text x="20" y="116" font-family="'JetBrains Mono', monospace" font-size="8" letter-spacing="1.2" fill="var(--wire-fg)" opacity="0.6">TUE 15 SEP</text>
+      <g font-family="'JetBrains Mono', monospace" font-size="9" fill="var(--wire-fg)">
+        <text x="20" y="156">3:15 · kids pickup</text>
+        <text x="20" y="176">Anna · can you get the kids</text>
       </g>
-      <rect x="20" y="326" width="200" height="1" fill="var(--wire-fg)" opacity="0.14"></rect>
-      <g font-family="'JetBrains Mono', monospace" font-size="7.5" fill="var(--wire-fg)" opacity="0.6">
-        <text x="200" y="170" text-anchor="end">2m</text>
-        <text x="200" y="214" text-anchor="end">18m</text>
-        <text x="200" y="258" text-anchor="end">1h</text>
-        <text x="200" y="302" text-anchor="end">3h</text>
-        <text x="20" y="345">14 more · mostly from Play apps</text>
+      <rect x="20" y="192" width="200" height="1" fill="var(--wire-fg)" opacity="0.14"></rect>
+      <g font-family="'Source Serif 4', Georgia, serif" font-size="17" fill="var(--wire-fg)">
+        <text x="20" y="236">Messages</text>
+        <text x="20" y="270">People</text>
+        <text x="20" y="304">Things</text>
+        <text x="20" y="338">Camera</text>
+        <text x="20" y="372">Notes</text>
+        <text x="20" y="406">Maps</text>
+        <text x="20" y="440">Calls</text>
       </g>
-      <rect x="180" y="160" width="20" height="20" fill="#C9A96E"></rect>
-      <rect x="20" y="470" width="200" height="1" fill="var(--wire-fg)"></rect>
-      <text x="20" y="488" font-family="'JetBrains Mono', monospace" font-size="9" fill="var(--wire-fg)" opacity="0.6">pull down to type</text>
+      <rect x="110" y="500" width="20" height="2" fill="var(--wire-fg)" opacity="0.4"></rect>
+      <text x="120" y="490" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="7.5" fill="var(--wire-fg)" opacity="0.4">later</text>
     </svg>
-    <div class="cap">NOW · clock, ongoing line, one stream. The photo is the only color.</div>
+    <div class="cap">HOME · clock, Next, Reach, tools. Usually just the clock and the tools. Pull up for Later.</div>
   </div>
   <div class="sketch">
     <svg viewBox="0 0 240 520" role="img" aria-label="Person surface sketch">
@@ -195,7 +198,7 @@
       </g>
       <text x="226" y="290" font-family="'JetBrains Mono', monospace" font-size="6" fill="var(--wire-fg)" opacity="0.4" writing-mode="tb">a b c d e f g h i j k l m n</text>
     </svg>
-    <div class="cap">TYPE · one line resolves to verbs. Empty, it is the whole app list, no icons, no sections. The capability is the label.</div>
+    <div class="cap">TYPE · one line resolves to verbs. Empty, it is every app on the phone, no icons, no sections. The capability is the label.</div>
   </div>
 </div>
 
@@ -215,8 +218,8 @@
   <div><b>One scroll per person.</b> Every message, file, event and poll you ever shared with someone, across every app, assembled on open.</div>
   <div><b>Send an app.</b> Long-press any sendable app on a person's page and it installs on their phone from yours.</div>
   <div><b>Scrub time on anything.</b> A note, an album, a document as it was on any date, with the diff.</div>
-  <div><b>Mute once.</b> A person muted in Now is muted in chat, comments, calls and calendar.</div>
-  <div><b>Live lines.</b> A home-screen line changes the instant a peer posts, because it is a subscription.</div>
+  <div><b>Reach once.</b> "Anna can reach me" holds across messages, calls, plans and files; so does a mute.</div>
+  <div><b>Next is live.</b> The one line under the clock updates the instant a plan changes, because it is a subscription, not a poll.</div>
   <div><b>Airplane mode changes nothing.</b> Everything opens, composes and queues; the server is in your pocket.</div>
   <div><b>A new app arrives populated.</b> It already knows your people and groups on first open.</div>
 </div>
@@ -240,13 +243,13 @@
 <p>None of this requires abandoning the stack. It requires one new agent, one new provider endpoint, and a different Launcher3 workspace.</p>
 <ul>
   <li><b>A stream agent on the moon</b> (working name <span class="mono">%whisper-feed</span>) subscribes to Tlon's <span class="mono">%activity</span>, Grove and Kin's own activity, docket installs, and captures, and exposes one ordered feed plus per-person and per-thing queries. Apps that publish activity appear richly; apps that do not still appear through docket and notifications. This is the contract that replaces "hosted app inventory".</li>
-  <li><b>The controller</b> gains <span class="mono">getFeed</span>, <span class="mono">getPerson</span>, <span class="mono">getThings</span> next to the existing methods, bridges Android notifications from Play and system apps into the same feed through a notification listener, and enforces the ongoing-line eligibility rule so the status bar never fills with chips.</li>
-  <li><b>Launcher3</b> keeps the HOME role. The workspace page becomes Now, People and Things are edge-swipe pages, Type is the pull-down that already exists as the search bar. The hosted-app WebView activity stays as the way an Urbit app opens, one task per app (the v3 patch already in the repo).</li>
-  <li><b>Lock screen and always-on display</b> render the top of Now through the same provider, later, when the ROM exposes a keyguard surface.</li>
+  <li><b>The controller</b> gains <span class="mono">getNext</span>, <span class="mono">getReach</span>, <span class="mono">getLater</span>, <span class="mono">getPerson</span>, <span class="mono">getThings</span> next to the existing methods, bridges Android notifications from Play and system apps into Later through a notification listener, holds the reach list as a set of people and groups, and enforces the ongoing-chip eligibility rule so the status bar never fills.</li>
+  <li><b>Launcher3</b> keeps the HOME role. The workspace page becomes the quiet home, Later is the pull-up, People and Things are edge-swipe pages, Type is the pull-down that already exists as the search bar. The hosted-app WebView activity stays as the way an Urbit app opens, one task per app (the v3 patch already in the repo).</li>
+  <li><b>Lock screen and always-on display</b> render the clock, Next and Reach through the same provider, later, when the ROM exposes a keyguard surface. Android's own notification shade is suppressed for everything the reach list does not cover.</li>
   <li><b>Time travel</b> is a Clay revision scry behind a scrubber; <b>send an app</b> is ship-to-ship install behind a verb; <b>capture</b> is the share sheet plus a gesture, writing into Grove.</li>
 </ul>
 <dl class="phase">
-  <dt>phase 1</dt><dd>Now and Type replace the home page. Feed agent with Tlon activity, docket, and Android notifications. No People or Things yet; a person's name in Now opens Tlon. This alone removes every hosted/system label from the phone.</dd>
+  <dt>phase 1</dt><dd>The quiet home, the reach list, Next from the calendar and Kin plans, Later, and Type replace the home page. Feed agent with Tlon activity, docket, and Android notifications. No People or Things pages yet; a name in Later opens Tlon. This alone removes every hosted/system label and every per-app notification setting from the phone.</dd>
   <dt>phase 2</dt><dd>People and Things as edge pages. Person query across Tlon, Grove, Kin. Computed sections in Things. Send an app.</dd>
   <dt>phase 3</dt><dd>Lock screen and AOD from the feed. Capture gesture. Time scrubber. Per-app data dials in Settings, since the server can actually enforce them.</dd>
 </dl>
@@ -254,8 +257,9 @@
 <h2>Risks and open questions</h2>
 <ul>
   <li><b>Apps that publish nothing.</b> A feed is only as good as its sources. Tlon publishes activity; Grove and Kin will need a small convention, which is also the moment to define what any third-party Urbit app must do to appear on the phone.</li>
+  <li><b>Quiet has to be trustworthy.</b> The reach list only works if it never misses. Next must come from every source that can make a plan (calendar, Kin, a Tlon message that contains a time), or people will turn the noise back on. This is the first thing to get right and the first thing to test with a spouse.</li>
   <li><b>No icons is a shock.</b> Every minimal launcher review says the same thing: it feels like a relief on day two and a pain the first time you need an off-list app. Type must be one gesture from everywhere, always.</li>
-  <li><b>Play apps look thin.</b> They appear through notifications only. That is honest, and it quietly makes the case for the sendable ones, but it must never read as a penalty box.</li>
+  <li><b>Play apps look thin.</b> They appear in Later through notifications only. That is honest, and it quietly makes the case for the sendable ones, but it must never read as a penalty box.</li>
   <li><b>Onboarding.</b> Pairing should be a QR shown by the home server, never a typed code, and recovery should be the parent relationship rather than a phrase to write down. That is a controller change, not a shell change, and it is worth doing first.</li>
   <li><b>Sigils.</b> Proposed as chrome, therefore monochrome. If you want them to keep their color as the one exception, say so; it is a one-line rule either way.</li>
 </ul>
