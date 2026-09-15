@@ -10,6 +10,7 @@ import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.MediaType.Companion.toMediaType
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
@@ -66,6 +67,25 @@ class Eyre(private val baseUrl: String = BuildConfig.SHIP_URL) {
             }
         } catch (e: Exception) {
             Log.w(TAG, "scry $appPath failed: ${e.javaClass.simpleName}: ${e.message}"); null
+        }
+    }
+
+    private var channelId: String? = null
+    private var channelSeq = 0
+
+    /** Poke an agent through an Eyre channel. Returns true when Eyre accepted the poke. */
+    suspend fun poke(app: String, mark: String, json: JSONObject, ship: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val id = channelId ?: ("whisper-" + System.currentTimeMillis()).also { channelId = it }
+            channelSeq += 1
+            val body = org.json.JSONArray().put(JSONObject()
+                .put("id", channelSeq).put("action", "poke").put("ship", ship.trimStart('~'))
+                .put("app", app).put("mark", mark).put("json", json))
+            val req = Request.Builder().url("$baseUrl/~/channel/$id")
+                .put(okhttp3.RequestBody.create("application/json".toMediaType(), body.toString())).build()
+            http.newCall(req).execute().use { res -> res.code in 200..299 }
+        } catch (e: Exception) {
+            Log.w(TAG, "poke $app failed: ${e.javaClass.simpleName}"); false
         }
     }
 

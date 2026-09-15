@@ -1,113 +1,153 @@
+::  nativeplanet-mobile: the phone's side of one identity
+::
+::    Reports the mobile app inventory (as before) and mirrors the planet's
+::    DMs through the planet's %satellite relay. The phone reads the mirror
+::    over local Eyre and sends through it; the planet does the talking.
+::
+/+  default-agent, dbug
+|%
++$  card  card:agent:gall
++$  state-1
+  $:  %1
+      parent=(unit ship)
+      snap=json
+      live=(list json)
+      errors=(list json)
+  ==
+--
+=|  state-1
+=*  state  -
+%-  agent:dbug
 ^-  agent:gall
 =<
 |_  =bowl:gall
 +*  this  .
+    def   ~(. (default-agent this %|) bowl)
+    hc    ~(. +> bowl)
 ::
 ++  on-init
-  ^-  (quip card:agent:gall _this)
+  ^-  (quip card _this)
   `this
 ::
-++  on-save
-  !>(~)
-::
+++  on-save  !>(state)
 ++  on-load
-  |=  old-state=vase
-  ^-  (quip card:agent:gall _this)
-  `this
+  |=  old=vase
+  ^-  (quip card _this)
+  =/  ver  (mole |.(!<(state-1 old)))
+  ?~  ver  `this
+  :_  this(state u.ver)
+  ?~  parent.u.ver  ~
+  ~[(watch-parent:hc u.parent.u.ver)]
 ::
 ++  on-poke
   |=  [=mark =vase]
-  ^-  (quip card:agent:gall _this)
-  `this
+  ^-  (quip card _this)
+  ?>  =(src.bowl our.bowl)
+  ?+    mark  (on-poke:def mark vase)
+      %noun
+    =+  !<([%pair p=ship] vase)
+    :_  this(parent `p, snap ~, live ~, errors ~)
+    ~[(watch-parent:hc p)]
+  ::
+      %json
+    ?~  parent.state  ~|('not paired with a planet' !!)
+    :_  this
+    ~[[%pass /fwd %agent [u.parent.state %satellite] %poke %json vase]]
+  ==
 ::
 ++  on-watch
   |=  =path
-  ^-  (quip card:agent:gall _this)
-  `this
+  ^-  (quip card _this)
+  ?>  =(src.bowl our.bowl)
+  ?+    path  (on-watch:def path)
+      [%mirror ~]
+    :_  this
+    ~[[%give %fact ~ %json !>(mirror:hc)]]
+  ==
 ::
-++  on-leave
-  |=  =path
-  ^-  (quip card:agent:gall _this)
-  `this
+++  on-leave  on-leave:def
+::
+++  on-agent
+  |=  [=wire =sign:agent:gall]
+  ^-  (quip card _this)
+  ?+    wire  (on-agent:def wire sign)
+      [%sat ~]
+    ?+    -.sign  `this
+        %kick
+      :_  this
+      ?~  parent.state  ~
+      ~[(watch-parent:hc u.parent.state)]
+    ::
+        %fact
+      ?.  =(%json p.cage.sign)  `this
+      =/  jon=json  !<(json q.cage.sign)
+      =/  new=_this
+        ?.  ?=([%o *] jon)  this
+        ?:  (~(has by p.jon) 'snapshot')
+          this(snap (~(got by p.jon) 'snapshot'))
+        ?:  (~(has by p.jon) 'chat')
+          this(live (scag 500 `(list json)`[(~(got by p.jon) 'chat') live.state]))
+        ?:  (~(has by p.jon) 'error')
+          this(errors (scag 50 `(list json)`[(~(got by p.jon) 'error') errors.state]))
+        this
+      :_  new
+      ~[[%give %fact ~[/mirror] %json !>((mirror-of:hc state.new))]]
+    ==
+  ==
 ::
 ++  on-peek
   |=  =path
   ^-  (unit (unit cage))
   ?+  path  ~
-      [%x %apps ~]
-    ``json+!>(apps-json)
-      [%x %apps %json ~]
-    ``json+!>(apps-json)
+      [%x %apps ~]        ``json+!>(apps-json:hc)
+      [%x %apps %json ~]  ``json+!>(apps-json:hc)
+      [%x %mirror ~]      ``json+!>(mirror:hc)
+      [%x %mirror %json ~]  ``json+!>(mirror:hc)
   ==
 ::
-++  on-agent
-  |=  [=wire =sign:agent:gall]
-  ^-  (quip card:agent:gall _this)
-  `this
-::
-++  on-arvo
-  |=  [=wire sign=sign-arvo]
-  ^-  (quip card:agent:gall _this)
-  `this
-::
-++  on-fail
-  |=  [=term =tang]
-  ^-  (quip card:agent:gall _this)
-  `this
+++  on-arvo  on-arvo:def
+++  on-fail  on-fail:def
 --
 ::
 |_  =bowl:gall
-++  apps-json
+++  watch-parent
+  |=  p=ship
+  ^-  card
+  [%pass /sat %agent [p %satellite] %watch /moon/chat]
+::
+++  mirror  (mirror-of state)
+++  mirror-of
+  |=  s=state-1
   ^-  json
   %-  pairs:enjs:format
-  :~  ['version' [%n '1']]
+  :~  ['parent' ?~(parent.s ~ s+(scot %p u.parent.s))]
+      ['snapshot' snap.s]
+      ['live' a+(flop live.s)]
+      ['errors' a+(flop errors.s)]
+  ==
+::
+++  apps-json
+  ^-  json
+  =/  app
+    |=  [desk=@t recommended=?]
+    %-  pairs:enjs:format
+    :~  ['desk' s+desk]
+        ['preferredLaunchMode' ~]
+        ['androidPackage' ~]
+        ['pwaManifestPath' ~]
+        ['mobilePath' ~]
+        ['recommended' b+recommended]
+        ['hidden' b+|]
+    ==
+  %-  pairs:enjs:format
+  :~  ['version' n+'1']
       :-  'apps'
       :-  %a
-        :~  %-  pairs:enjs:format
-              :~  ['desk' [%s 'groups']]
-                  ['preferredLaunchMode' ~]
-                  ['androidPackage' ~]
-                  ['pwaManifestPath' ~]
-                  ['mobilePath' ~]
-                  ['recommended' [%b &]]
-                  ['hidden' [%b |]]
-              ==
-            %-  pairs:enjs:format
-              :~  ['desk' [%s 'webterm']]
-                  ['preferredLaunchMode' ~]
-                  ['androidPackage' ~]
-                  ['pwaManifestPath' ~]
-                  ['mobilePath' ~]
-                  ['recommended' [%b &]]
-                  ['hidden' [%b |]]
-              ==
-            %-  pairs:enjs:format
-              :~  ['desk' [%s 'landscape']]
-                  ['preferredLaunchMode' ~]
-                  ['androidPackage' ~]
-                  ['pwaManifestPath' ~]
-                  ['mobilePath' ~]
-                  ['recommended' [%b |]]
-                  ['hidden' [%b |]]
-              ==
-            %-  pairs:enjs:format
-              :~  ['desk' [%s 'grove']]
-                  ['preferredLaunchMode' ~]
-                  ['androidPackage' ~]
-                  ['pwaManifestPath' ~]
-                  ['mobilePath' ~]
-                  ['recommended' [%b &]]
-                  ['hidden' [%b |]]
-              ==
-            %-  pairs:enjs:format
-              :~  ['desk' [%s 'kin']]
-                  ['preferredLaunchMode' ~]
-                  ['androidPackage' ~]
-                  ['pwaManifestPath' ~]
-                  ['mobilePath' ~]
-                  ['recommended' [%b &]]
-                  ['hidden' [%b |]]
-              ==
-        ==
+      :~  (app 'groups' &)
+          (app 'webterm' &)
+          (app 'landscape' |)
+          (app 'grove' &)
+          (app 'kin' &)
+      ==
   ==
 --

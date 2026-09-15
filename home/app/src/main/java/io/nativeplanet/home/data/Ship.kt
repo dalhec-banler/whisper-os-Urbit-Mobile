@@ -14,9 +14,82 @@ import org.json.JSONObject
 class Ship(private val eyre: Eyre) {
     companion object { private const val TAG = "WhisperHome.Ship" }
 
-    data class Snapshot(val people: List<Person>, val entries: List<Entry>, val unreadDm: Set<String>)
+    data class Snapshot(val people: List<Person>, val entries: List<Entry>, val unreadDm: Set<String>, val delegated: Boolean = false, val parent: String? = null)
+
+    /**
+     * Delegation: when %nativeplanet-mobile mirrors the parent planet's DMs, the
+     * record is the planet's, sends go through the planet, and the people are
+     * the planet's correspondents. Falls back to the moon's own chat otherwise.
+     */
+    suspend fun mirror(): JSONObject? {
+        val m = eyre.scry("nativeplanet-mobile/mirror") ?: return null
+        val parent = m.optString("parent").takeIf { it.isNotBlank() } ?: return null
+        val snap = m.optJSONObject("snapshot") ?: return null
+        if (!snap.has("writs")) return null
+        return m
+    }
 
     suspend fun snapshot(self: String?): Snapshot {
+        mirror()?.let { m -> return mirrorSnapshot(m) }
+        return ownSnapshot(self)
+    }
+
+    private fun mirrorSnapshot(m: JSONObject): Snapshot {
+        val parent = m.optString("parent")
+        val snap = m.getJSONObject("snapshot")
+        val our = snap.optString("our", parent)
+        val writsBy = snap.optJSONObject("writs") ?: JSONObject()
+        val unreads = snap.optJSONObject("unreads")
+        val people = mutableListOf<Person>()
+        val entries = mutableListOf<Entry>()
+        val unreadDm = mutableSetOf<String>()
+        writsBy.keys().forEach { ship ->
+            people.add(Person(ship, null, null))
+            val u = unreads?.optJSONObject(ship)
+            if ((u?.optInt("count", 0) ?: 0) > 0) unreadDm.add(ship)
+            val writs = writsBy.optJSONObject(ship)?.optJSONObject("writs") ?: return@forEach
+            writs.keys().forEach { key ->
+                val w = writs.optJSONObject(key) ?: return@forEach
+                val essay = w.optJSONObject("essay") ?: return@forEach
+                val author = essay.optString("author")
+                val text = renderInline(essay.optJSONArray("content"))
+                if (text.isBlank()) return@forEach
+                entries.add(Entry(
+                    id = "mdm:$ship:$key", timeMs = essay.optLong("sent", 0L),
+                    who = if (author == our) "You → $ship" else author,
+                    ship = author, text = text, source = "MESSAGE", link = "apps/groups/dm/$ship",
+                ))
+            }
+        }
+        // Live responses since the snapshot: {"chat": {"whom": "~ship", "id": ..., "response": {"add": {"essay": ...}}}}
+        val live = m.optJSONArray("live")
+        if (live != null) for (i in 0 until live.length()) {
+            val r = live.optJSONObject(i) ?: continue
+            val whom = r.optString("whom").takeIf { it.isNotBlank() } ?: continue
+            val add = r.optJSONObject("response")?.optJSONObject("add") ?: continue
+            val essay = add.optJSONObject("essay") ?: continue
+            val author = essay.optString("author")
+            val text = renderInline(essay.optJSONArray("content"))
+            if (text.isBlank()) continue
+            val id = "mdm:$whom:${r.opt("id")}"
+            if (entries.none { it.id == id }) entries.add(Entry(
+                id = id, timeMs = essay.optLong("sent", 0L),
+                who = if (author == our) "You → $whom" else author,
+                ship = author, text = text, source = "MESSAGE", link = "apps/groups/dm/$whom",
+            ))
+            if (people.none { it.ship == whom }) people.add(Person(whom, null, null))
+        }
+        people.sortByDescending { p -> entries.filter { it.ship == p.ship || it.link?.endsWith(p.ship) == true }.maxOfOrNull { it.timeMs } ?: 0L }
+        return Snapshot(people, entries.sortedByDescending { it.timeMs }, unreadDm, delegated = true, parent = parent)
+    }
+
+    /** Send a DM as the planet, through the moon's mirror agent and the planet's relay. */
+    suspend fun sendDm(self: String, ship: String, text: String): Boolean {
+        val jon = JSONObject().put("send-dm", JSONObject().put("ship", ship).put("text", text))
+        return eyre.poke("nativeplanet-mobile", "json", jon, self)
+    }
+
+    private suspend fun ownSnapshot(self: String?): Snapshot {
         val contacts = eyre.scry("contacts/all")
         val people = mutableListOf<Person>()
         contacts?.keys()?.forEach { ship ->
