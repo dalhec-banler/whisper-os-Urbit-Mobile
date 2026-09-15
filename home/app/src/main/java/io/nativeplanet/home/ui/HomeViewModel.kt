@@ -1,0 +1,165 @@
+package io.nativeplanet.home.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import io.nativeplanet.home.data.Calendar
+import io.nativeplanet.home.data.Controller
+import io.nativeplanet.home.data.Eyre
+import io.nativeplanet.home.data.NotificationStore
+import io.nativeplanet.home.data.Prefs
+import io.nativeplanet.home.data.Ship
+import io.nativeplanet.home.data.Tools
+import io.nativeplanet.home.model.Entry
+import io.nativeplanet.home.model.HostedApp
+import io.nativeplanet.home.model.Next
+import io.nativeplanet.home.model.Person
+import io.nativeplanet.home.model.Tool
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+enum class Surface { HOME, LATER, PEOPLE, PERSON, TYPE, SETTINGS }
+
+data class UiState(
+    val nowMs: Long = System.currentTimeMillis(),
+    val self: String? = null,
+    val runtime: String = "unknown",
+    val connected: Boolean = false,
+    val next: Next? = null,
+    val reach: Entry? = null,
+    val toolWords: List<String> = emptyList(),
+    val tools: List<Tool> = emptyList(),
+    val hosted: List<HostedApp> = emptyList(),
+    val later: List<Entry> = emptyList(),
+    val folded: Int = 0,
+    val people: List<Person> = emptyList(),
+    val reachShips: Set<String> = emptySet(),
+    val mutedShips: Set<String> = emptySet(),
+    val surface: Surface = Surface.HOME,
+    val person: Person? = null,
+    val query: String = "",
+    val toast: String? = null,
+)
+
+class HomeViewModel(app: Application) : AndroidViewModel(app) {
+    private val controller = Controller(app)
+    private val eyre = Eyre()
+    private val ship = Ship(eyre)
+    private val calendar = Calendar(app)
+    private val prefs = Prefs(app)
+    val tools = Tools(app)
+
+    private val _state = MutableStateFlow(UiState())
+    val state: StateFlow<UiState> = _state
+
+    private var shipEntries: List<Entry> = emptyList()
+    private var unreadDm: Set<String> = emptySet()
+    private var refreshJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            combine(prefs.reachShips, prefs.mutedShips, prefs.doneIds, prefs.toolOrder, NotificationStore.entries) { r, m, d, t, n ->
+                Prefs5(r, m, d, t, n)
+            }.collect { p ->
+                _state.update { it.copy(reachShips = p.reach, mutedShips = p.muted, toolWords = p.tools) }
+                recompute(p.done, p.notifs)
+            }
+        }
+        viewModelScope.launch { while (isActive) { _state.update { it.copy(nowMs = System.currentTimeMillis()) }; delay(15_000) } }
+        startRefreshing()
+    }
+
+    private data class Prefs5(val reach: Set<String>, val muted: Set<String>, val done: Set<String>, val tools: List<String>, val notifs: List<Entry>)
+    private var lastDone: Set<String> = emptySet()
+    private var lastNotifs: List<Entry> = emptyList()
+
+    fun startRefreshing() {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
+            while (isActive) { refresh(); delay(30_000) }
+        }
+    }
+
+    private val refreshing = Mutex()
+
+    suspend fun refresh() = refreshing.withLock { refreshLocked() }
+
+    private suspend fun refreshLocked() {
+        val rt = controller.runtime()
+        _state.update { it.copy(runtime = rt?.state ?: "unavailable", self = rt?.shipName ?: it.self) }
+        val hosted = controller.hostedApps()
+        _state.update { it.copy(hosted = hosted, tools = tools.all(hosted)) }
+        _state.update { it.copy(next = calendar.next()) }
+        if (rt?.state == "running") {
+            if (!eyre.loggedIn) controller.webLoginCode()?.let { eyre.login(it) }
+            if (eyre.loggedIn) {
+                val snap = ship.snapshot(rt.shipName)
+                shipEntries = snap.entries; unreadDm = snap.unreadDm
+                _state.update { it.copy(people = snap.people, connected = true) }
+            } else _state.update { it.copy(connected = false) }
+        } else _state.update { it.copy(connected = false) }
+        recompute(lastDone, lastNotifs)
+    }
+
+    private fun recompute(done: Set<String>, notifs: List<Entry>) {
+        lastDone = done; lastNotifs = notifs
+        val s = _state.value
+        val all = (shipEntries + notifs)
+            .filter { it.id !in done }
+            .filter { it.ship == null || it.ship !in s.mutedShips }
+            .sortedByDescending { it.timeMs }
+        // Reach: the newest unread message from someone on the reach list, within the last day.
+        val dayAgo = System.currentTimeMillis() - 24 * 60 * 60 * 1000L
+        val reach = all.firstOrNull { e ->
+            e.ship != null && e.ship in s.reachShips && e.ship != s.self && e.timeMs > dayAgo &&
+                (e.source == "MESSAGE") && (unreadDm.contains(e.link?.substringAfterLast('/') ?: "") || e.timeMs > System.currentTimeMillis() - 3 * 60 * 60 * 1000L)
+        }
+        val (loud, quiet) = all.partition { it.source != "ANDROID" || it.priority }
+        _state.update { it.copy(later = loud + quiet, folded = quiet.size, reach = reach) }
+    }
+
+    fun show(surface: Surface) = _state.update { it.copy(surface = surface, query = if (surface == Surface.TYPE) it.query else "") }
+    fun home() = _state.update { it.copy(surface = Surface.HOME, person = null, query = "") }
+    fun openPerson(p: Person) = _state.update { it.copy(surface = Surface.PERSON, person = p) }
+    fun setQuery(q: String) = _state.update { it.copy(query = q) }
+    fun toast(msg: String?) = _state.update { it.copy(toast = msg) }
+
+    fun entriesFor(p: Person): List<Entry> = (shipEntries).filter { it.ship == p.ship || it.link?.endsWith(p.ship) == true }.sortedByDescending { it.timeMs }
+
+    fun openWord(word: String) {
+        val s = _state.value
+        android.util.Log.i("WhisperHome", "openWord $word; hosted=${s.hosted.map { it.desk + ":" + it.launchMode + ":" + (it.startUrl ?: "-") }}")
+        when (word) {
+            "people" -> { show(Surface.PEOPLE); return }
+            "notes" -> { s.tools.firstOrNull { it.key == "desk:kin" }?.let { if (tools.open(it)) return } }
+        }
+        val t = tools.resolveHomeWord(word, s.tools)
+        if (t == null || (t.key.startsWith("home:") && t.key != "home:people") || !tools.open(t)) toast("nothing opens $word yet")
+    }
+
+    fun openTool(t: Tool) { if (!tools.open(t)) toast("${t.name} cannot open yet") }
+
+    fun openEntry(e: Entry) {
+        val s = _state.value
+        if (e.packageName != null) { if (!tools.openPackage(e.packageName)) toast("cannot open"); return }
+        // Ship entries open Tlon through the hosted path, at the DM when we know it.
+        val groups = s.hosted.firstOrNull { it.desk == "groups" } ?: run { toast("messages app is not ready"); return }
+        val target = if (e.link != null) groups.copy(startUrl = eyreUrl(e.link)) else groups
+        if (!tools.open(Tool("desk:groups", "tlon", true, hosted = target))) toast("cannot open")
+    }
+
+    private fun eyreUrl(path: String) = eyre.url(path)
+
+    fun markDone(e: Entry) = viewModelScope.launch { prefs.markDone(e.id) }
+    fun mute(shipName: String, muted: Boolean) = viewModelScope.launch { prefs.setMuted(shipName, muted) }
+    fun setReach(shipName: String, can: Boolean) = viewModelScope.launch { prefs.setReach(shipName, can) }
+    fun setToolWords(words: List<String>) = viewModelScope.launch { prefs.setTools(words) }
+}

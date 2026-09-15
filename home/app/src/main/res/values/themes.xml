@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Whisper" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0E0D0C</item>
+        <item name="android:statusBarColor">#0E0D0C</item>
+        <item name="android:navigationBarColor">#0E0D0C</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowShowWallpaper">false</item>
+    </style>
+</resources>
