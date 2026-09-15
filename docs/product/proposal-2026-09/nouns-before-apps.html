@@ -1,0 +1,266 @@
+<title>Nouns Before Apps</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F4F1EC; --fg: #1A1916; --dim: rgba(26,25,22,0.62); --faint: rgba(26,25,22,0.40); --hair: rgba(26,25,22,0.14);
+    --panel: #FBF9F5; --link: #1F5FBF; --link-hover: #174A96; --wire-bg: #F4F1EC; --wire-fg: #1A1916;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E0D0C; --fg: #F4F1EC; --dim: rgba(244,241,236,0.62); --faint: rgba(244,241,236,0.40); --hair: rgba(244,241,236,0.16);
+      --panel: #151412; --link: #7DA6C9; --link-hover: #A8C6DF; --wire-bg: #0E0D0C; --wire-fg: #F4F1EC;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E0D0C; --fg: #F4F1EC; --dim: rgba(244,241,236,0.62); --faint: rgba(244,241,236,0.40); --hair: rgba(244,241,236,0.16);
+    --panel: #151412; --link: #7DA6C9; --link-hover: #A8C6DF; --wire-bg: #0E0D0C; --wire-fg: #F4F1EC;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 1.55; padding-inline: 20px; padding-block: 48px 96px; }
+  a { color: var(--link); text-decoration: underline; text-underline-offset: 3px; } a:hover { color: var(--link-hover); }
+  .mono { font-family: 'JetBrains Mono', Menlo, Consolas, monospace; }
+  .wrap { max-width: 68ch; margin: 0 auto; }
+  header { display: flex; flex-direction: column; gap: 18px; padding-bottom: 40px; border-bottom: 1px solid var(--fg); }
+  .eyebrow { font-family: 'JetBrains Mono', Menlo, monospace; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+  h1 { font-size: clamp(40px, 8vw, 64px); font-weight: 300; line-height: 1.02; letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+  .deck { font-size: 22px; line-height: 1.4; margin: 0; max-width: 56ch; text-wrap: pretty; }
+  h2 { font-size: 28px; font-weight: 400; line-height: 1.2; margin: 64px 0 18px; letter-spacing: -0.01em; text-wrap: balance; }
+  h3 { font-size: 19px; font-weight: 600; margin: 32px 0 8px; }
+  p { margin: 0 0 18px; text-wrap: pretty; }
+  ul, ol { padding-left: 22px; margin: 0 0 18px; } li { margin-bottom: 8px; }
+  li::marker { color: var(--dim); }
+  .rule { border: 0; border-top: 1px solid var(--hair); margin: 40px 0; }
+  .kv { display: grid; grid-template-columns: minmax(0, 11ch) minmax(0, 1fr); gap: 6px 18px; font-size: 16px; margin: 0 0 18px; }
+  .kv dt { font-family: 'JetBrains Mono', Menlo, monospace; font-size: 12px; letter-spacing: 0.04em; color: var(--dim); padding-top: 3px; }
+  .kv dd { margin: 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; margin: 0 0 22px; }
+  th { text-align: left; font-family: 'JetBrains Mono', Menlo, monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); font-weight: 500; padding: 0 12px 10px 0; border-bottom: 1px solid var(--fg); }
+  td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  .tw { overflow-x: auto; }
+  .sketches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin: 26px 0 10px; }
+  @media (max-width: 720px) { .sketches { grid-template-columns: 1fr; } }
+  .sketch { display: flex; flex-direction: column; gap: 10px; }
+  .sketch svg { width: 100%; height: auto; max-width: 100%; display: block; border: 1px solid var(--hair); }
+  .cap { font-family: 'JetBrains Mono', Menlo, monospace; font-size: 11px; letter-spacing: 0.06em; color: var(--dim); line-height: 1.5; }
+  .swatch { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 6px; border: 1px solid var(--hair); }
+  .quiet { color: var(--dim); }
+  .moment { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin: 0 0 22px; }
+  .moment div { padding: 14px 0; border-top: 1px solid var(--hair); }
+  .moment div:last-child { border-bottom: 1px solid var(--hair); }
+  .moment b { font-weight: 600; }
+  .phase { display: grid; grid-template-columns: minmax(0, 8ch) minmax(0, 1fr); gap: 8px 18px; margin: 0 0 18px; }
+  .phase dt { font-family: 'JetBrains Mono', Menlo, monospace; font-size: 12px; color: var(--dim); padding-top: 4px; }
+  .phase dd { margin: 0 0 10px; }
+  .foot { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--fg); font-size: 14px; color: var(--dim); }
+  .foot a { color: var(--link); }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Whisper OS · design proposal · 15 September 2026</div>
+  <h1>Nouns before apps</h1>
+  <p class="deck">The front of the phone shows your people, what is happening, and your things. Apps are verbs you type. Nothing on the phone is labeled Urbit, and nothing is sorted by where it came from.</p>
+</header>
+
+<h2>The argument</h2>
+<p>Every phone shell of the last fifteen years has been an app grid with a notification tray bolted on. The exceptions are the ones people still talk about: webOS linked one person across every account into a single record. BlackBerry 10 put every conversation in one Hub and let you peek at it from inside any app. Windows Phone pinned <em>people</em> to the home screen, not apps. All three had to fake it with cloud connectors, and all three died on distribution, not on the idea.</p>
+<p>This phone does not have to fake it. Every app's state already lives in one place, with one identity, under one permission model. A Person screen that shows every message, file, invite and poll you ever exchanged with someone is a handful of scries, not a partnership program. A home-screen line that updates the instant a friend posts is a subscription, not a fifteen-minute background fetch. That is the magic worth building the shell around, and it is invisible if the shell is a grid of tiles.</p>
+<p>So the proposal is to stop organizing the phone by app and by provenance, and organize it by the three nouns the server already unifies: <b>who</b>, <b>what is happening</b>, and <b>what you have</b>. The word Urbit does not appear. The distinction between an Urbit app and an Android app is not a section header. It shows up only where it matters: an Urbit app's things can appear in your stream, be sent to a friend, and be scrubbed back in time. An Android app's cannot. The capability is the label.</p>
+
+<h2>What the research says</h2>
+<p>Three passes: phone shells shipping today and the historical ones worth stealing from, the best app interaction patterns of the last four years, and every attempt to give Urbit a friendly face. The findings that shape this proposal:</p>
+<ol>
+  <li><b>Typography is the identity.</b> Nothing OS, Light Phone, Windows Phone and Olauncher all get "premium" from one typeface used with discipline. Punkt's greyscale phone shows what monochrome looks like without that rigor: unfinished.</li>
+  <li><b>Vertical lists beat grids</b> for anything reached by thumb. Niagara, Light Phone, KaiOS and every loved minimal launcher converge on a single vertical list with an alphabet edge or search as the escape hatch.</li>
+  <li><b>Aggregate by noun, not app.</b> People Hub, Synergy, the BB10 Hub: person, thread, thing and day are the units; apps are sources.</li>
+  <li><b>One state object, many surfaces.</b> Live Activities and Android's Live Updates render one fact in the status bar, lock screen, always-on display and car. Design the fact, not the widget. Google's eligibility rule for what earns a persistent chip (ongoing, user-initiated, time-sensitive) is the best filter anyone has written.</li>
+  <li><b>Type to act.</b> webOS Just Type, KISS, Kvaesitso: text entry is the universal verb, and the app is chosen after the intent.</li>
+  <li><b>Notifications live next to their subject</b> (Niagara inline, BB10 Hub), low-priority ones get bundled, and a single triage vocabulary applies to everything (Beeper, Readwise Reader, Linear Inbox: open, later, done, mute).</li>
+  <li><b>Hierarchy without color</b> is an opacity ladder (100 / 90 / 60 / 40), spacing before dividers, mono caps for chrome and a proportional face for content, and motion that is percussive rather than springy. Nothing's system, and Teenage Engineering's before it.</li>
+  <li><b>AI summaries need distance.</b> Apple's notification summaries hallucinated news headlines and were paused. Anything a model writes is set in italic, per-source dismissible, and never speaks in the source's voice.</li>
+  <li><b>Never type a key.</b> Signal, Bluesky, Primal and Damus all moved identity behind a name, with QR remote login and a recovery relationship instead of a seed phrase. Mastodon's server picker is the canonical onboarding failure; "which server am I on" must never be a question.</li>
+  <li><b>Tlon's retention came from a companion, not from Urbit.</b> Day-5 retention peaked once every account shipped with an agent living on the user's server. Holium's Realm hid every primitive behind Spaces and Passports and people liked it, then died when its dependencies moved underneath it. Both say the same thing: hide the machinery, expose what only the machinery makes possible.</li>
+</ol>
+
+<h2>What we are leaving behind</h2>
+<p>This departs from most of the decisions to date. Explicitly:</p>
+<ul>
+  <li>The icon grid home and the SYSTEM / HOSTED sections. Gone. There is no app grid anywhere.</li>
+  <li>The "My Urbit Apps" surface as a destination. Its truthful inventory survives as data; the page does not.</li>
+  <li>The paper default, the amber accent, the "% whisper os" strip, the colored sigil tiles.</li>
+  <li>Planet Link as a visible app. The runtime console becomes one quiet line in Settings ("server · running · updated 2h ago") and a page behind it.</li>
+  <li>Any surface that says moon, ship, desk, hosted, sigil, @p, dojo or kelvin. The vocabulary table below is the whole allowed set.</li>
+</ul>
+<p>Kept: Launcher3 as the HOME role for gestures, recents, drag and drop; the controller and provider as the only truth path; graceful lifecycle through conn.sock; no fake success states.</p>
+
+<h2>The shape of it</h2>
+<p>Four surfaces. Three are places, one is a verb. The phone opens on Now and everything else is one gesture away.</p>
+
+<h3>Now</h3>
+<p>The home screen and the lock screen are the same thing at two depths. A large clock, then a single chronological stream of what happened across every source: a message, a file someone shared, a plan that got two more yeses, a group post, a note you captured, an Android app's notification. Each line is a person or a thing first, and the source is a small mono tag at the end of the line, in the same opacity as the timestamp. There are no sections, because sections are apps in disguise. At the top, under the clock, at most three <em>ongoing</em> lines: a call, a sync, a timer, a sensor reading. They earn that spot only by Google's rule: ongoing, started by you, time-sensitive. Everything low-priority folds into one line at the bottom of the day ("14 more, mostly from Play apps") that opens into a digest. Swipe a line: open, later, done, mute. Mute a person here and they are muted in chat, comments, calls and calendar, because the mute is a fact on the server, not a setting in an app.</p>
+
+<h3>People</h3>
+<p>Swipe from the right edge. A list of everyone you know, most recent first, avatars as monochrome glyphs, names as names. Open a person and you get the only-on-this-phone moment: one scroll of everything between you, across every app: messages, files, events, polls, voice rooms, with the source as a tag. Actions at the top are verbs, not apps: message, call, send a file, send an app, share to. "Send an app" installs it on their phone from yours; no store. The person's address is one tap away under their name, in mono, for the day you need it.</p>
+
+<h3>Things</h3>
+<p>Swipe from the left edge. Your data as a flat, searchable list: photos, files, notes, posts, captures. Above it, computed sections that are queries rather than folders (Recent, Shared with me, This week, From Sam). Every thing has a time scrubber. Drag it and the note, the album, the document shows itself as it was on that date, because the filesystem is versioned and this is free. This is the second moment nobody else can build.</p>
+
+<h3>Type</h3>
+<p>Pull down anywhere. One line, one cursor, no suggestions until you type. A name resolves to a person and their verbs. Plain text becomes a note, a message, or a search, and you pick which after you have typed it. An app name opens the app. This is also the entire app list: pull down, type nothing, and the alphabet appears, every app on the phone in one mono column with no icons and no grouping. An Android app and an Urbit app sit next to each other, and the only visible difference is that one of them can be sent to a friend.</p>
+
+<h3>Capture</h3>
+<p>A hardware gesture (back-tap on Pixel, a key on our own hardware) captures whatever is on screen, or a voice note, into Things with time and place attached, and accepts the Android share sheet as an equal input. Nothing's Essential Space proved the reflex; their one mistake was making the key the only way in.</p>
+
+<div class="sketches">
+  <div class="sketch">
+    <svg viewBox="0 0 240 520" role="img" aria-label="Now surface sketch">
+      <rect x="0" y="0" width="240" height="520" fill="var(--wire-bg)"></rect>
+      <text x="20" y="80" font-family="'Source Serif 4', Georgia, serif" font-size="56" font-weight="300" fill="var(--wire-fg)">9:41</text>
+      <text x="20" y="100" font-family="'JetBrains Mono', monospace" font-size="8" letter-spacing="1.2" fill="var(--wire-fg)" opacity="0.6">TUE 15 SEP</text>
+      <rect x="20" y="118" width="200" height="1" fill="var(--wire-fg)" opacity="0.14"></rect>
+      <rect x="20" y="130" width="4" height="4" fill="var(--wire-fg)"></rect>
+      <text x="32" y="135" font-family="'JetBrains Mono', monospace" font-size="8" fill="var(--wire-fg)">ongoing · syncing with home · 2m</text>
+      <g font-family="'Source Serif 4', Georgia, serif" font-size="11" fill="var(--wire-fg)">
+        <text x="20" y="170">Sam · the pecans came in</text>
+        <text x="20" y="184" font-size="10" opacity="0.6">photo · <tspan fill="var(--link)" text-decoration="underline">field notes</tspan></text>
+        <text x="20" y="214">Cabin Crew · 2 more yes for Saturday</text>
+        <text x="20" y="228" font-size="10" opacity="0.6">plan</text>
+        <text x="20" y="258">Dad · shared a folder</text>
+        <text x="20" y="272" font-size="10" opacity="0.6">3 files</text>
+        <text x="20" y="302">You · captured a page</text>
+        <text x="20" y="316" font-size="10" opacity="0.6">note</text>
+      </g>
+      <rect x="20" y="326" width="200" height="1" fill="var(--wire-fg)" opacity="0.14"></rect>
+      <g font-family="'JetBrains Mono', monospace" font-size="7.5" fill="var(--wire-fg)" opacity="0.6">
+        <text x="200" y="170" text-anchor="end">2m</text>
+        <text x="200" y="214" text-anchor="end">18m</text>
+        <text x="200" y="258" text-anchor="end">1h</text>
+        <text x="200" y="302" text-anchor="end">3h</text>
+        <text x="20" y="345">14 more · mostly from Play apps</text>
+      </g>
+      <rect x="180" y="160" width="20" height="20" fill="#C9A96E"></rect>
+      <rect x="20" y="470" width="200" height="1" fill="var(--wire-fg)"></rect>
+      <text x="20" y="488" font-family="'JetBrains Mono', monospace" font-size="9" fill="var(--wire-fg)" opacity="0.6">pull down to type</text>
+    </svg>
+    <div class="cap">NOW · clock, ongoing line, one stream. The photo is the only color.</div>
+  </div>
+  <div class="sketch">
+    <svg viewBox="0 0 240 520" role="img" aria-label="Person surface sketch">
+      <rect x="0" y="0" width="240" height="520" fill="var(--wire-bg)"></rect>
+      <rect x="20" y="40" width="28" height="28" fill="none" stroke="var(--wire-fg)" stroke-width="1"></rect>
+      <circle cx="27" cy="47" r="3" fill="none" stroke="var(--wire-fg)" stroke-width="1"></circle>
+      <path d="M34 54h14M34 54v14" fill="none" stroke="var(--wire-fg)" stroke-width="1"></path>
+      <text x="58" y="52" font-family="'Source Serif 4', Georgia, serif" font-size="16" fill="var(--wire-fg)">Sam</text>
+      <text x="58" y="66" font-family="'JetBrains Mono', monospace" font-size="7.5" fill="var(--wire-fg)" opacity="0.4">~sampel-palnet</text>
+      <g font-family="'JetBrains Mono', monospace" font-size="8" fill="var(--wire-fg)">
+        <text x="20" y="96">MESSAGE</text><text x="78" y="96">CALL</text><text x="112" y="96">SEND FILE</text><text x="166" y="96">SEND APP</text>
+      </g>
+      <rect x="20" y="106" width="200" height="1" fill="var(--wire-fg)"></rect>
+      <text x="20" y="128" font-family="'JetBrains Mono', monospace" font-size="7.5" letter-spacing="1.2" fill="var(--wire-fg)" opacity="0.6">EVERYTHING BETWEEN YOU</text>
+      <g font-family="'Source Serif 4', Georgia, serif" font-size="11" fill="var(--wire-fg)">
+        <text x="20" y="156">the pecans came in</text><text x="200" y="156" text-anchor="end" font-family="'JetBrains Mono', monospace" font-size="7.5" opacity="0.6">today</text>
+        <text x="20" y="190">Saturday at the cabin</text><text x="200" y="190" text-anchor="end" font-family="'JetBrains Mono', monospace" font-size="7.5" opacity="0.6">plan</text>
+        <text x="20" y="224">soil-samples.csv</text><text x="200" y="224" text-anchor="end" font-family="'JetBrains Mono', monospace" font-size="7.5" opacity="0.6">file</text>
+        <text x="20" y="258">Which weekend works?</text><text x="200" y="258" text-anchor="end" font-family="'JetBrains Mono', monospace" font-size="7.5" opacity="0.6">poll</text>
+        <text x="20" y="292">river sunset</text><text x="200" y="292" text-anchor="end" font-family="'JetBrains Mono', monospace" font-size="7.5" opacity="0.6">photo</text>
+      </g>
+      <rect x="20" y="300" width="60" height="40" fill="#7A9E7E"></rect>
+      <g fill="var(--wire-fg)" opacity="0.14"><rect x="20" y="166" width="200" height="1"></rect><rect x="20" y="200" width="200" height="1"></rect><rect x="20" y="234" width="200" height="1"></rect><rect x="20" y="268" width="200" height="1"></rect></g>
+      <text x="20" y="372" font-family="'JetBrains Mono', monospace" font-size="7.5" fill="var(--wire-fg)" opacity="0.4">2024 ────────────────●── now</text>
+    </svg>
+    <div class="cap">PERSON · verbs, then one scroll across every app. Address in mono, dimmed, one tap away.</div>
+  </div>
+  <div class="sketch">
+    <svg viewBox="0 0 240 520" role="img" aria-label="Type surface sketch">
+      <rect x="0" y="0" width="240" height="520" fill="var(--wire-bg)"></rect>
+      <rect x="20" y="48" width="200" height="1" fill="var(--wire-fg)"></rect>
+      <text x="20" y="42" font-family="'JetBrains Mono', monospace" font-size="14" fill="var(--wire-fg)">&gt; sam thu</text>
+      <rect x="92" y="30" width="6" height="15" fill="var(--wire-fg)"></rect>
+      <g font-family="'Source Serif 4', Georgia, serif" font-size="11" fill="var(--wire-fg)">
+        <text x="20" y="78">Message Sam</text>
+        <text x="20" y="104">Plan with Sam · Thursday</text>
+        <text x="20" y="130">Note: "sam thu"</text>
+        <text x="20" y="156" opacity="0.6">Search everything for "sam thu"</text>
+      </g>
+      <g fill="var(--wire-fg)" opacity="0.14"><rect x="20" y="88" width="200" height="1"></rect><rect x="20" y="114" width="200" height="1"></rect><rect x="20" y="140" width="200" height="1"></rect></g>
+      <text x="20" y="200" font-family="'JetBrains Mono', monospace" font-size="7.5" letter-spacing="1.2" fill="var(--wire-fg)" opacity="0.6">EMPTY LINE · EVERY APP</text>
+      <g font-family="'JetBrains Mono', monospace" font-size="10" fill="var(--wire-fg)">
+        <text x="20" y="226">browser</text>
+        <text x="20" y="248">camera</text>
+        <text x="20" y="270">grove</text><text x="200" y="270" text-anchor="end" font-size="7.5" opacity="0.6">sendable</text>
+        <text x="20" y="292">kin</text><text x="200" y="292" text-anchor="end" font-size="7.5" opacity="0.6">sendable</text>
+        <text x="20" y="314">maps</text>
+        <text x="20" y="336">terminal</text><text x="200" y="336" text-anchor="end" font-size="7.5" opacity="0.6">sendable</text>
+        <text x="20" y="358">tlon</text><text x="200" y="358" text-anchor="end" font-size="7.5" opacity="0.6">sendable</text>
+      </g>
+      <text x="226" y="290" font-family="'JetBrains Mono', monospace" font-size="6" fill="var(--wire-fg)" opacity="0.4" writing-mode="tb">a b c d e f g h i j k l m n</text>
+    </svg>
+    <div class="cap">TYPE · one line resolves to verbs. Empty, it is the whole app list, no icons, no sections. The capability is the label.</div>
+  </div>
+</div>
+
+<h2>Color and type</h2>
+<p>The rule you set: the chrome never carries color. Only content does. Making that hold at OS scale needs three decisions.</p>
+<dl class="kv">
+  <dt>ground</dt><dd><span class="swatch" style="background:#0E0D0C"></span>true black by default, for OLED and for the reason Nothing calls it Extra Dark: content color reads loudest on it. A <span class="mono">sun</span> mode inverts to <span class="swatch" style="background:#F4F1EC"></span>paper. Both are the tokens already in the launcher.</dd>
+  <dt>ladder</dt><dd>One opacity ladder replaces every color-coded state: 100 for the one hero element on a screen, 90 for content, 60 for labels and time, 40 for disabled and dimmed. State is opacity or pattern (solid, striped, dotted), never hue.</dd>
+  <dt>content</dt><dd>Photos, video, link text, and anything a person made keep their color, including inside an Android app's notification line. Sigils are chrome and go monochrome. Links use one blue, <span class="mono">#1F5FBF</span> on paper and <span class="mono">#7DA6C9</span> on black, because a link is content someone else wrote.</dd>
+  <dt>type</dt><dd>Two faces, no third. A text serif for everything a person reads (Source Serif 4 today; Literata is the alternate) and a mono for everything the system says (JetBrains Mono today; Berkeley Mono if we license one). Serif reads as document, mono reads as instrument, and that contrast does the work color used to. Tabular figures on anything that updates. Two weights per screen.</dd>
+  <dt>space</dt><dd>4 / 16 / 32 / 64. Spacing groups things; a rule appears only between identical data rows. If a divider feels necessary, the spacing is wrong.</dd>
+  <dt>motion</dt><dd>Percussive, not fluid. Ease-out only, under 200 ms, no springs, no bounce. The peek gesture is the one place motion carries information: drag halfway and the stream shows through; let go and it snaps back.</dd>
+</dl>
+
+<h2>Only on this phone</h2>
+<div class="moment">
+  <div><b>One scroll per person.</b> Every message, file, event and poll you ever shared with someone, across every app, assembled on open.</div>
+  <div><b>Send an app.</b> Long-press any sendable app on a person's page and it installs on their phone from yours.</div>
+  <div><b>Scrub time on anything.</b> A note, an album, a document as it was on any date, with the diff.</div>
+  <div><b>Mute once.</b> A person muted in Now is muted in chat, comments, calls and calendar.</div>
+  <div><b>Live lines.</b> A home-screen line changes the instant a peer posts, because it is a subscription.</div>
+  <div><b>Airplane mode changes nothing.</b> Everything opens, composes and queues; the server is in your pocket.</div>
+  <div><b>A new app arrives populated.</b> It already knows your people and groups on first open.</div>
+</div>
+
+<h2>Hiding the Urbit</h2>
+<p>Ops words never appear. Identity words appear on demand. Three things get celebrated without being named: your phone is your server, you have no accounts, and you can leave with your data.</p>
+<div class="tw">
+<table>
+  <tr><th>Never shown</th><th>Say instead</th></tr>
+  <tr><td class="mono">ship, planet, moon</td><td>you · your server · this phone</td></tr>
+  <tr><td class="mono">desk, glob, docket</td><td>app (or nothing)</td></tr>
+  <tr><td class="mono">@p, sigil</td><td>address (one tap under a name) · symbol</td></tr>
+  <tr><td class="mono">hosted, guest</td><td>nothing; "sendable" where it matters</td></tr>
+  <tr><td class="mono">pier, dojo, kelvin, OTA</td><td>your data · console (hidden) · version · update</td></tr>
+  <tr><td class="mono">Ames, Eyre, sponsor, galaxy</td><td>network · connection · relay (never in UI)</td></tr>
+  <tr><td class="mono">breach, comet</td><td>reset · guest ID</td></tr>
+</table>
+</div>
+
+<h2>How it maps onto what is built</h2>
+<p>None of this requires abandoning the stack. It requires one new agent, one new provider endpoint, and a different Launcher3 workspace.</p>
+<ul>
+  <li><b>A stream agent on the moon</b> (working name <span class="mono">%whisper-feed</span>) subscribes to Tlon's <span class="mono">%activity</span>, Grove and Kin's own activity, docket installs, and captures, and exposes one ordered feed plus per-person and per-thing queries. Apps that publish activity appear richly; apps that do not still appear through docket and notifications. This is the contract that replaces "hosted app inventory".</li>
+  <li><b>The controller</b> gains <span class="mono">getFeed</span>, <span class="mono">getPerson</span>, <span class="mono">getThings</span> next to the existing methods, bridges Android notifications from Play and system apps into the same feed through a notification listener, and enforces the ongoing-line eligibility rule so the status bar never fills with chips.</li>
+  <li><b>Launcher3</b> keeps the HOME role. The workspace page becomes Now, People and Things are edge-swipe pages, Type is the pull-down that already exists as the search bar. The hosted-app WebView activity stays as the way an Urbit app opens, one task per app (the v3 patch already in the repo).</li>
+  <li><b>Lock screen and always-on display</b> render the top of Now through the same provider, later, when the ROM exposes a keyguard surface.</li>
+  <li><b>Time travel</b> is a Clay revision scry behind a scrubber; <b>send an app</b> is ship-to-ship install behind a verb; <b>capture</b> is the share sheet plus a gesture, writing into Grove.</li>
+</ul>
+<dl class="phase">
+  <dt>phase 1</dt><dd>Now and Type replace the home page. Feed agent with Tlon activity, docket, and Android notifications. No People or Things yet; a person's name in Now opens Tlon. This alone removes every hosted/system label from the phone.</dd>
+  <dt>phase 2</dt><dd>People and Things as edge pages. Person query across Tlon, Grove, Kin. Computed sections in Things. Send an app.</dd>
+  <dt>phase 3</dt><dd>Lock screen and AOD from the feed. Capture gesture. Time scrubber. Per-app data dials in Settings, since the server can actually enforce them.</dd>
+</dl>
+
+<h2>Risks and open questions</h2>
+<ul>
+  <li><b>Apps that publish nothing.</b> A feed is only as good as its sources. Tlon publishes activity; Grove and Kin will need a small convention, which is also the moment to define what any third-party Urbit app must do to appear on the phone.</li>
+  <li><b>No icons is a shock.</b> Every minimal launcher review says the same thing: it feels like a relief on day two and a pain the first time you need an off-list app. Type must be one gesture from everywhere, always.</li>
+  <li><b>Play apps look thin.</b> They appear through notifications only. That is honest, and it quietly makes the case for the sendable ones, but it must never read as a penalty box.</li>
+  <li><b>Onboarding.</b> Pairing should be a QR shown by the home server, never a typed code, and recovery should be the parent relationship rather than a phrase to write down. That is a controller change, not a shell change, and it is worth doing first.</li>
+  <li><b>Sigils.</b> Proposed as chrome, therefore monochrome. If you want them to keep their color as the one exception, say so; it is a one-line rule either way.</li>
+</ul>
+
+<div class="foot">
+  Research streams: phone shells (iOS 26, Android 16, Nothing OS 4, Light Phone III, Punkt, webOS, Windows Phone, BlackBerry 10, Sailfish, Niagara, Olauncher), app patterns (Beeper, Apple Journal and Passwords, Telegram, Arc, Perplexity, Linear, Things, Nothing and Teenage Engineering design systems, Signal, Bluesky, Nostr clients), and Urbit precedents (Holium Realm, Tlon Landscape and Messenger, Uqbar, GroundSeg, %hark, %activity, %pals, Lick, Clay). Full notes with sources are in the repository under <span class="mono">docs/research/2026-09-15-mobile-ux-research.md</span>.
+</div>
+</div>
