@@ -157,6 +157,18 @@ current MVP.
 
 ---
 
+## Phase 1.5: Delegation (one identity)
+
+**Goal:** DMs sent to the planet reach the phone, and DMs sent from the phone
+are authored by the planet. Groups follow the planet.
+
+**Design:** [architecture/delegation.md](architecture/delegation.md). A
+`%satellite` relay in the Artemis desk on the parent; the moon's
+`%nativeplanet-mobile` mirrors DMs, groups and unreads and forwards sends.
+Whisper Home (`home/`) reads the mirror and gains a compose line.
+
+---
+
 ## Phase 4: Modern Urbit Integration
 
 **Goal:** Use modern Urbit control surfaces beyond health checks.

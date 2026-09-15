@@ -1,6 +1,6 @@
 # Parent-Satellite Protocol
 
-Status: product architecture sketch, not implemented MVP behavior. The current verified path is a throwaway dev moon running locally on Android with controller/provider/conn.sock status. Parent sync and Lick integration remain future work.
+Status: superseded by [delegation.md](delegation.md) (2026-09-15) for message and group sync; kept for the offline-queue and backup ideas. Not implemented. The current verified path is a throwaway dev moon running locally on Android with controller/provider/conn.sock status. Parent sync and Lick integration remain future work.
 
 ## Overview
 
