@@ -45,3 +45,7 @@ device. Current, standalone verification references live alongside this file:
 - **2026-07-10** — A freshly provisioned moon boots to a stable, network-live
   ship on device with no host tooling and auto-starts across reboots. See
   [fresh-moon-boot.md](fresh-moon-boot.md).
+- **2026-09-15** — Device recheck from the MacBook: provider, Launcher3 home,
+  and all hosted surfaces re-verified on ROM `2026062202`; hosted-app switching
+  defect found and a Launcher3 v3 patch prepared; upstream `vere64 5.0` runs on
+  the phone. See [2026-09-15-device-recheck.md](2026-09-15-device-recheck.md).

@@ -36,3 +36,25 @@ Apply from the root of a compatible GrapheneOS checkout:
 cd packages/apps/Launcher3
 git apply /path/to/whisper-os-Urbit-Mobile/rom/patches/launcher3-whisper-os-v2.patch
 ```
+
+## `launcher3-whisper-os-v3-hosted-app-tasks.patch`
+
+Follow-on to v2 (apply v2 first). Found on device 2026-09-15 against ROM
+`2026062202`: every hosted Urbit app opened into the same standard task, so
+after opening one hosted app and going Home, tapping a different hosted app
+only brought the old task to the front and showed the previous app. The patch
+makes `WhisperHostedWebActivity` a document activity keyed by
+`urbit-app://<desk>` (`documentLaunchMode="intoExisting"`, `onNewIntent`), so
+each Urbit app is its own task in recents, and pads the content by the IME
+inset so the terminal prompt is not hidden under the keyboard.
+
+```bash
+cd packages/apps/Launcher3
+git apply /path/to/whisper-os-Urbit-Mobile/rom/patches/launcher3-whisper-os-v2.patch
+git apply -C1 /path/to/whisper-os-Urbit-Mobile/rom/patches/launcher3-whisper-os-v3-hosted-app-tasks.patch
+```
+
+The v3 manifest hunks were written without the full manifest at hand, so their
+line numbers are approximate; `-C1` lets `git apply` place them by context.
+Once the build tree has both applied, regenerate a single v3 patch with the
+`git diff --binary` command above and retire this file.

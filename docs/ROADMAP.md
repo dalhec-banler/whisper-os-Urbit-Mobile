@@ -50,7 +50,9 @@ for an app unless its route probes healthy on local Eyre. Glob apps (Tlon) and
 inventory stays inventory-only rather than opening a broken page.
 
 Next: finish the remaining app surfaces (Kin) and richer per-app mobile launch
-metadata. Manual moon-key import stays available as an advanced fallback.
+metadata. Rebuild with `rom/patches/launcher3-whisper-os-v3-hosted-app-tasks.patch`
+so each hosted app is its own task (2026-09-15 device recheck found that opening a
+second hosted app showed the first one). Manual moon-key import stays available as an advanced fallback.
 
 For detailed verification reports, see [docs/verification/](verification/).
 

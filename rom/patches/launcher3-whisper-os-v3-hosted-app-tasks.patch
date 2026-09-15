@@ -1,0 +1,129 @@
+From: Whisper OS <dev@nativeplanet.io>
+Subject: [PATCH] launcher3: one task per hosted Urbit app + keyboard insets (v3, applies after v2)
+
+Hosted apps opened from pinned shortcuts or My Urbit Apps all landed in one
+standard task rooted in the launcher3 package. Once one hosted app was open and
+the user went Home, tapping a different hosted app only brought that task back
+to the front (ActivityTaskManager "onActivityRestartAttempt") and showed the
+previous app's page. Reproduced on ROM 2026062202: Terminal -> Home -> Tlon
+showed Terminal; Tlon -> Home -> Terminal showed Tlon.
+
+Fix: WhisperHostedWebActivity becomes a document activity keyed by a per-desk
+data URI (urbit-app://<desk>) with documentLaunchMode="intoExisting", so each
+Urbit app is its own task in recents, reopening a desk resurfaces its task, and
+the activity handles onNewIntent. Also pads the content by the IME inset so the
+terminal prompt is no longer hidden under the keyboard (the window is
+edge-to-edge, so adjustResize alone had no effect).
+
+Apply after launcher3-whisper-os-v2.patch:
+  cd packages/apps/Launcher3 && git apply -C1 rom/patches/launcher3-whisper-os-v3-hosted-app-tasks.patch
+(The two manifest hunks carry approximate line numbers; -C1 lets git apply
+locate them by context.)
+---
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -88,5 +88,7 @@
+         <activity
+             android:name="com.android.launcher3.WhisperHostedWebActivity"
+             android:theme="@style/AppTheme"
+             android:exported="false"
++            android:documentLaunchMode="intoExisting"
++            android:windowSoftInputMode="adjustResize"
+             android:resizeableActivity="true" />
+diff --git a/quickstep/AndroidManifest.xml b/quickstep/AndroidManifest.xml
+--- a/quickstep/AndroidManifest.xml
++++ b/quickstep/AndroidManifest.xml
+@@ -108,5 +108,7 @@
+         <activity
+             android:name="com.android.launcher3.WhisperHostedWebActivity"
+             android:theme="@style/AppTheme"
+             android:exported="false"
++            android:documentLaunchMode="intoExisting"
++            android:windowSoftInputMode="adjustResize"
+             android:resizeableActivity="true" />
+diff --git a/src/com/android/launcher3/WhisperHostedAppsActivity.java b/src/com/android/launcher3/WhisperHostedAppsActivity.java
+--- a/src/com/android/launcher3/WhisperHostedAppsActivity.java
++++ b/src/com/android/launcher3/WhisperHostedAppsActivity.java
+@@ -481,7 +481,13 @@
+ 
+     private void openHostedShell(HostedApp app) {
+         try {
++            // One task per hosted app. The data URI keys the document task, so
++            // reopening the same desk resurfaces its task (and onNewIntent fires)
++            // while a different desk gets its own task instead of being shown the
++            // previous app's page (documentLaunchMode="intoExisting" in the manifest).
+             startActivity(new Intent(this, WhisperHostedWebActivity.class)
++                    .setData(Uri.parse("urbit-app://" + app.desk))
++                    .addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
+                     .putExtra(WhisperHostedWebActivity.EXTRA_TITLE, app.title)
+                     .putExtra(WhisperHostedWebActivity.EXTRA_SUBTITLE, app.subtitle())
+                     .putExtra(WhisperHostedWebActivity.EXTRA_DESK, app.desk)
+diff --git a/src/com/android/launcher3/WhisperHostedWebActivity.java b/src/com/android/launcher3/WhisperHostedWebActivity.java
+--- a/src/com/android/launcher3/WhisperHostedWebActivity.java
++++ b/src/com/android/launcher3/WhisperHostedWebActivity.java
+@@ -23,6 +23,7 @@
+ import android.view.Gravity;
+ import android.view.View;
+ import android.view.ViewGroup;
++import android.view.WindowInsets;
+ import android.webkit.CookieManager;
+ import android.webkit.WebResourceError;
+ import android.webkit.WebResourceRequest;
+@@ -100,12 +101,56 @@
+                 View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                         | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+         setContentView(createContentView());
++        applyImeInsets();
+ 
+         configureWebView();
+         loadHostedUrlWithLocalSession(url);
+     }
+ 
++    /**
++     * A document task is reused when the same desk is opened again (see
++     * WhisperHostedAppsActivity.openHostedShell). Reload only when the target
++     * actually changed so a plain "reopen" keeps the page and its scroll state.
++     */
+     @Override
++    protected void onNewIntent(Intent intent) {
++        super.onNewIntent(intent);
++        String url = intent.getStringExtra(EXTRA_URL);
++        if (TextUtils.isEmpty(url)) {
++            return;
++        }
++        Uri next = Uri.parse(url);
++        if (!isLaunchableHostedUri(next)) {
++            return;
++        }
++        setIntent(intent);
++        if (mInitialUri != null && mInitialUri.equals(next) && !mShowingError) {
++            return;
++        }
++        mInitialUri = next;
++        mShowingError = false;
++        loadHostedUrlWithLocalSession(url);
++    }
++
++    /**
++     * Keep the page above the keyboard. The window is edge-to-edge, so
++     * windowSoftInputMode="adjustResize" alone does not shrink the WebView;
++     * pad the content by the IME inset instead (terminal prompt stays visible).
++     */
++    private void applyImeInsets() {
++        View content = findViewById(android.R.id.content);
++        if (content == null) {
++            return;
++        }
++        content.setOnApplyWindowInsetsListener((v, insets) -> {
++            int ime = insets.getInsets(WindowInsets.Type.ime()).bottom;
++            int nav = insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
++            v.setPadding(0, 0, 0, Math.max(ime - nav, 0));
++            return insets;
++        });
++    }
++
++    @Override
+     public void onBackPressed() {
+         if (mWebView != null && mWebView.canGoBack()) {
+             mWebView.goBack();
