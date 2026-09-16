@@ -232,6 +232,20 @@ private fun PersonPage(vm: HomeViewModel, s: UiState) {
             Mono(if (muted) "UNMUTE" else "MUTE", color = W.Paper, modifier = Modifier.clickable { vm.mute(p.ship, !muted) })
         }
         Spacer(Modifier.height(16.dp)); Rule()
+        var draft by remember(p.ship) { mutableStateOf("") }
+        Row(Modifier.fillMaxWidth().padding(top = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+            Mono(">", color = W.Paper60, size = 16, tracking = 0.0, modifier = Modifier.padding(end = 10.dp))
+            BasicTextField(
+                value = draft, onValueChange = { draft = it }, singleLine = true,
+                textStyle = TextStyle(color = W.Paper, fontFamily = W.Serif, fontSize = 17.sp),
+                cursorBrush = SolidColor(W.Paper),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                keyboardActions = KeyboardActions(onSend = { if (draft.isNotBlank()) { vm.sendDm(p, draft.trim()); draft = "" } }),
+                decorationBox = { inner -> if (draft.isEmpty()) Text(if (s.delegated) "message ${p.display} as ${s.parent}" else "message ${p.display}", color = W.Paper40, fontFamily = W.Serif, fontSize = 17.sp); inner() },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Hairline()
         Mono("EVERYTHING BETWEEN YOU", size = 10, tracking = 0.14, modifier = Modifier.padding(top = 22.dp, bottom = 6.dp))
         LazyColumn {
             items(entries, key = { it.id }) { e ->
@@ -302,7 +316,7 @@ private fun Settings(vm: HomeViewModel, s: UiState) {
         Rule()
         LazyColumn {
             item { Mono("SERVER", size = 10, tracking = 0.14, modifier = Modifier.padding(top = 22.dp, bottom = 6.dp)) }
-            item { Text("${s.self ?: "no ship"} · ${s.runtime}" + if (s.connected) " · connected" else "", color = W.Paper90, fontFamily = W.Serif, fontSize = 16.sp, modifier = Modifier.padding(vertical = 8.dp)) }
+            item { Text("${s.self ?: "no ship"} · ${s.runtime}" + (if (s.connected) " · connected" else "") + (if (s.delegated) " · acting as ${s.parent}" else ""), color = W.Paper90, fontFamily = W.Serif, fontSize = 16.sp, modifier = Modifier.padding(vertical = 8.dp)) }
             item { Mono("TOOLS ON THE HOME SCREEN", size = 10, tracking = 0.14, modifier = Modifier.padding(top = 22.dp, bottom = 6.dp)) }
             items(all) { w ->
                 val on = w in s.toolWords

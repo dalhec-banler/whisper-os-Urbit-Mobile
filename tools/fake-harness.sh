@@ -16,7 +16,7 @@ TOOLS="/Users/austinnelsen/Desktop/Urbit Development/tools"
 PILL="$TOOLS/urbit-v4.6.pill"
 ARTEMIS="/Users/austinnelsen/Desktop/Urbit Development/artemis/desk"
 MOBILE="$REPO/satellite-pill/desks/nativeplanet-mobile"
-FS="python3 $HERE/fakeship.py"
+fs() { python3 "$HERE/fakeship.py" "$@"; }
 MOON=doznec-dozzod-dozzod
 
 log() { printf '\n== %s\n' "$*"; }
@@ -28,7 +28,7 @@ wait_prompt() { # wait until a ship's terminal shows an idle dojo prompt
   done
   echo "timeout waiting for $pier"; return 1
 }
-run() { $FS run "$1" "$2" "${3:-240}" | grep -v 'dojo> + /' | tail -${4:-4}; }
+run() { fs run "$1" "$2" "${3:-240}" | grep -v 'dojo> + /' | tail -${4:-4}; }
 
 log "stopping any fake ships"
 pkill -f "vere64-edge -F (zod|$MOON|bud)" 2>/dev/null || true
@@ -37,9 +37,9 @@ sleep 8
 rm -rf "$H"; mkdir -p "$H"; cd "$H"
 
 log "booting zod, moon, bud"
-$FS start "$H/zod"  -F zod   -B "$PILL" -c zod  --http-port 8093
-$FS start "$H/moon" -F $MOON -B "$PILL" -c moon --http-port 8094
-$FS start "$H/bud"  -F bud   -B "$PILL" -c bud  --http-port 8095
+fs start "$H/zod"  -F zod   -B "$PILL" -c zod  --http-port 8093
+fs start "$H/moon" -F $MOON -B "$PILL" -c moon --http-port 8094
+fs start "$H/bud"  -F bud   -B "$PILL" -c bud  --http-port 8095
 wait_prompt "$H/zod"; wait_prompt "$H/moon"; wait_prompt "$H/bud"
 sleep 20
 

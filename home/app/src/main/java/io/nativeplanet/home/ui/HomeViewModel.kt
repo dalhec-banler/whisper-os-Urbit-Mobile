@@ -47,6 +47,8 @@ data class UiState(
     val person: Person? = null,
     val query: String = "",
     val toast: String? = null,
+    val delegated: Boolean = false,
+    val parent: String? = null,
 )
 
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
@@ -103,7 +105,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             if (eyre.loggedIn) {
                 val snap = ship.snapshot(rt.shipName)
                 shipEntries = snap.entries; unreadDm = snap.unreadDm
-                _state.update { it.copy(people = snap.people, connected = true) }
+                _state.update { it.copy(people = snap.people, connected = true, delegated = snap.delegated, parent = snap.parent) }
             } else _state.update { it.copy(connected = false) }
         } else _state.update { it.copy(connected = false) }
         recompute(lastDone, lastNotifs)
@@ -157,6 +159,16 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun eyreUrl(path: String) = eyre.url(path)
+
+    /** Send a DM. With delegation the planet sends it; otherwise the moon's own chat app opens. */
+    fun sendDm(p: Person, text: String) {
+        val s = _state.value
+        if (!s.delegated) { openEntry(Entry("open:${p.ship}", 0, p.display, p.ship, "", "MESSAGE", link = "apps/groups/dm/${p.ship}")); return }
+        val self = s.self ?: run { toast("no ship"); return }
+        viewModelScope.launch {
+            if (ship.sendDm(self, p.ship, text)) { toast("sent as ${s.parent}"); delay(2500); refresh() } else toast("send failed")
+        }
+    }
 
     fun markDone(e: Entry) = viewModelScope.launch { prefs.markDone(e.id) }
     fun mute(shipName: String, muted: Boolean) = viewModelScope.launch { prefs.setMuted(shipName, muted) }
