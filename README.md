@@ -120,3 +120,7 @@ Never commit:
 ## License
 
 Original code in this repository is MIT licensed unless otherwise noted. Third-party components retain their original licenses.
+
+## Building the ROM
+
+The ROM builds on an x86_64 Linux machine inside a GrapheneOS checkout. What to carry over from a Mac session and how to rebuild incrementally: `docs/runtime/linux-build-checklist.md`.
