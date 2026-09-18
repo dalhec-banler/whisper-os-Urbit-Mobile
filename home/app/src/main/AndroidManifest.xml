@@ -27,7 +27,10 @@
             android:excludeFromRecents="true"
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:windowSoftInputMode="adjustResize">
-            <intent-filter>
+            <!-- priority=1 outranks Launcher3QuickStep (priority 0) so the role
+                 controller picks Whisper Home as the default home on first boot;
+                 a tie would leave the device with no default home at all. -->
+            <intent-filter android:priority="1">
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
