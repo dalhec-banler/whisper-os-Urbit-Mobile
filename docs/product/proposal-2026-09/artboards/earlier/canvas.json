@@ -1,0 +1,19 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "Quiet home" },
+    { "id": "page-2", "name": "Earlier directions" }
+  ],
+  "artboards": [
+    { "file": "../Main.dc.html",   "x": 0,    "y": 0, "w": 390, "h": 844, "title": "Home", "page": "page-1" },
+    { "file": "../Later.dc.html",  "x": 480,  "y": 0, "w": 390, "h": 844, "title": "Later", "page": "page-1" },
+    { "file": "../Person.dc.html", "x": 960,  "y": 0, "w": 390, "h": 844, "title": "Person", "page": "page-1" },
+    { "file": "../Type.dc.html",   "x": 1440, "y": 0, "w": 390, "h": 844, "title": "Type", "page": "page-1" },
+    { "file": "Ink.dc.html",       "x": 0,    "y": 0, "w": 390, "h": 844, "title": "B · Ink", "page": "page-2" },
+    { "file": "Ledger.dc.html",    "x": 480,  "y": 0, "w": 390, "h": 844, "title": "C · Ledger", "page": "page-2" }
+  ],
+  "annotations": [
+    { "id": "rules", "x": 0, "y": -200, "w": 620, "page": "page-1", "text": "Quiet home\n\nHome: clock, then at most two lines — Next (the one time-bound thing) and Reach (only people or groups on your reach list) — then a short word list of tools. Usually just the clock and the words.\nLater: pull up from the bottom. The full record across every source; swipe to open / later / done / mute; low-priority folded into a digest.\nPerson: verbs, then one scroll of everything between you across every app; time scrubber at the bottom.\nType: pull down anywhere; one line resolves to verbs; cleared, it is every app, no icons.\n\nChrome is never colored. Photos and links are." },
+    { "id": "earlier", "x": 0, "y": -140, "w": 480, "page": "page-2", "text": "Earlier directions: B · Ink (true-black tiles), C · Ledger (mono list). A · Paper became the quiet home." }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

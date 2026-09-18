@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
+# Scan tracked and untracked-but-not-ignored files for local paths, build-owner
+# labels, web login codes and raw moon keys. Exit 1 on any match.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-mapfile -t scan_files < <(
+scan_files=()
+while IFS= read -r f; do
+  scan_files+=("$f")
+done < <(
   git ls-files --cached --others --exclude-standard \
     ':!:tools/check-repo-hygiene.sh' \
-    ':!:launcher/gradle/wrapper/gradle-wrapper.jar' \
+    ':!:**/gradle-wrapper.jar' \
     ':!:**/*.png' \
     ':!:**/*.jpg' \
     ':!:**/*.jpeg' \
@@ -25,19 +30,21 @@ if [[ "${#scan_files[@]}" -eq 0 ]]; then
   exit 0
 fi
 
+matches="$(mktemp)"
+trap 'rm -f "$matches"' EXIT
+
 status=0
 
 check_pattern() {
   local label="$1"
   local pattern="$2"
-  if grep -nE "$pattern" -- "${scan_files[@]}" >/tmp/nativeplanet-hygiene-matches.$$ 2>/dev/null; then
+  if grep -nE "$pattern" -- "${scan_files[@]}" >"$matches" 2>/dev/null; then
     echo "FAIL: $label"
-    cat /tmp/nativeplanet-hygiene-matches.$$
+    cat "$matches"
     status=1
   else
     echo "PASS: $label"
   fi
-  rm -f /tmp/nativeplanet-hygiene-matches.$$
 }
 
 check_pattern "no local home paths" '(/home/|/Users/|grapheneos-[0-9]|dev/mobile-vere)'

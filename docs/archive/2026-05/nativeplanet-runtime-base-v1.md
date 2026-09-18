@@ -1,3 +1,5 @@
+> Archived 2026-05. Superseded by [docs/runtime/runtime-base-v1-to-satellite-v0.md](../../runtime/runtime-base-v1-to-satellite-v0.md) and [docs/runtime/init-service.md](../../runtime/init-service.md).
+
 # NativePlanet Runtime Base v1
 
 **Achieved:** 2026-05-18

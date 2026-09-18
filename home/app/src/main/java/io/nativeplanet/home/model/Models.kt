@@ -33,6 +33,17 @@ data class Person(
     val display: String get() = nickname?.takeIf { it.isNotBlank() } ?: ship
 }
 
+/** Where an Entry came from. Ship sources open Tlon; phone sources open the app that posted them. */
+object Source {
+    const val MESSAGE = "MESSAGE"
+    const val CHAT = "CHAT"
+    const val GROUP = "GROUP"
+    const val ANDROID = "ANDROID"
+    const val ONGOING = "ONGOING"
+    /** Notification-fed sources: folded under "more from apps" unless priority. */
+    val PHONE: Set<String> = setOf(ANDROID, ONGOING)
+}
+
 /** One line of the record: something that happened, from any source. */
 data class Entry(
     val id: String,
@@ -40,8 +51,7 @@ data class Entry(
     val who: String,          // person or group display name
     val ship: String?,        // author ship if any
     val text: String,
-    val source: String,       // MESSAGE, PLAN, FILES, ANDROID, ...
-    val imageUrl: String? = null,
+    val source: String,       // one of Source
     val link: String? = null,
     val packageName: String? = null,
     val priority: Boolean = false,

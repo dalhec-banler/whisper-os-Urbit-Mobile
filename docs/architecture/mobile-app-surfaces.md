@@ -1,5 +1,7 @@
 # Mobile App Surfaces
 
+Status: the launch-mode and inventory contract is current and served by the controller; the Launcher3 surfaces named below are superseded by Whisper Home's Type page (`home/`).
+
 Whisper OS should make Urbit apps feel like phone apps while keeping the
 running moon as the source of truth.
 
@@ -244,7 +246,7 @@ parent/mobile desk policy, or desk delivery, not in the launcher route code.
 
 ## Non-Goals
 
-- Do not require Lens.
+- Do not require Lens ([PROJECT_MAP.md](../PROJECT_MAP.md#current-technical-direction)).
 - Do not make Artemis a launcher-facing API.
 - Do not fake installed app inventory.
 - Do not hide Android app store behavior.

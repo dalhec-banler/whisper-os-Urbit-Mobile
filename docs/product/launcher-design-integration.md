@@ -1,6 +1,6 @@
 # Launcher Design Integration
 
-Status: active guide for applying the local design handoff to the real launcher.
+Status: superseded by [proposal-2026-09/](proposal-2026-09/nouns-before-apps.html). Kept for the pairing and onboarding screens in `launcher/`.
 
 The original launcher design handoff remains useful for visual direction, but
 parts of it were written before the ROM, controller, and conn.sock integration
@@ -11,8 +11,7 @@ runtime contract.
 
 - The launcher reads real provider data from NativePlanet Controller.
 - The phone runs a real init-managed moon.
-- Lens is deprecated and is not part of launcher health checks.
-- Click/conn.sock is the runtime truth path.
+- Click/conn.sock is the runtime truth path ([why not Lens](../PROJECT_MAP.md#current-technical-direction)).
 - The primary onboarding path is parent hosting URL plus `+code`.
 - Manual moon-key import is the advanced fallback.
 - QR pairing and stub-controller-only instructions are stale.

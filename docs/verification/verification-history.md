@@ -49,3 +49,7 @@ device. Current, standalone verification references live alongside this file:
   and all hosted surfaces re-verified on ROM `2026062202`; hosted-app switching
   defect found and a Launcher3 v3 patch prepared; upstream `vere64 5.0` runs on
   the phone. See [2026-09-15-device-recheck.md](2026-09-15-device-recheck.md).
+- **2026-09-18** — Delegation verified on the real chain: `%satellite` on
+  `~hobdem`, the phone's moon paired, a DM sent from Whisper Home landed in the
+  star's `%chat` authored `~hobdem`; snapshot refresh and groups phase A hold.
+  See [2026-09-18-delegation-real-chain.md](2026-09-18-delegation-real-chain.md).

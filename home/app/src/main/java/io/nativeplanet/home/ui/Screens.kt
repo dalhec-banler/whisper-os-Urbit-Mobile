@@ -48,11 +48,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.em
 import io.nativeplanet.home.model.Entry
 import io.nativeplanet.home.model.Person
+import io.nativeplanet.home.model.Source
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 private val PAD = 22.dp
+/** How long a toast stays up. */
+private const val TOAST_MS = 2200L
+/** Vertical drag on Home that counts as a swipe to Later (up) or Type (down). */
+private const val SWIPE_PX = 120f
+/** Characters of the sender name shown beside a reach line. */
+private const val REACH_WHO_CHARS = 9
 
 @Composable
 fun Root(vm: HomeViewModel) {
@@ -67,7 +74,7 @@ fun Root(vm: HomeViewModel) {
             Surface.SETTINGS -> Settings(vm, s)
         }
         s.toast?.let { msg ->
-            LaunchedEffect(msg) { kotlinx.coroutines.delay(2200); vm.toast(null) }
+            LaunchedEffect(msg) { kotlinx.coroutines.delay(TOAST_MS); vm.toast(null) }
             Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 96.dp).background(W.Paper).padding(horizontal = 14.dp, vertical = 8.dp)) {
                 Text(msg, color = W.Ink, fontFamily = W.Mono, fontSize = 12.sp)
             }
@@ -85,7 +92,10 @@ fun Root(vm: HomeViewModel) {
 
 private fun clock(ms: Long): String = SimpleDateFormat("h:mm", Locale.getDefault()).format(Date(ms))
 private fun dayLine(ms: Long): String = SimpleDateFormat("EEE d MMM", Locale.getDefault()).format(Date(ms)).uppercase()
-private fun hm(ms: Long): String = SimpleDateFormat("h:mm", Locale.getDefault()).format(Date(ms))
+private fun spanLabel(now: Long, newest: Long): String {
+    val d = (now - newest) / (24 * 60 * 60 * 1000L)
+    return when { d < 1 -> "TODAY"; d < 7 -> "THIS WEEK"; else -> "EARLIER" }
+}
 private fun ago(now: Long, then: Long): String {
     val m = ((now - then) / 60000L).coerceAtLeast(0)
     return when { m < 1 -> "now"; m < 60 -> "${m}m"; m < 60 * 24 -> "${m / 60}h"; else -> "${m / (60 * 24)}d" }
@@ -102,7 +112,7 @@ private fun Home(vm: HomeViewModel, s: UiState) {
                 var total = 0f
                 detectVerticalDragGestures(
                     onDragStart = { total = 0f },
-                    onDragEnd = { if (total < -120f) vm.show(Surface.LATER) else if (total > 120f) vm.show(Surface.TYPE) },
+                    onDragEnd = { if (total < -SWIPE_PX) vm.show(Surface.LATER) else if (total > SWIPE_PX) vm.show(Surface.TYPE) },
                     onVerticalDrag = { _, dy -> total += dy }
                 )
             }
@@ -116,13 +126,13 @@ private fun Home(vm: HomeViewModel, s: UiState) {
         Column(Modifier.padding(top = 30.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             s.next?.let { n ->
                 Row(Modifier.clickable { vm.openWord("calendar") }) {
-                    Mono(hm(n.atMs), color = W.Paper60, size = 13, tracking = 0.0, modifier = Modifier.width(56.dp))
+                    Mono(clock(n.atMs), color = W.Paper60, size = 13, tracking = 0.0, modifier = Modifier.width(56.dp))
                     Mono(n.title, color = W.Paper, size = 13, tracking = 0.0)
                 }
             }
             s.reach?.let { e ->
                 Row(Modifier.clickable { vm.openEntry(e) }) {
-                    Mono(e.who.take(9), color = W.Paper60, size = 13, tracking = 0.0, modifier = Modifier.width(56.dp))
+                    Mono(e.who.take(REACH_WHO_CHARS), color = W.Paper60, size = 13, tracking = 0.0, modifier = Modifier.width(56.dp))
                     Mono(e.text, color = W.Paper, size = 13, tracking = 0.0)
                 }
             }
@@ -151,17 +161,17 @@ private fun Later(vm: HomeViewModel, s: UiState) {
         Spacer(Modifier.height(22.dp))
         Row(Modifier.fillMaxWidth().padding(bottom = 14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
             Text("Later", color = W.Paper, fontFamily = W.Serif, fontWeight = FontWeight.Light, fontSize = 28.sp, modifier = Modifier.clickable { vm.home() })
-            Mono("TODAY", size = 11)
+            s.later.maxOfOrNull { it.timeMs }?.let { Mono(spanLabel(s.nowMs, it), size = 11) }
         }
         Rule()
-        val loud = s.later.filter { it.source != "ANDROID" || it.priority }
-        val quiet = s.later.filter { it.source == "ANDROID" && !it.priority }
+        val loud = s.later.filter { it.source !in Source.PHONE || it.priority }
+        val quiet = s.later.filter { it.source in Source.PHONE && !it.priority }
         LazyColumn(Modifier.weight(1f)) {
             items(loud, key = { it.id }) { e -> EntryRow(vm, s, e) }
             if (quiet.isNotEmpty()) item {
                 var open by remember { mutableStateOf(false) }
                 Row(Modifier.fillMaxWidth().clickable { open = !open }.padding(vertical = 18.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("${quiet.size} more, mostly from Play apps", color = W.Paper60, fontFamily = W.Serif, fontSize = 15.sp)
+                    Text("${quiet.size} more from apps", color = W.Paper60, fontFamily = W.Serif, fontSize = 15.sp)
                     Mono(if (open) "–" else "›", size = 12)
                 }
                 if (open) Column { quiet.forEach { e -> EntryRow(vm, s, e) } }
@@ -219,7 +229,7 @@ private fun People(vm: HomeViewModel, s: UiState) {
 private fun PersonPage(vm: HomeViewModel, s: UiState) {
     val p = s.person ?: return
     BackHandler { vm.show(Surface.PEOPLE) }
-    val entries = remember(p, s.later) { vm.entriesFor(p) }
+    val entries = remember(p, s.shipEntries) { vm.entriesFor(p) }
     val canReach = p.ship in s.reachShips
     val muted = p.ship in s.mutedShips
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = PAD)) {
@@ -227,7 +237,7 @@ private fun PersonPage(vm: HomeViewModel, s: UiState) {
         Text(p.display, color = W.Paper, fontFamily = W.Serif, fontWeight = FontWeight.Light, fontSize = 30.sp, modifier = Modifier.clickable { vm.show(Surface.PEOPLE) })
         Mono(p.ship + when { canReach -> " · can reach you"; muted -> " · muted"; else -> "" }, color = W.Paper40, size = 11, tracking = 0.0, modifier = Modifier.padding(top = 4.dp))
         Row(Modifier.padding(top = 26.dp), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-            Mono("MESSAGE", color = W.Paper, modifier = Modifier.clickable { vm.openEntry(Entry("open:${p.ship}", 0, p.display, p.ship, "", "MESSAGE", link = "apps/groups/dm/${p.ship}")) })
+            Mono("MESSAGE", color = W.Paper, modifier = Modifier.clickable { vm.openEntry(Entry("open:${p.ship}", 0, p.display, p.ship, "", Source.MESSAGE, link = "apps/groups/dm/${p.ship}")) })
             Mono(if (canReach) "REACH · ON" else "REACH", color = W.Paper, modifier = Modifier.clickable { vm.setReach(p.ship, !canReach) })
             Mono(if (muted) "UNMUTE" else "MUTE", color = W.Paper, modifier = Modifier.clickable { vm.mute(p.ship, !muted) })
         }

@@ -2,9 +2,14 @@
 # Build the delegation test harness from scratch: a fake ~zod (the planet, with
 # Tlon's desk and the Artemis desk carrying %satellite), its fake moon
 # ~doznec-dozzod-dozzod (the phone, with %nativeplanet-mobile paired to zod),
-# and a fake ~bud (a DM peer). Everything runs under tools/fakeship.py.
+# and a fake ~bud (a DM peer). Everything runs under tools/fake-ship.py.
 #
 #   tools/fake-harness.sh <harness-dir>
+#
+# Inputs (env, with defaults relative to the repo checkout):
+#   NP_TOOLS_DIR      dir holding the pill and vere binary   (default: <repo>/../tools)
+#   NP_ARTEMIS_DESK   Artemis desk source                    (default: <repo>/../artemis/desk)
+#   VERE              vere binary for fake-ship.py           (default: $NP_TOOLS_DIR/vere64-edge)
 #
 # Never run scries against not-yet-running agents in these dojos: a blocked
 # scry wedges the dojo for good. Verify with tools/conn-client.js instead.
@@ -12,12 +17,29 @@ set -euo pipefail
 H="${1:?harness dir}"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
-TOOLS="/Users/austinnelsen/Desktop/Urbit Development/tools"
+TOOLS="${NP_TOOLS_DIR:-$REPO/../tools}"
+ARTEMIS="${NP_ARTEMIS_DESK:-$REPO/../artemis/desk}"
+export VERE="${VERE:-$TOOLS/vere64-edge}"
 PILL="$TOOLS/urbit-v4.6.pill"
-ARTEMIS="/Users/austinnelsen/Desktop/Urbit Development/artemis/desk"
 MOBILE="$REPO/satellite-pill/desks/nativeplanet-mobile"
-fs() { python3 "$HERE/fakeship.py" "$@"; }
+
+if [[ ! -d "$TOOLS" ]]; then
+  echo "Error: tools dir not found: $TOOLS (set NP_TOOLS_DIR)"; exit 1
+fi
+if [[ ! -f "$PILL" ]]; then
+  echo "Error: pill not found: $PILL (set NP_TOOLS_DIR)"; exit 1
+fi
+if [[ ! -d "$ARTEMIS" ]]; then
+  echo "Error: Artemis desk not found: $ARTEMIS (set NP_ARTEMIS_DESK)"; exit 1
+fi
+if [[ ! -x "$VERE" ]]; then
+  echo "Error: vere binary not found: $VERE (set VERE)"; exit 1
+fi
+
+fs() { python3 "$HERE/fake-ship.py" "$@"; }
 MOON=doznec-dozzod-dozzod
+RUN_TIMEOUT=240   # seconds to wait for the dojo to go idle after a command
+RUN_TAIL=4        # lines of dojo output to keep
 
 log() { printf '\n== %s\n' "$*"; }
 wait_prompt() { # wait until a ship's terminal shows an idle dojo prompt
@@ -28,11 +50,14 @@ wait_prompt() { # wait until a ship's terminal shows an idle dojo prompt
   done
   echo "timeout waiting for $pier"; return 1
 }
-run() { fs run "$1" "$2" "${3:-240}" | grep -v 'dojo> + /' | tail -${4:-4}; }
+# run <pier> <command> [timeout-seconds] [tail-lines]
+run() {
+  local pier="$1" cmd="$2" timeout="${3:-$RUN_TIMEOUT}" tail_lines="${4:-$RUN_TAIL}"
+  fs run "$pier" "$cmd" "$timeout" | grep -v 'dojo> + /' | tail -n "$tail_lines"
+}
 
 log "stopping any fake ships"
-pkill -f "vere64-edge -F (zod|$MOON|bud)" 2>/dev/null || true
-pkill -f "vere64-edge (zod|moon|bud) " 2>/dev/null || true
+pkill -f "$(basename "$VERE") -F (zod|$MOON|bud)" 2>/dev/null || true
 sleep 8
 rm -rf "$H"; mkdir -p "$H"; cd "$H"
 
@@ -64,7 +89,7 @@ D="$H/moon/nativeplanet-mobile"; mkdir -p "$D/app" "$D/lib" "$D/mar"
 cp "$MOBILE/app/nativeplanet-mobile.hoon" "$D/app/"
 cp "$ARTEMIS/lib/default-agent.hoon" "$ARTEMIS/lib/dbug.hoon" "$ARTEMIS/lib/skeleton.hoon" "$D/lib/"
 cp "$ARTEMIS/mar/json.hoon" "$ARTEMIS/mar/bill.hoon" "$ARTEMIS/mar/mime.hoon" "$ARTEMIS/mar/txt.hoon" "$D/mar/"
-cp "$MOBILE/desk.bill" "$D/desk.bill"; printf '[%%zuse 408]\n' > "$D/sys.kelvin"
+cp "$MOBILE/desk.bill" "$D/desk.bill"; cp "$MOBILE/sys.kelvin" "$D/sys.kelvin"
 run "$H/moon" "|commit %nativeplanet-mobile" 300 3
 run "$H/moon" "|install ~$MOON %nativeplanet-mobile" 300 6
 run "$H/moon" ":nativeplanet-mobile [%pair ~zod]" 60 3
@@ -72,4 +97,9 @@ run "$H/moon" ":nativeplanet-mobile [%pair ~zod]" 60 3
 log "bud: Tlon desk from zod"
 run "$H/bud" "|install ~zod %groups" 300 3
 
-log "done. codes: zod lidlut-tabwed-pillex-ridrup · moon pacmul-pollur-lignub-novhus · bud (see +code)"
+log "done. web login codes:"
+CODE_RE='[a-z]{6}-[a-z]{6}-[a-z]{6}-[a-z]{6}'
+for ship in zod moon bud; do
+  printf '%s: ' "$ship"
+  run "$H/$ship" "+code" 60 3 | grep -oE "$CODE_RE" | tail -n 1 || echo "(not printed; run +code in the dojo)"
+done

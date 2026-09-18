@@ -1,13 +1,17 @@
 # Hosted Urbit Apps
 
-Whisper OS should treat Urbit apps as first-class phone apps without pretending
-they are Android packages.
+Status: the inventory contract below is current. The My Urbit Apps surface is
+superseded by Whisper Home's Type page (`home/`), which reads the same
+inventory and opens apps through the same hosted WebView.
+
+Whisper OS treats Urbit apps as first-class phone apps without pretending they
+are Android packages.
 
 ## Product Shape
 
-The home screen has a first-party **My Urbit Apps** entry near the Android app
-store. Opening it shows the apps available on the running ship, using the same
-metadata Landscape uses for its tiles when available.
+The **My Urbit Apps** surface (Launcher3, now superseded) shows the apps
+available on the running ship, using the same metadata Landscape uses for its
+tiles when available.
 
 Users can:
 
@@ -173,7 +177,7 @@ The controller should:
 
 - Do not replace the Android app store.
 - Do not fake an app inventory when the ship cannot provide one.
-- Do not depend on Lens.
+- Do not depend on Lens ([PROJECT_MAP.md](../PROJECT_MAP.md#current-technical-direction)).
 - Do not require comets for validation.
 - Do not make the browser address bar the default user experience for hosted
   Urbit apps.

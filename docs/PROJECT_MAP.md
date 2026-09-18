@@ -11,10 +11,13 @@ Project home.
 Owns:
 
 - Product roadmap and current project memory
+- Whisper Home, the HOME app, under `home`
+- Architecture notes under `docs/architecture` and the design proposal under `docs/product`
 - Controller/provider contracts
 - ROM overlay source under `rom/vendor/nativeplanet`
-- Launcher3/Quickstep patch sets under `rom/patches`
-- Companion/onboarding launcher source under `launcher`
+- Launcher3/Quickstep patch sets under `rom/patches` (the hosted-app WebView task host)
+- The `%nativeplanet-mobile` desk under `satellite-pill/desks`
+- `launcher`, the superseded Compose shell, kept for its Artemis pairing screens
 - Verification reports
 - Research notes
 - Safe examples and test fixtures
@@ -70,28 +73,26 @@ Does not own:
 
 Companion/onboarding app checkout. The source should be periodically copied into
 this repo's `launcher/` directory, excluding build output and local machine
-config.
-
-The product HOME shell is Launcher3/Quickstep, not this Compose app. Launcher3
-changes should be preserved as patch sets under `rom/patches`.
+config. Launcher3 changes are preserved as patch sets under `rom/patches`.
 
 ## Current Source Of Truth
 
 Use these in order:
 
 1. [ROADMAP.md](ROADMAP.md)
-2. [verification/fresh-moon-boot.md](verification/fresh-moon-boot.md) and the [verification history](verification/verification-history.md)
-3. [research/2026-06-08-graceful-shutdown-research.md](research/2026-06-08-graceful-shutdown-research.md)
-4. [controller/controller-api-contract.md](controller/controller-api-contract.md)
+2. [architecture/delegation.md](architecture/delegation.md)
+3. [verification/fresh-moon-boot.md](verification/fresh-moon-boot.md) and the [verification history](verification/verification-history.md)
+4. [research/2026-06-08-graceful-shutdown-research.md](research/2026-06-08-graceful-shutdown-research.md)
+5. [controller/controller-api-contract.md](controller/controller-api-contract.md)
 
 Historical May docs live in `docs/archive/2026-05/` and must not be treated as current.
 
 ## Current Technical Direction
 
-- Click/conn.sock is the runtime truth path.
-- Lens is deprecated and should not be used for health checks.
-- Lick is future Android capability IPC, not MVP lifecycle/status.
-- Launcher reads provider data. It should not poke pier internals directly.
+- Click/conn.sock is the runtime truth path (`tools/conn-client.js`).
+- Lens is deprecated and is not used for health checks.
+- Lick: see [architecture/lick-android-bridge.md](architecture/lick-android-bridge.md).
+- Whisper Home reads provider data and the moon's local Eyre. It does not poke pier internals directly.
 - Controller owns provisioning, runtime status, and lifecycle operations.
 - Graceful shutdown should follow Native Planet GroundSeg's Click `|exit` pattern and allow minutes, not seconds.
 - Urbit MCP is development tooling for parent/distro ships, not a phone runtime dependency. See [runtime/urbit-mcp.md](runtime/urbit-mcp.md).

@@ -57,7 +57,7 @@
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">Whisper OS · design proposal · 15 September 2026 · revised the same day</div>
+  <div class="eyebrow">Whisper OS · design proposal · September 2026</div>
   <h1>Nouns before apps</h1>
   <p class="deck">The front of the phone is quiet: a clock, the one thing that is next, and a short list of tools. Your people and your things are a swipe away. Apps are verbs you type. Nothing is labeled Urbit, nothing is sorted by where it came from, and nobody reaches you unless you said they could.</p>
 </header>
@@ -92,7 +92,7 @@
   <li>Planet Link as a visible app. The runtime console becomes one quiet line in Settings ("server · running · updated 2h ago") and a page behind it.</li>
   <li>Any surface that says moon, ship, desk, hosted, sigil, @p, dojo or kelvin. The vocabulary table below is the whole allowed set.</li>
 </ul>
-<p>Kept: Launcher3 as the HOME role for gestures, recents, drag and drop; the controller and provider as the only truth path; graceful lifecycle through conn.sock; no fake success states.</p>
+<p>Kept: Launcher3 only as the hosted-app WebView task host; the controller and provider as the only truth path; graceful lifecycle through conn.sock; no fake success states.</p>
 
 <h2>The shape of it</h2>
 <p>Four surfaces plus a quiet home. Three are places, one is a verb. The phone opens on the home page and everything else is one gesture away.</p>
@@ -240,11 +240,11 @@
 </div>
 
 <h2>How it maps onto what is built</h2>
-<p>None of this requires abandoning the stack. It requires one new agent, one new provider endpoint, and a different Launcher3 workspace.</p>
+<p>None of this requires abandoning the stack. It requires one new agent, one new provider endpoint, and a new HOME app.</p>
 <ul>
   <li><b>A stream agent on the moon</b> (working name <span class="mono">%whisper-feed</span>) subscribes to Tlon's <span class="mono">%activity</span>, Grove and Kin's own activity, docket installs, and captures, and exposes one ordered feed plus per-person and per-thing queries. Apps that publish activity appear richly; apps that do not still appear through docket and notifications. This is the contract that replaces "hosted app inventory".</li>
   <li><b>The controller</b> gains <span class="mono">getNext</span>, <span class="mono">getReach</span>, <span class="mono">getLater</span>, <span class="mono">getPerson</span>, <span class="mono">getThings</span> next to the existing methods, bridges Android notifications from Play and system apps into Later through a notification listener, holds the reach list as a set of people and groups, and enforces the ongoing-chip eligibility rule so the status bar never fills.</li>
-  <li><b>Launcher3</b> keeps the HOME role. The workspace page becomes the quiet home, Later is the pull-up, People and Things are edge-swipe pages, Type is the pull-down that already exists as the search bar. The hosted-app WebView activity stays as the way an Urbit app opens, one task per app (the v3 patch already in the repo).</li>
+  <li><b>Whisper Home</b> (<span class="mono">home/</span>) holds the HOME role as a standalone Compose app. Its first page is the quiet home, Later is the pull-up, People and Things are edge-swipe pages, Type is the pull-down. Launcher3's hosted-app WebView activity stays as the way an Urbit app opens, one task per app (the v3 patch already in the repo).</li>
   <li><b>Lock screen and always-on display</b> render the clock, Next and Reach through the same provider, later, when the ROM exposes a keyguard surface. Android's own notification shade is suppressed for everything the reach list does not cover.</li>
   <li><b>Time travel</b> is a Clay revision scry behind a scrubber; <b>send an app</b> is ship-to-ship install behind a verb; <b>capture</b> is the share sheet plus a gesture, writing into Grove.</li>
 </ul>

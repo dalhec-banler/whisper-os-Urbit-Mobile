@@ -1,8 +1,8 @@
 package io.nativeplanet.home.data
 
-import android.util.Log
 import io.nativeplanet.home.model.Entry
 import io.nativeplanet.home.model.Person
+import io.nativeplanet.home.model.Source
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -11,9 +11,12 @@ import org.json.JSONObject
  * against local Eyre; nothing here writes. The activity agent on current moons
  * answers the v4 paths, so those are what we use.
  */
-class Ship(private val eyre: Eyre) {
-    companion object { private const val TAG = "WhisperHome.Ship" }
+/** Wait for the relay's invite to land before the moon joins a planet-hosted group. */
+private const val INVITE_SETTLE_MS = 3000L
+/** DM writs fetched per thread for the record. */
+private const val DM_PREVIEW_COUNT = 5
 
+class Ship(private val eyre: Eyre) {
     data class Snapshot(
         val people: List<Person>, val entries: List<Entry>, val unreadDm: Set<String>,
         val delegated: Boolean = false, val parent: String? = null,
@@ -64,7 +67,7 @@ class Ship(private val eyre: Eyre) {
                 entries.add(Entry(
                     id = "mdm:$ship:$key", timeMs = essay.optLong("sent", 0L),
                     who = if (author == our) "You → $ship" else author,
-                    ship = author, text = text, source = "MESSAGE", link = "apps/groups/dm/$ship",
+                    ship = author, text = text, source = Source.MESSAGE, link = "apps/groups/dm/$ship",
                 ))
             }
         }
@@ -82,7 +85,7 @@ class Ship(private val eyre: Eyre) {
             if (entries.none { it.id == id }) entries.add(Entry(
                 id = id, timeMs = essay.optLong("sent", 0L),
                 who = if (author == our) "You → $whom" else author,
-                ship = author, text = text, source = "MESSAGE", link = "apps/groups/dm/$whom",
+                ship = author, text = text, source = Source.MESSAGE, link = "apps/groups/dm/$whom",
             ))
             if (people.none { it.ship == whom }) people.add(Person(whom, null, null))
         }
@@ -111,7 +114,7 @@ class Ship(private val eyre: Eyre) {
         if (group.hostedByParent) {
             val ask = JSONObject().put("invite-moon", group.flag)
             if (!eyre.poke("nativeplanet-mobile", "json", ask, self)) return false
-            kotlinx.coroutines.delay(3000)
+            kotlinx.coroutines.delay(INVITE_SETTLE_MS)
         }
         val join = JSONObject().put("flag", group.flag).put("join-all", true)
         return eyre.poke("groups", "group-join", join, self)
@@ -142,7 +145,7 @@ class Ship(private val eyre: Eyre) {
             val u = unreads?.optJSONObject(ship)
             val count = u?.optInt("count", 0) ?: 0
             if (count > 0) unreadDm.add(ship)
-            val writs = eyre.scry("chat/dm/$ship/writs/newest/5/light")?.optJSONObject("writs") ?: continue
+            val writs = eyre.scry("chat/dm/$ship/writs/newest/$DM_PREVIEW_COUNT/light")?.optJSONObject("writs") ?: continue
             writs.keys().forEach { key ->
                 val w = writs.optJSONObject(key) ?: return@forEach
                 val essay = w.optJSONObject("essay") ?: return@forEach
@@ -154,7 +157,7 @@ class Ship(private val eyre: Eyre) {
                 entries.add(Entry(
                     id = "dm:$ship:$key", timeMs = sent,
                     who = if (author == self) "You → ${people.firstOrNull { it.ship == ship }?.display ?: ship}" else nick,
-                    ship = author, text = text, source = "MESSAGE",
+                    ship = author, text = text, source = Source.MESSAGE,
                     link = "apps/groups/dm/$ship",
                 ))
             }
@@ -180,7 +183,7 @@ class Ship(private val eyre: Eyre) {
                     id = "act:$key", timeMs = s.optLong("recency", 0L),
                     who = name, ship = null,
                     text = if (count == 1) "1 new post" else "$count new posts",
-                    source = if (key.startsWith("channel/chat")) "CHAT" else "GROUP",
+                    source = if (key.startsWith("channel/chat")) Source.CHAT else Source.GROUP,
                     link = "apps/groups",
                 ))
             }
@@ -201,7 +204,6 @@ class Ship(private val eyre: Eyre) {
                         item.optJSONObject("link")?.let { sb.append(it.optString("content").ifEmpty { it.optString("href") }) }
                         item.optString("bold").takeIf { it.isNotEmpty() }?.let { sb.append(it) }
                         item.optString("italics").takeIf { it.isNotEmpty() }?.let { sb.append(it) }
-                        item.optJSONObject("ship")?.let { sb.append(it.toString()) }
                         if (item.has("ship") && item.opt("ship") is String) sb.append(item.getString("ship"))
                         if (item.has("break")) sb.append(' ')
                     }

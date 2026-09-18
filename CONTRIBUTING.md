@@ -1,7 +1,5 @@
 # Contributing to Whisper OS
 
-Thank you for your interest in contributing to Whisper OS!
-
 ## License
 
 By contributing to this repository, you agree that your contributions will be licensed under the MIT License. See [LICENSE](LICENSE) for the full license text.
@@ -23,13 +21,6 @@ Original code in this repository is MIT licensed unless otherwise noted. Third-p
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request
-
-### Documentation
-
-Documentation improvements are always welcome:
-- Fix typos or clarify confusing sections
-- Add examples or diagrams
-- Translate to other languages
 
 ## Code Style
 
@@ -55,10 +46,6 @@ See [SECURITY.md](SECURITY.md) for details.
 
 See [docs/runtime/build-and-flash.md](docs/runtime/build-and-flash.md) for build instructions.
 
-## Questions?
+Questions go in an issue with the `question` label.
 
-Open an issue with the `question` label.
-
-## Code of Conduct
-
-Be respectful. We're all here to build something useful.
+Be respectful.

@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """Run a ship under a pseudo-terminal and drive its dojo from the command line.
 
-  fakeship.py start <pier-dir> [vere args...]      # spawns a detached daemon
-  fakeship.py send  <pier-dir> "<text>"            # types text + Enter into the dojo
-  fakeship.py ctrl  <pier-dir> c                   # sends a control key (ctrl-c, ctrl-d ...)
-  fakeship.py tail  <pier-dir> [N]                 # last N lines of terminal output
-  fakeship.py stop  <pier-dir>                     # ctrl-d (graceful exit)
+  fake-ship.py start <pier-dir> [vere args...]      # spawns a detached daemon
+  fake-ship.py send  <pier-dir> "<text>"            # types text + Enter into the dojo
+  fake-ship.py run   <pier-dir> "<text>" [TIMEOUT]  # send, wait for an idle prompt, print output
+  fake-ship.py ctrl  <pier-dir> c                   # sends a control key (ctrl-c, ctrl-d ...)
+  fake-ship.py clear <pier-dir>                     # backspaces over any stale input
+  fake-ship.py tail  <pier-dir> [N]                 # last N lines of terminal output
+  fake-ship.py stop  <pier-dir>                     # ctrl-d (graceful exit)
 
 The daemon keeps <pier-dir>.tty.log (all terminal output) and <pier-dir>.cmd
-(a FIFO for input). VERE points at the binary (default: tools/vere64-edge).
+(a FIFO for input). VERE points at the binary (default: ../tools/vere64-edge,
+relative to the repo checkout); it must exist.
 """
-import os, sys, time, pty, select, subprocess, errno, re, signal
+import os, sys, time, pty, select, subprocess, errno, re
 
-VERE = os.environ.get("VERE", "/Users/austinnelsen/Desktop/Urbit Development/tools/vere64-edge")
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VERE = os.environ.get("VERE") or os.path.join(REPO, "..", "tools", "vere64-edge")
+CLEAR_INPUT = b"\x7f" * 400   # enough backspaces to erase any stale dojo line
 
 def paths(pier):
     pier = os.path.abspath(pier.rstrip("/"))
@@ -48,6 +53,8 @@ def main():
     op = sys.argv[1]; pier = sys.argv[2]
     p, log, fifo = paths(pier)
     if op == "start":
+        if not os.access(VERE, os.X_OK):
+            print("vere binary not found: %s (set VERE)" % VERE, file=sys.stderr); sys.exit(1)
         if os.fork() == 0:
             os.setsid()
             if os.fork() == 0:
@@ -61,11 +68,11 @@ def main():
     if op == "stop":
         with open(fifo, "wb") as f: f.write(b"\x04"); return
     if op == "clear":
-        with open(fifo, "wb") as f: f.write(b"\x7f" * 400); return
+        with open(fifo, "wb") as f: f.write(CLEAR_INPUT); return
     if op == "run":
         # clear any stale input, type one command, wait until the dojo prompt is idle; print what appeared
         timeout = float(sys.argv[4]) if len(sys.argv) > 4 else 180.0
-        with open(fifo, "wb") as f: f.write(b"\x7f" * 400)
+        with open(fifo, "wb") as f: f.write(CLEAR_INPUT)
         time.sleep(1.5)
         before = os.path.getsize(log) if os.path.exists(log) else 0
         with open(fifo, "wb") as f: f.write(sys.argv[3].encode() + b"\r")

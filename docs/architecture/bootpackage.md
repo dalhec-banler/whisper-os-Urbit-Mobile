@@ -1,13 +1,8 @@
 # BootPackage Specification
 
-## Overview
+Status: the runtime BootPackage v0 is what the ROM reads today; the distribution BootPackage is future.
 
-BootPackage refers to two related concepts:
-
-1. **Runtime BootPackage (v0)**: A JSON config file that controls how `nativeplanet-vere-launch` boots vere
-2. **Distribution BootPackage (future)**: A signed archive for distributing moon identities
-
-This document covers both.
+BootPackage names two things: the runtime BootPackage (v0), a JSON config file that controls how `nativeplanet-vere-launch` boots vere, and the distribution BootPackage (future), a signed archive for distributing moon identities. This document covers both.
 
 ---
 

@@ -1,3 +1,5 @@
+> Archived 2026-05. Superseded by [docs/controller/controller-api-contract.md](../../controller/controller-api-contract.md) and the controller source under `rom/vendor/nativeplanet/controller/`.
+
 # Controller Runtime-Status Polling via conn.sock
 
 Status: implemented in the ROM overlay source. Early drafts assumed

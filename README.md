@@ -15,13 +15,13 @@ Current baseline:
 - A moon provisioned from a parent planet boots and reaches its sponsor over
   Ames. A freshly provisioned moon now boots end-to-end on device — including
   the Azimuth galaxy-table fetch over HTTPS — with no host-side tooling.
-- `conn.sock` is the runtime truth path and replaces Lens for runtime health.
+- `conn.sock` is the runtime truth path ([why not Lens](docs/PROJECT_MAP.md#current-technical-direction)).
 - `NativePlanetController` polls conn.sock, derives the ship's `@p` from the
-  runtime-reported ship id, and exposes provider status to the launcher.
-- Whisper OS uses Launcher3/Quickstep as HOME, with native Android gestures,
-  recents, drag/drop, app drawer, widgets, and workspace behavior preserved.
-- Launcher3 includes a first-party My Urbit Apps surface for Urbit-hosted apps.
-  The onboarding app ships as "Planet Link".
+  runtime-reported ship id, and exposes provider status to HOME.
+- HOME is Whisper Home, the standalone Compose app in [`home/`](home/README.md),
+  built to [Nouns Before Apps](docs/product/proposal-2026-09/nouns-before-apps.html).
+  Launcher3/Quickstep is retained only as the hosted-app WebView task host
+  ([rom/patches](rom/patches/README.md)).
 - Hosted apps run full-screen in a hosted WebView with no launcher chrome, so an
   Urbit app behaves like any other app on the device. Tlon Messenger (a glob PWA)
   works end to end, including creating and sending a new direct message; Grove (a
@@ -37,19 +37,21 @@ Current baseline:
 ```text
 docs/
   ROADMAP.md                 Current source-of-truth roadmap
+  architecture/              Delegation, hosted apps, pill, boot package
+  product/                   Design proposal and product overview
+  runtime/                   Build, flash, init service, SELinux, vere build
   controller/                Provider and conn.sock controller contracts
   verification/              Flash/test reports
   research/                  Research notes and upstream findings
-  architecture/              Product architecture notes
   archive/                   Historical docs that are no longer current
 
-rom/vendor/nativeplanet/     Source overlay for GrapheneOS vendor/nativeplanet
-rom/patches/                 Patch sets for GrapheneOS projects outside vendor/nativeplanet
-launcher/                    Whisper Launcher Android project
-controller/                  Historical placeholder; controller now lives under rom/vendor/nativeplanet/controller
+home/                        Whisper Home, the HOME app
+rom/vendor/nativeplanet/     Source overlay for GrapheneOS vendor/nativeplanet (controller lives here)
+rom/patches/                 Launcher3 patches: hosted-app WebView task host
+satellite-pill/              Pill build notes/scripts and the %nativeplanet-mobile desk, not pill binaries
+tools/                       Helper scripts, including conn-client.js
 examples/                    Safe fixtures only
-satellite-pill/              Pill build notes/scripts, not pill binaries
-tools/                       Helper scripts
+launcher/                    Superseded by home/; kept for the Artemis pairing screens
 secrets/                     Local-only, gitignored
 ```
 
@@ -65,18 +67,18 @@ See [docs/PROJECT_MAP.md](docs/PROJECT_MAP.md) for the full ownership map.
 ## Current Architecture
 
 ```text
-Launcher
-  |
-  | ContentProvider calls
-  v
-NativePlanetController
-  |-- Android network observer -> /data/nativeplanet/network-state.json
-  |-- runtime poller ----------> /data/nativeplanet/runtime-status.json
-  |-- provider ----------------> content://io.nativeplanet.controller/*
-  |
+Whisper Home (home/)
+  |                         \
+  | ContentProvider calls    | local Eyre (127.0.0.1:8080)
+  v                          |
+NativePlanetController       |
+  |-- network observer -> /data/nativeplanet/network-state.json
+  |-- runtime poller ---> /data/nativeplanet/runtime-status.json
+  |-- provider ---------> content://io.nativeplanet.controller/*
+  |                          |
   | conn.sock / newt / jam+cued nouns
-  v
-vere64 / Urbit moon
+  v                          v
+vere64 / Urbit moon (init service, /system_ext/bin/nativeplanet-vere-launch)
 ```
 
 Runtime truth comes from conn.sock:
@@ -87,7 +89,7 @@ Runtime truth comes from conn.sock:
 - `%peel %info`
 - `%fyrd %base %khan-eval` for Click-style operations
 
-Lens is deprecated and must not be used for product health checks. Lick remains future Android capability IPC, not the current MVP control plane.
+Lens and Lick: see [PROJECT_MAP.md](docs/PROJECT_MAP.md#current-technical-direction).
 
 ## Build Pointers
 

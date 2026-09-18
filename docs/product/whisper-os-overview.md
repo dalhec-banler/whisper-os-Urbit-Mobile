@@ -2,11 +2,11 @@
 
 Whisper OS is a mobile-first NativePlanet environment for running a local Urbit moon on Android hardware.
 
-The near-term product is not a generic WebView wrapper. The current spine is:
+The product is not a generic WebView wrapper. The spine is:
 
 ```text
-Whisper Launcher
-  -> NativePlanetStatusProvider
+Whisper Home (home/, the HOME app)
+  -> content://io.nativeplanet.controller and the moon's local Eyre
   -> NativePlanetController
   -> conn.sock / Click-style runtime control
   -> vere64 running a moon
@@ -30,8 +30,8 @@ In scope:
 
 Out of scope for MVP:
 
-- Lens-based health checks
-- direct launcher access to pier internals
+- Lens (see [PROJECT_MAP.md](../PROJECT_MAP.md#current-technical-direction))
+- direct HOME access to pier internals
 - production parent/satellite sync
 - Lick-based Android capability IPC
 - Groundwire comet support
@@ -85,9 +85,8 @@ Lick, Hark notifications, Android intents/sensors, and app-level IPC.
 ## Principles
 
 - Runtime truth first, UI second.
-- Click/conn.sock replaces Lens for health and control.
-- Lick is future capability IPC, not MVP lifecycle.
-- Launcher reads provider data; controller owns privileged behavior.
+- Click/conn.sock is the truth path; Lens and Lick per [PROJECT_MAP.md](../PROJECT_MAP.md#current-technical-direction).
+- Whisper Home reads provider data; controller owns privileged behavior.
 - Never expose raw key material through provider or logs.
 - Use throwaway dev moons for testing until lifecycle is stable.
 

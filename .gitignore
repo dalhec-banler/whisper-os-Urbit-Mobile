@@ -16,7 +16,9 @@ zig-out/
 *.dex
 build/
 .gradle/
+.kotlin/
 local.properties
+*.hprof
 
 # Keys and secrets (NEVER COMMIT)
 *.pk8
@@ -57,6 +59,7 @@ __pycache__/
 
 # Logs
 *.log
+*.tty.log
 
 # Large binaries (use LFS or external hosting)
 *.pill

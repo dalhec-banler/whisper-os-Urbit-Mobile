@@ -4,6 +4,7 @@ import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import io.nativeplanet.home.model.Entry
+import io.nativeplanet.home.model.Source
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -41,7 +42,7 @@ object NotificationStore {
             who = title.ifEmpty { sbn.packageName.substringAfterLast('.') },
             ship = null,
             text = text.ifEmpty { title },
-            source = if (ongoing) "ONGOING" else "ANDROID",
+            source = if (ongoing) Source.ONGOING else Source.ANDROID,
             packageName = sbn.packageName,
             priority = n.priority >= Notification.PRIORITY_HIGH,
         )

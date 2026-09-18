@@ -17,9 +17,9 @@ The device boots, runs a real Urbit moon, and reports truthful status. Core infr
 - Launcher can provision a moon from manually entered moon name, parent, and moon key
 - Controller can pair with a parent ship through Artemis and provision a
   `%mobile` moon from the returned boot fields
-- Whisper OS uses the platform Launcher3/Quickstep launcher as HOME, with
-  NativePlanet runtime surfaces integrated as OS-level launcher features instead
-  of a standalone app icon
+- HOME is Whisper Home (`home/`), shipped 2026-09-15 to
+  [Nouns Before Apps](product/proposal-2026-09/nouns-before-apps.html).
+  Launcher3/Quickstep is retained only as the hosted-app WebView task host
 - A freshly provisioned moon boots to a stable, network-live ship on device and
   auto-starts across reboots, with no host-side tooling. This closed two
   device-only issues: the Vere binary's HTTPS stack (the dawn Azimuth
@@ -96,15 +96,17 @@ For detailed verification reports, see [docs/verification/](verification/).
 **Goal:** First shippable launcher surfaces against real backend data.
 
 **Status:** Moon-key import and Artemis-backed parent provisioning work.
-Launcher work is now based on
-Launcher3/Quickstep so Android gestures, recents, drag/drop, app drawer, and
-home-screen behavior stay production-grade.
+Whisper Home holds HOME; Launcher3/Quickstep is the hosted-app WebView task
+host.
 
+- Whisper Home (`home/`) shipped 2026-09-15 as HOME, built to
+  [Nouns Before Apps](product/proposal-2026-09/nouns-before-apps.html)
 - Runtime Console showing real status
 - Network panel from provider
 - Import moon flow wired to controller
-- Launcher3/Quickstep branded as Whisper OS and verified as the active HOME role
-- Launcher3/Quickstep changes preserved as `rom/patches/launcher3-whisper-os-v2.patch`
+- Launcher3/Quickstep held HOME from 2026-06-11 until Whisper Home; its
+  changes are preserved as `rom/patches/launcher3-whisper-os-v2.patch` and the
+  v3 hosted-app-tasks patch
 - Start/stop controls through graceful shutdown
 - No demo fallback unless controller is genuinely unavailable
 - First-run setup path when no ship is configured
@@ -124,36 +126,11 @@ home-screen behavior stay production-grade.
   route is verified, it must appear as inventory only, not as an openable app.
 - Use Grove and Kin as candidate paths for installing or syncing Urbit web apps
   after the first mobile app surfaces are stable.
-- Add richer Launcher3 actions for hosted apps: pin, unpin, open locally, and
-  open in browser.
-- Wire Docket tile images into Launcher3 icons when available.
+- Give Whisper Home's Type page the hosted-app actions: open locally, open in
+  the browser, and the app's own icon through `getHostedAppIcon`.
 
 Tlon signup can be linked from onboarding later, but it is not part of the
 current MVP.
-
----
-
-## Phase 2: Daily Launcher
-
-**Goal:** The phone is usable as a daily launcher.
-
-- Whisper-skinned Launcher3 home screen
-- App provenance styling for system, store, sandboxed, and Urbit apps
-- My Urbit Apps surface with pin-to-home behavior
-- Universal search
-- Recents, long-press menus, and drag/drop kept aligned with native Android
-- Notification shade and quick settings skinning
-- Settings surfaces for runtime, identity, and hosted apps
-
----
-
-## Phase 3: Failure States
-
-**Goal:** The product feels resilient, not demo-like.
-
-- Empty/offline/error states for all surfaces
-- Runtime failure states (key invalid, boot failed, conn unavailable)
-- Accessibility mode
 
 ---
 
@@ -167,19 +144,42 @@ are authored by the planet. Groups follow the planet.
 `%nativeplanet-mobile` mirrors DMs, groups and unreads and forwards sends.
 Whisper Home (`home/`) reads the mirror and gains a compose line.
 
-**Status (2026-09-18):** verified on the real chain. `%satellite` runs on
-`~hobdem` (installed over Clay from the dev moon), the test phone's moon
-`~hadwyn-taslyx-dozzod-hobdem` is paired, its mirror carries the star's DMs,
-and a DM composed in Whisper Home landed in the star's `%chat` authored
-`~hobdem`. Deployment steps are in
+**Status (2026-09-18):** verified on the real chain: DMs both ways authored by
+the planet, snapshot refresh, and groups phase A. See
+[verification/2026-09-18-delegation-real-chain.md](verification/2026-09-18-delegation-real-chain.md);
+deployment steps are in
 [architecture/delegation.md](architecture/delegation.md#deploying-to-a-real-parent).
-Groups phase A also holds: the snapshot carries the planet's groups, Whisper
-Home's Settings lists them, and joining a group the planet hosts goes
-invite-then-join through the relay (the phone's moon joined the star's closed
-group on 2026-09-18). The mirror asks for a fresh snapshot when a fact names
-a DM thread it has not seen. Still open: the setup-flow steps, and group
-activity from the relay (today it is the moon's own, from the groups it has
-joined).
+Still open: the setup flow doing the pairing poke and mirror install itself,
+group activity through the relay, and the activity and groups watch paths.
+
+---
+
+## Phase 2: Daily Use
+
+**Goal:** The phone is usable every day from Whisper Home alone, with nothing
+that needs a computer.
+
+- The Planet Link flows rebuilt inside Whisper Home in its own idiom: first
+  run with no ship, pair with a planet (hosting URL and `+code`), import a
+  satellite from a key, the reveal, and the key-backup notice
+- Pairing finishes the delegation setup itself: the mirror desk on the moon,
+  the pairing poke, and the offer to join the planet's groups
+- Server page: runtime state and controls (start, graceful stop), boot
+  package and identity detail, network, diagnostics, and a
+  controller-unavailable state distinct from a stopped ship
+- Hosted apps on the Type page with provenance, icons, and every launch mode
+- Recents, long-press menus, and drag/drop kept aligned with native Android
+- Notification shade and quick settings in the Whisper Home palette
+
+---
+
+## Phase 3: Failure States
+
+**Goal:** The product feels resilient, not demo-like.
+
+- Empty/offline/error states for all surfaces
+- Runtime failure states (key invalid, boot failed, conn unavailable)
+- Accessibility mode
 
 ---
 
@@ -189,7 +189,7 @@ joined).
 
 - Replace all Lens assumptions with Click/conn.sock
 - Add `%peek` and `%fyrd` support where needed
-- Design Lick bridge for future Android capabilities (deferred from MVP)
+- Lick bridge: see [architecture/lick-android-bridge.md](architecture/lick-android-bridge.md)
 
 ---
 

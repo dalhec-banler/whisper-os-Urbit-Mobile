@@ -18,17 +18,11 @@ git diff --binary 2026040800 > /path/to/whisper-os-Urbit-Mobile/rom/patches/laun
 Regenerate it the same way whenever Launcher3 source changes so the product
 repo stays in sync with the build tree.
 
-This patch keeps native Android launcher behavior as the product shell:
-
-- native HOME role through Launcher3/Quickstep
-- Android gestures, recents, drag/drop, app drawer, widgets, and workspace logic
-- Whisper OS colors and provenance styling
-- a first-party `My Urbit Apps` surface
-- local-host-only cleartext for Urbit web app shells
-
-It intentionally does not include the earlier custom `WhisperHomeActivity`
-prototype. That prototype bypassed native Launcher3 behavior and should not be
-revived as the HOME shell.
+HOME is Whisper Home (`home/`). This patch supplies the hosted-app WebView task
+host (`WhisperHostedWebActivity`, reached through
+`io.nativeplanet.action.OPEN_URBIT_APP`) and local-host-only cleartext for
+Urbit web app shells. Its `My Urbit Apps` surface and Whisper OS styling are
+carried along but no longer user-facing.
 
 Apply from the root of a compatible GrapheneOS checkout:
 
@@ -56,5 +50,8 @@ git apply -C1 /path/to/whisper-os-Urbit-Mobile/rom/patches/launcher3-whisper-os-
 
 The v3 manifest hunks were written without the full manifest at hand, so their
 line numbers are approximate; `-C1` lets `git apply` place them by context.
-Once the build tree has both applied, regenerate a single v3 patch with the
-`git diff --binary` command above and retire this file.
+
+## Pending
+
+- 2026-09-18: regenerate a single v3 patch from a build tree with both applied
+  (`git diff --binary` as above) and retire the two-step apply.

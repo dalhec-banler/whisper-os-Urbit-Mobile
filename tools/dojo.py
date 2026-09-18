@@ -2,23 +2,38 @@
 """Run dojo commands on a ship over HTTP by typing into %herm (the web terminal),
 and print what the terminal shows.
 
-Usage: dojo.py <http-base-url> <+code> [--wait SECONDS] "<command>" ["<command>" ...]
+Usage: dojo.py <http-base-url> <+code> [--wait SECONDS] [--session NAME] [--raw] "<command>" ["<command>" ...]
+       dojo.py <http-base-url> <+code> --poke <app> <mark> '<json>'
 
-Works when the ship has no tty (-t) and when the lens dojo session is broken.
+  --wait SECONDS   seconds to let each command run before typing the next (default 6)
+  --session NAME   open a fresh herm/dill session named NAME and type into that
+                   instead of the default one
+  --raw            also print each raw channel event (truncated)
+  --poke           instead of typing into the dojo, poke <app> with <mark> and a
+                   JSON body over the same Eyre channel and print the ack or nack
+
+Works when the ship has no tty (-t) and when the default herm session is wedged.
 """
 import json, sys, time, threading, uuid, urllib.request, http.cookiejar
+
+DEFAULT_WAIT = 6.0        # seconds a command gets before the next one is typed
+STREAM_OPEN_SLACK = 30.0  # extra seconds on the event-stream socket timeout
+STREAM_READ_SLACK = 8.0   # extra seconds to keep reading after the last command
+POKE_ACK_WAIT = 8.0       # seconds to wait for a poke ack or nack
 
 def main():
     args = sys.argv[1:]
     base, code = args[0], args[1]
-    wait = 6.0
+    wait = DEFAULT_WAIT
     session = ""
-    rest = args[2:]
-    while rest and rest[0] in ("--wait", "--session"):
-        if rest[0] == "--wait": wait = float(rest[1])
-        else: session = rest[1]
-        rest = rest[2:]
-    cmds = [c for c in rest if c != "--raw"]
+    raw = "--raw" in args
+    rest = [a for a in args[2:] if a != "--raw"]
+    poke = None
+    while rest and rest[0] in ("--wait", "--session", "--poke"):
+        if rest[0] == "--wait": wait = float(rest[1]); rest = rest[2:]
+        elif rest[0] == "--session": session = rest[1]; rest = rest[2:]
+        else: poke = rest[1:4]; rest = rest[4:]
+    cmds = rest
     jar = http.cookiejar.CookieJar()
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
     r = opener.open(urllib.request.Request(base + "/~/login", data=("password=" + code).encode(),
@@ -36,12 +51,33 @@ def main():
             opener.open(req, timeout=20).read()
         except urllib.error.HTTPError as e:
             print("channel PUT failed", e.code, "for", json.dumps(msgs)[:160]); raise
+    def close():
+        n[0] += 1
+        try: send([{"id": n[0], "action": "delete"}])
+        except Exception: pass
+    if poke:
+        app, mark, body = poke
+        n[0] += 1
+        send([{"id": n[0], "action": "poke", "ship": ship, "app": app, "mark": mark, "json": json.loads(body)}])
+        try:
+            resp = opener.open(urllib.request.Request(chan, headers={"Accept": "text/event-stream"}), timeout=POKE_ACK_WAIT + 5)
+            end = time.time() + POKE_ACK_WAIT
+            while time.time() < end:
+                line = resp.readline()
+                if not line: break
+                if line.startswith(b"data:"):
+                    ev = json.loads(line[5:].decode())
+                    if raw: print("RAW " + json.dumps(ev)[:400])
+                    if ev.get("response") == "poke":
+                        print("ack" if ev.get("ok") else "NACK: " + str(ev.get("err"))[:600]); break
+        except Exception as e:
+            print("no ack read:", e.__class__.__name__)
+        close(); return
     lines = []
     def reader():
         try:
-            resp = opener.open(urllib.request.Request(chan, headers={"Accept": "text/event-stream"}), timeout=wait + 30)
-            buf = b""
-            end = time.time() + wait + 8
+            resp = opener.open(urllib.request.Request(chan, headers={"Accept": "text/event-stream"}), timeout=wait + STREAM_OPEN_SLACK)
+            end = time.time() + wait + STREAM_READ_SLACK
             while time.time() < end:
                 chunk = resp.readline()
                 if not chunk: break
@@ -51,7 +87,7 @@ def main():
                     except Exception:
                         continue
                     j = ev.get("json")
-                    if "--raw" in sys.argv: lines.append("RAW " + json.dumps(ev)[:400])
+                    if raw: lines.append("RAW " + json.dumps(ev)[:400])
                     def walk(b):
                         if isinstance(b, list):
                             for x in b: walk(x)
@@ -85,13 +121,14 @@ def main():
         msgs = [belt({"txt": [ch]}) for ch in cmd] + [belt({"ret": None})]
         send(msgs)
         time.sleep(wait)
-    n[0] += 1
-    try: send([{"id": n[0], "action": "delete"}])
-    except Exception: pass
+    close()
     seen = None
     for l in lines:
-        if l.strip() and l != seen and not l.startswith("RAW ") or l.startswith("RAW ") and "--raw" in sys.argv:
-            print(l); seen = l
+        if not l.strip() or l == seen:
+            continue
+        if l.startswith("RAW ") and not raw:
+            continue
+        print(l); seen = l
 
 if __name__ == "__main__":
     main()

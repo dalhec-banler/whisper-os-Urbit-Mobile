@@ -26,7 +26,7 @@ class Tools(private val context: Context) {
             "people" to listOf("home:people"),
             "things" to listOf("desk:grove", "com.android.gallery3d"),
             "camera" to listOf("app.grapheneos.camera", "com.android.camera2"),
-            "notes" to listOf("desk:kin", "home:notes"),
+            "notes" to listOf("desk:kin"),
             "maps" to listOf("com.android.maps", "org.osmdroid", "app.vanadium.browser"),
             "calls" to listOf("com.android.dialer"),
             "browser" to listOf("app.vanadium.browser"),
@@ -67,7 +67,7 @@ class Tools(private val context: Context) {
             tool.hosted?.let { h ->
                 if (!h.openable) return false
                 val url = h.startUrl?.takeIf { it.isNotBlank() }
-                    ?: (BuildConfig.SHIP_URL.trimEnd('/') + "/" + h.basePath!!.trimStart('/'))
+                    ?: (BuildConfig.SHIP_URL.trimEnd('/') + "/" + (h.basePath ?: return false).trimStart('/'))
                 val i = Intent(ACTION_OPEN_URBIT_APP)
                     .setClassName(ROM_LAUNCHER, ROM_HOSTED_ACTIVITY)
                     .putExtra("id", h.id).putExtra("title", h.title).putExtra("desk", h.desk)

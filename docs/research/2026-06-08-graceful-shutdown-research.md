@@ -110,4 +110,4 @@ Do not:
 
 - Do not expose `setprop nativeplanet.vere.enabled 0` as normal UI behavior.
 - Do not rely on Android init `gentle_kill`; Android's built-in fallback kill window is too short for a real Urbit shutdown.
-- Do not use Lens for shutdown or health.
+- Do not use Lens ([PROJECT_MAP.md](../PROJECT_MAP.md#current-technical-direction)).

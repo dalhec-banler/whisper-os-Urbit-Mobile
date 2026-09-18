@@ -1,6 +1,6 @@
 ::  nativeplanet-mobile: the phone's side of one identity
 ::
-::    Reports the mobile app inventory (as before) and mirrors the planet's
+::    Reports the mobile app inventory and mirrors the planet's
 ::    DMs through the planet's %satellite relay. The phone reads the mirror
 ::    over local Eyre and sends through it; the planet does the talking.
 ::
@@ -34,7 +34,9 @@
   |=  old=vase
   ^-  (quip card _this)
   =/  ver  (mole |.(!<(state-1 old)))
-  ?~  ver  `this
+  ?~  ver
+    ~&  >>>  'nativeplanet-mobile: state reset'
+    `this
   :_  this(state u.ver)
   ?~  parent.u.ver  ~
   ~[(watch-parent:hc u.parent.u.ver)]
@@ -86,9 +88,9 @@
         ?:  (~(has by p.jon) 'snapshot')
           this(snap (~(got by p.jon) 'snapshot'))
         ?:  (~(has by p.jon) 'chat')
-          this(live (scag 500 `(list json)`[(~(got by p.jon) 'chat') live.state]))
+          this(live (scag live-cap:hc `(list json)`[(~(got by p.jon) 'chat') live.state]))
         ?:  (~(has by p.jon) 'error')
-          this(errors (scag 50 `(list json)`[(~(got by p.jon) 'error') errors.state]))
+          this(errors (scag error-cap:hc `(list json)`[(~(got by p.jon) 'error') errors.state]))
         this
       :_  new
       :-  [%give %fact ~[/mirror] %json !>((mirror-of:hc state.new))]
@@ -109,10 +111,8 @@
   |=  =path
   ^-  (unit (unit cage))
   ?+  path  ~
-      [%x %apps ~]        ``json+!>(apps-json:hc)
-      [%x %apps %json ~]  ``json+!>(apps-json:hc)
-      [%x %mirror ~]      ``json+!>(mirror:hc)
-      [%x %mirror %json ~]  ``json+!>(mirror:hc)
+      [%x %apps ?(~ [%json ~])]    ``json+!>(apps-json:hc)
+      [%x %mirror ?(~ [%json ~])]  ``json+!>(mirror:hc)
   ==
 ::
 ++  on-arvo  on-arvo:def
@@ -120,6 +120,10 @@
 --
 ::
 |_  =bowl:gall
+::  live facts and relay errors kept, newest first
+++  live-cap   500
+++  error-cap  50
+::
 ++  watch-parent
   |=  p=ship
   ^-  card

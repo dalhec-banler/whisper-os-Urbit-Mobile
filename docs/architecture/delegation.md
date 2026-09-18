@@ -1,8 +1,10 @@
 # Delegation: one identity, two ships
 
-Status: design, 2026-09-15. Supersedes the sketch in
-`parent-satellite-protocol.md` for the parts it covers. Grounded in the current
-Urbit kernel and the Tlon desks as of September 2026 (sources at the end).
+Status: implemented and verified on the real chain, 2026-09-18
+([verification](../verification/2026-09-18-delegation-real-chain.md)).
+Supersedes the sketch in `parent-satellite-protocol.md` for the parts it
+covers. Grounded in the current Urbit kernel and the Tlon desks as of September
+2026 (sources at the end).
 
 ## The constraint everything follows from
 
@@ -39,46 +41,53 @@ the role check reuses Artemis state, so the allowlist is "moons Artemis minted
 as phones" and nothing else.
 
 Outbound, parent to moon. On init the relay subscribes locally, as the planet,
-to the paths Tlon reserves for self:
+with `[%pass /chat %agent [our %chat] %watch /v4]` and re-gives each writ fact
+on the moon-facing path `/moon/chat`. When a moon watches, the first fact is a
+snapshot from local scries: `our`, the DM list, each DM's newest writs, unreads
+and `groups/light`. A `refresh` poke re-sends the snapshot; the mirror asks for
+one whenever a fact names a DM thread it has not seen.
 
-- `[%pass /chat %agent [our %chat] %watch /v4]` for DM and club writs
-- `[%pass /activity %agent [our %activity] %watch /v6]` and `/v6/unreads`
-- `[%pass /groups %agent [our %groups] %watch /v3/groups]`
+Inbound, moon to parent. The moon pokes the relay with `%json`; the relay
+re-pokes the local app so the action is the planet's:
 
-and re-gives each fact on moon-facing paths `/moon/chat`, `/moon/activity`,
-`/moon/groups`. When a moon watches, the first fact is a snapshot from local
-scries (`/x/v4/dm`, `/x/v4/dm/<ship>/writs/newest/50`, `/x/v3/groups`,
-`/x/v6/activity/unreads`). On reconnect the moon sends its last-seen time and
-the relay answers from the `/changes/<since>` scries all three agents expose for
-exactly this.
-
-Inbound, moon to parent. The moon pokes the relay; the relay re-pokes the local
-app so the action is the planet's:
-
-- send a DM: `satellite-dm+[ship action:dm:v7]` becomes
-  `[%pass /fwd/dm %agent [our %chat] %poke chat-dm-action-2+...]` with the
-  author overwritten to `our.bowl`. `%chat` runs its normal `di-proxy` and the
-  peer receives the message from the planet. One identity.
-- accept or decline a DM: `chat-dm-rsvp`.
-- read state: `activity-action` `%read`, so unreads converge on both ships.
-- join, knock, leave a group: `group-foreign-2` and `group-action-5`.
-
-Nacks from the local pokes go back to the moon on `/moon/acks` so the phone can
-say a send failed.
+- `send-dm` `{ship, text}` becomes
+  `[%pass /fwd/send-dm %agent [our %chat] %poke chat-dm-action-2+...]` with
+  the author overwritten to `our.bowl`. `%chat` runs its normal `di-proxy`
+  and the peer receives the message from the planet. One identity.
+- `read-dm` `ship` becomes a `chat-remark-action`, so unreads converge on both
+  ships.
+- `refresh` re-sends the snapshot.
+- `invite-moon` `flag` issues a `group-action-4` invite for the moon to a group
+  the planet hosts; the moon's own `%groups` then joins with the token.
 
 ### `%nativeplanet-mobile` on the moon
 
-Gains a mirror. It learns its parent from the boot package (the controller
-pokes it once with `%pair parent`), watches the three relay paths, keeps DMs,
-groups and unreads in state, resubscribes with its last-seen time on every
-kick, and exposes the mirror to the phone over local Eyre:
+Gains a mirror. It learns its parent from the pairing poke `%noun [%pair ship]`,
+watches the relay's `/moon/chat`, keeps the snapshot and the live facts in
+state, resubscribes on kick, and exposes the mirror to the phone over local
+Eyre and conn.sock:
 
-- `/x/dms`, `/x/dm/<ship>/writs/newest/<n>`, `/x/groups`, `/x/unreads`
-- pokes from the phone: `%send-dm`, `%read`, `%join-group`
+- peeks: `/x/apps` and `/x/mirror`, each with an optional `/json` suffix
+- pokes: `%noun [%pair ship]`; `%json` with one of the four keys above,
+  forwarded to the parent's `%satellite` as-is
 
-Outbound pokes queue while the parent is unreachable. One static wire per
-purpose, because Ames orders messages only within a flow; Tlon's own
-`/proxy/diff` rule.
+The mirror JSON is `{parent, snapshot{our, dms, writs, unreads, groups},
+live[], errors[]}`.
+
+### Later
+
+- The relay also watches `%activity` `/v6` and `/v6/unreads` and `%groups`
+  `/v3/groups`, re-given on `/moon/activity` and `/moon/groups`; the mirror
+  watches all three.
+- On reconnect the moon sends its last-seen time and the relay answers from
+  the `/changes/<since>` scries all three agents expose for exactly this.
+- Nacks from the local pokes go back to the moon on `/moon/acks` so the phone
+  can say a send failed.
+- Accept or decline a DM (`chat-dm-rsvp`); join, knock, leave a group through
+  the relay (`group-foreign-2`, `group-action-5`).
+- Outbound pokes queue while the parent is unreachable. One static wire per
+  purpose, because Ames orders messages only within a flow; Tlon's own
+  `/proxy/diff` rule.
 
 ### Groups
 

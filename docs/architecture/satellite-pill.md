@@ -1,11 +1,8 @@
 # Satellite Pill Architecture
 
-## Overview
+Status: v1 ships in the ROM and is device-verified; v2+ is a list, not a plan.
 
-A Satellite Pill is a minimal urbit boot image designed for mobile devices that:
-- Boots quickly with minimal resources
-- Connects to a parent planet for state sync
-- Handles intermittent connectivity gracefully
+A Satellite Pill is the urbit boot image the ROM installs for a mobile moon.
 
 ## Installation Path
 

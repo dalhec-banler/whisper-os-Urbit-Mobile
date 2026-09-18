@@ -1,6 +1,28 @@
 # NativePlanet Controller API Contract v0.1
 
-Draft contract for Whisper Launcher UI integration.
+Canonical contract between `NativePlanetController` and HOME (Whisper Home,
+`home/`). The controller's own `rom/vendor/nativeplanet/controller/PROVIDER_API.md`
+covers only the call mechanism and links here for shapes.
+
+## Provider Methods (current)
+
+Authority `content://io.nativeplanet.controller`, permission
+`io.nativeplanet.permission.READ_STATUS`. Clients call
+`ContentResolver.call(uri, method, arg, extras)` and read the Bundle's
+`"json"` string (`"bytes"` for `getHostedAppIcon`).
+
+| Method | Returns |
+|--------|---------|
+| `getStatus` | Combined status (below) plus `controllerAvailable: true` |
+| `getNetwork` | The `network` object of section 2, unwrapped |
+| `getRuntime` | The `runtime` object of section 1, unwrapped, plus `connSockAvailable` and `timestamp` |
+| `getBootPackage` | The `bootPackage` object of section 3, unwrapped |
+| `getHostedApps` | `{"apps": [...]}`; see [hosted-urbit-apps.md](../architecture/hosted-urbit-apps.md) |
+| `getHostedAppIcon` | Raw tile bytes for the app id in `arg` (`[a-z0-9-]{1,64}`), or an empty Bundle |
+| `getWebLoginCode` | `{"ok": true, "code": "<+code>"}`, or `{"ok": false, "code": "NO_PIER" \| "SOCK_MISSING" \| "WEB_CODE_FAILED", "message": "..."}` |
+| `getDiagnostics` | The `diagnostics` object of section 5, unwrapped |
+| `startRuntime`, `stopRuntime` | Control response (section 4) |
+| `provisionMoon`, `pairWithPlanet` | Section 4, request in `extras.json` |
 
 ## API Mechanism Recommendation
 
@@ -58,7 +80,7 @@ Content Provider allows passive queries without holding service connection. Broa
 ```json
 {
   "network": {
-    "type": "WIFI" | "CELLULAR" | "ETHERNET" | "VPN" | "NONE",
+    "networkType": "WIFI" | "CELLULAR" | "ETHERNET" | "VPN" | "NONE",
     "interfaceName": "wlan0" | null,
     "stackedInterfaceName": "v4-wlan0" | null,
     "validated": true | false,
@@ -126,15 +148,13 @@ Content Provider allows passive queries without holding service connection. Broa
 ### Control Response Shape
 ```json
 {
-  "operation": "start",
-  "success": true | false,
-  "error": {
-    "code": "ALREADY_RUNNING" | "BOOT_PACKAGE_MISSING" | "PERMISSION_DENIED",
-    "message": "..."
-  } | null,
-  "newState": "starting" | "stopped" | ...
+  "accepted": true | false,
+  "code": "START_REQUESTED" | "STOP_REQUESTED" | "NO_BOOT_PACKAGE" | "START_FAILED" | "STOP_ALREADY_IN_PROGRESS",
+  "message": "..." | null
 }
 ```
+
+`provisionMoon` and `pairWithPlanet` add fields to this shape; see below.
 
 ### Pair With Planet Request
 

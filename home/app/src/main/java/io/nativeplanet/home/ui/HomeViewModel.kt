@@ -14,6 +14,7 @@ import io.nativeplanet.home.model.Entry
 import io.nativeplanet.home.model.HostedApp
 import io.nativeplanet.home.model.Next
 import io.nativeplanet.home.model.Person
+import io.nativeplanet.home.model.Source
 import io.nativeplanet.home.model.Tool
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,6 +26,19 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+
+/** How often the home clock re-reads the time. */
+private const val CLOCK_TICK_MS = 15_000L
+/** How often the controller and ship are polled. */
+private const val REFRESH_MS = 30_000L
+/** A reach line must be newer than this. */
+private const val REACH_WINDOW_MS = 24 * 60 * 60 * 1000L
+/** A message this recent counts as reach even when the thread reads as read. */
+private const val REACH_FRESH_MS = 3 * 60 * 60 * 1000L
+/** Wait for the planet to relay a sent DM before refreshing. */
+private const val SEND_SETTLE_MS = 2500L
+/** Wait for a group join to land before refreshing. */
+private const val JOIN_SETTLE_MS = 4000L
 
 enum class Surface { HOME, LATER, PEOPLE, PERSON, TYPE, SETTINGS }
 
@@ -40,6 +54,7 @@ data class UiState(
     val hosted: List<HostedApp> = emptyList(),
     val later: List<Entry> = emptyList(),
     val folded: Int = 0,
+    val shipEntries: List<Entry> = emptyList(),
     val people: List<Person> = emptyList(),
     val reachShips: Set<String> = emptySet(),
     val mutedShips: Set<String> = emptySet(),
@@ -64,7 +79,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state
 
-    private var shipEntries: List<Entry> = emptyList()
     private var unreadDm: Set<String> = emptySet()
     private var refreshJob: Job? = null
 
@@ -77,7 +91,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                 recompute(p.done, p.notifs)
             }
         }
-        viewModelScope.launch { while (isActive) { _state.update { it.copy(nowMs = System.currentTimeMillis()) }; delay(15_000) } }
+        viewModelScope.launch { while (isActive) { _state.update { it.copy(nowMs = System.currentTimeMillis()) }; delay(CLOCK_TICK_MS) } }
         startRefreshing()
     }
 
@@ -88,7 +102,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun startRefreshing() {
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch {
-            while (isActive) { refresh(); delay(30_000) }
+            while (isActive) { refresh(); delay(REFRESH_MS) }
         }
     }
 
@@ -106,8 +120,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             if (!eyre.loggedIn) controller.webLoginCode()?.let { eyre.login(it) }
             if (eyre.loggedIn) {
                 val snap = ship.snapshot(rt.shipName)
-                shipEntries = snap.entries; unreadDm = snap.unreadDm
-                _state.update { it.copy(people = snap.people, connected = true, delegated = snap.delegated, parent = snap.parent,
+                unreadDm = snap.unreadDm
+                _state.update { it.copy(shipEntries = snap.entries, people = snap.people, connected = true, delegated = snap.delegated, parent = snap.parent,
                     parentGroups = snap.parentGroups, moonGroups = snap.moonGroups) }
             } else _state.update { it.copy(connected = false) }
         } else _state.update { it.copy(connected = false) }
@@ -117,18 +131,22 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private fun recompute(done: Set<String>, notifs: List<Entry>) {
         lastDone = done; lastNotifs = notifs
         val s = _state.value
-        val all = (shipEntries + notifs)
+        val all = (s.shipEntries + notifs)
             .filter { it.id !in done }
             .filter { it.ship == null || it.ship !in s.mutedShips }
             .sortedByDescending { it.timeMs }
-        // Reach: the newest unread message from someone on the reach list, within the last day.
-        val dayAgo = System.currentTimeMillis() - 24 * 60 * 60 * 1000L
-        val reach = all.firstOrNull { e ->
-            e.ship != null && e.ship in s.reachShips && e.ship != s.self && e.timeMs > dayAgo &&
-                (e.source == "MESSAGE") && (unreadDm.contains(e.link?.substringAfterLast('/') ?: "") || e.timeMs > System.currentTimeMillis() - 3 * 60 * 60 * 1000L)
-        }
-        val (loud, quiet) = all.partition { it.source != "ANDROID" || it.priority }
+        val reach = all.firstOrNull { isReachWorthy(it) }
+        val (loud, quiet) = all.partition { it.source !in Source.PHONE || it.priority }
         _state.update { it.copy(later = loud + quiet, folded = quiet.size, reach = reach) }
+    }
+
+    /** A recent DM from someone on the reach list, unread or fresh enough to count. */
+    private fun isReachWorthy(e: Entry): Boolean {
+        val s = _state.value
+        val now = System.currentTimeMillis()
+        return e.ship != null && e.ship in s.reachShips && e.ship != s.self && e.source == Source.MESSAGE &&
+            e.timeMs > now - REACH_WINDOW_MS &&
+            (unreadDm.contains(e.link?.substringAfterLast('/') ?: "") || e.timeMs > now - REACH_FRESH_MS)
     }
 
     fun show(surface: Surface) = _state.update { it.copy(surface = surface, query = if (surface == Surface.TYPE) it.query else "") }
@@ -137,15 +155,11 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun setQuery(q: String) = _state.update { it.copy(query = q) }
     fun toast(msg: String?) = _state.update { it.copy(toast = msg) }
 
-    fun entriesFor(p: Person): List<Entry> = (shipEntries).filter { it.ship == p.ship || it.link?.endsWith(p.ship) == true }.sortedByDescending { it.timeMs }
+    fun entriesFor(p: Person): List<Entry> = _state.value.shipEntries.filter { it.ship == p.ship || it.link?.endsWith(p.ship) == true }.sortedByDescending { it.timeMs }
 
     fun openWord(word: String) {
         val s = _state.value
-        android.util.Log.i("WhisperHome", "openWord $word; hosted=${s.hosted.map { it.desk + ":" + it.launchMode + ":" + (it.startUrl ?: "-") }}")
-        when (word) {
-            "people" -> { show(Surface.PEOPLE); return }
-            "notes" -> { s.tools.firstOrNull { it.key == "desk:kin" }?.let { if (tools.open(it)) return } }
-        }
+        if (word == "people") { show(Surface.PEOPLE); return }
         val t = tools.resolveHomeWord(word, s.tools)
         if (t == null || (t.key.startsWith("home:") && t.key != "home:people") || !tools.open(t)) toast("nothing opens $word yet")
     }
@@ -166,10 +180,10 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     /** Send a DM. With delegation the planet sends it; otherwise the moon's own chat app opens. */
     fun sendDm(p: Person, text: String) {
         val s = _state.value
-        if (!s.delegated) { openEntry(Entry("open:${p.ship}", 0, p.display, p.ship, "", "MESSAGE", link = "apps/groups/dm/${p.ship}")); return }
+        if (!s.delegated) { openEntry(Entry("open:${p.ship}", 0, p.display, p.ship, "", Source.MESSAGE, link = "apps/groups/dm/${p.ship}")); return }
         val self = s.self ?: run { toast("no ship"); return }
         viewModelScope.launch {
-            if (ship.sendDm(self, p.ship, text)) { toast("sent as ${s.parent}"); delay(2500); refresh() } else toast("send failed")
+            if (ship.sendDm(self, p.ship, text)) { toast("sent as ${s.parent}"); delay(SEND_SETTLE_MS); refresh() } else toast("send failed")
         }
     }
 
@@ -178,7 +192,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         val self = _state.value.self ?: run { toast("no ship"); return }
         viewModelScope.launch {
             toast("joining ${g.title}…")
-            if (ship.joinGroup(self, g)) { delay(4000); refresh(); toast(if (g.flag in _state.value.moonGroups) "joined ${g.title}" else "asked to join ${g.title}") }
+            if (ship.joinGroup(self, g)) { delay(JOIN_SETTLE_MS); refresh(); toast(if (g.flag in _state.value.moonGroups) "joined ${g.title}" else "asked to join ${g.title}") }
             else toast("could not join ${g.title}")
         }
     }

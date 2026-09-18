@@ -1,6 +1,6 @@
 # Planet Link
 
-Native Android launcher shell for NativePlanet Mobile.
+Superseded by [`home/`](../home/README.md), which holds HOME. This Compose app is retained for the Artemis pairing and onboarding screens; it is not HOME.
 
 Current status:
 

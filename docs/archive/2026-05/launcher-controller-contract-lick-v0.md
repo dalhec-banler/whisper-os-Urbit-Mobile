@@ -1,3 +1,5 @@
+> Archived 2026-05. Superseded by [docs/controller/controller-api-contract.md](../../controller/controller-api-contract.md); Lick is covered by [docs/architecture/lick-android-bridge.md](../../architecture/lick-android-bridge.md).
+
 # Launcher-Controller Contract
 
 ## Overview

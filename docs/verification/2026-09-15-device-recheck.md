@@ -51,5 +51,5 @@ answered `%peel %live` / `%who` through
 loom migration was also exercised on a real comet on the Mac. Open question for
 the ROM: adopt the upstream binary as the prebuilt (drops the custom zig Android
 build and its image-base patch) after a real moon proves dawn over HTTPS with it.
-Note that the emulator's kernel has a 39-bit address space where the default
-1 TiB LMDB map fails; the wrapper's explicit map size covers that.
+The emulator's kernel has a 39-bit address space where the default 1 TiB LMDB
+map fails; the wrapper's explicit map size covers that.
