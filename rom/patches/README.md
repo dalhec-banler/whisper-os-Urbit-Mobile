@@ -51,7 +51,17 @@ git apply -C1 /path/to/whisper-os-Urbit-Mobile/rom/patches/launcher3-whisper-os-
 The v3 manifest hunks were written without the full manifest at hand, so their
 line numbers are approximate; `-C1` lets `git apply` place them by context.
 
-## Pending
+## `launcher3-whisper-os-v3.patch`
 
-- 2026-09-18: regenerate a single v3 patch from a build tree with both applied
-  (`git diff --binary` as above) and retire the two-step apply.
+Consolidated patch: v2 plus the hosted-app-tasks fix in one file, regenerated
+2026-09-18 from a build tree with both applied (`git diff --binary 2026040800`).
+Verified to apply cleanly to a pristine `2026040800` checkout. Prefer this over
+the two-step apply:
+
+```bash
+cd packages/apps/Launcher3
+git apply /path/to/whisper-os-Urbit-Mobile/rom/patches/launcher3-whisper-os-v3.patch
+```
+
+The two files above are retained for history; new checkouts should use only
+this consolidated patch.

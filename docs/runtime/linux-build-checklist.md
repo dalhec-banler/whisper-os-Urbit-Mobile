@@ -13,14 +13,27 @@ the reference for what the next ROM must contain. This page is the handoff.
 | Piece | Source | Where it goes in the GrapheneOS tree |
 |---|---|---|
 | vere, 64-bit edge | `tools/build-vere-android.sh` output, `vere64-develop-<sha>-linux-aarch64` | `vendor/nativeplanet/prebuilts/bin/vere` |
-| Whisper Home | `home/`, `./gradlew assembleRelease`, signed with the platform key | `vendor/nativeplanet/prebuilts/apk/WhisperHome.apk`, priv-app, HOME category |
-| Launcher3 task host | `rom/patches/launcher3-whisper-os-v2.patch` then `…-v3-hosted-app-tasks.patch` | `packages/apps/Launcher3` |
+| Whisper Home | `home/`, `./gradlew assembleRelease` (unsigned is fine: `android_app_import` re-signs with the platform key) | `vendor/nativeplanet/prebuilts/apk/WhisperHome.apk`, priv-app, HOME category |
+| Launcher3 task host | `rom/patches/launcher3-whisper-os-v3.patch` (consolidated; supersedes v2 + v3-hosted-app-tasks) | `packages/apps/Launcher3` |
 | Controller | `rom/vendor/nativeplanet/controller/` | `vendor/nativeplanet/controller` |
 | Satellite pill and desks | `satellite-pill/` | `vendor/nativeplanet/prebuilts/etc/nativeplanet/satellite.pill` |
 
-Record the vere commit and SHA-256 with the build. The mirror desk
+Record the vere commit and SHA-256 with the build (the tree keeps this in
+`vendor/nativeplanet/prebuilts/bin/vere.provenance`). The mirror desk
 (`satellite-pill/desks/nativeplanet-mobile`) is still installed per moon by
 `tools/install-mobile-metadata-desk.sh`; baking it into the pill is open.
+
+On the Linux machine vere builds directly on the host — the container in
+`tools/build-vere-android.sh` is only a macOS workaround. Fetch zig 0.15.2 for
+x86_64-linux and run the same
+`zig build -Dtarget=aarch64-linux-musl -Drelease -Dpace=edge -Dvere64=true`
+from a real clone of `urbit/vere` `develop` (a git worktree fails: vere's
+`build.zig` opens `.git/logs/HEAD`, which is not a directory in a worktree).
+
+Whisper Home's HOME intent-filter carries `android:priority="1"`. Launcher3
+stays in the image as the hosted-app task host and still declares HOME; at
+equal priority Android's role controller resolves no default home at all and
+first boot lands in a chooser.
 
 ## Incremental build
 
@@ -34,8 +47,7 @@ lunch husky bp4a userdebug
 
 cp /path/to/vere64-develop-<sha>-linux-aarch64 vendor/nativeplanet/prebuilts/bin/vere
 cp /path/to/WhisperHome.apk vendor/nativeplanet/prebuilts/apk/WhisperHome.apk
-git -C packages/apps/Launcher3 apply /path/to/rom/patches/launcher3-whisper-os-v2.patch
-git -C packages/apps/Launcher3 apply /path/to/rom/patches/launcher3-whisper-os-v3-hosted-app-tasks.patch
+git -C packages/apps/Launcher3 apply /path/to/rom/patches/launcher3-whisper-os-v3.patch
 
 m NativePlanetController Launcher3QuickStep -j"$(nproc)"   # cheap check first
 m -j"$(nproc)"                                              # the image
