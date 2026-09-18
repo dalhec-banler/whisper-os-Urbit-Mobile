@@ -49,6 +49,8 @@ data class UiState(
     val toast: String? = null,
     val delegated: Boolean = false,
     val parent: String? = null,
+    val parentGroups: List<Ship.GroupRef> = emptyList(),
+    val moonGroups: Set<String> = emptySet(),
 )
 
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
@@ -105,7 +107,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             if (eyre.loggedIn) {
                 val snap = ship.snapshot(rt.shipName)
                 shipEntries = snap.entries; unreadDm = snap.unreadDm
-                _state.update { it.copy(people = snap.people, connected = true, delegated = snap.delegated, parent = snap.parent) }
+                _state.update { it.copy(people = snap.people, connected = true, delegated = snap.delegated, parent = snap.parent,
+                    parentGroups = snap.parentGroups, moonGroups = snap.moonGroups) }
             } else _state.update { it.copy(connected = false) }
         } else _state.update { it.copy(connected = false) }
         recompute(lastDone, lastNotifs)
@@ -167,6 +170,16 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         val self = s.self ?: run { toast("no ship"); return }
         viewModelScope.launch {
             if (ship.sendDm(self, p.ship, text)) { toast("sent as ${s.parent}"); delay(2500); refresh() } else toast("send failed")
+        }
+    }
+
+    /** Join one of the planet's groups; the relay invites the moon first when the planet hosts it. */
+    fun joinGroup(g: Ship.GroupRef) {
+        val self = _state.value.self ?: run { toast("no ship"); return }
+        viewModelScope.launch {
+            toast("joining ${g.title}…")
+            if (ship.joinGroup(self, g)) { delay(4000); refresh(); toast(if (g.flag in _state.value.moonGroups) "joined ${g.title}" else "asked to join ${g.title}") }
+            else toast("could not join ${g.title}")
         }
     }
 

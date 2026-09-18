@@ -141,7 +141,14 @@ Done once on 2026-09-18 for the test phone; this is the path.
    the parent's DMs. Artemis must already hold the moon with role `%mobile`
    (`/~/scry/artemis/mons.json`).
 4. `conn-client eval` prints a long cord as one big integer: decode it as
-   little-endian bytes, then UTF-8.
+   little-endian bytes, then UTF-8 (Python needs
+   `sys.set_int_max_str_digits(0)` once the snapshot carries groups).
+5. Groups, phase A: the snapshot's `groups` is the planet's
+   `groups/light`. To join one the planet hosts, poke the mirror with
+   `{"invite-moon": "<flag>"}`; the relay issues a `group-action-4` invite
+   for the moon, and the moon's own `%groups` takes a `group-join`
+   `{"flag", "join-all": true}` with the token it now holds. Other groups
+   join directly (open) or leave a knock pending (closed).
 
 ## Pitfalls to design around
 

@@ -14,7 +14,14 @@ import org.json.JSONObject
 class Ship(private val eyre: Eyre) {
     companion object { private const val TAG = "WhisperHome.Ship" }
 
-    data class Snapshot(val people: List<Person>, val entries: List<Entry>, val unreadDm: Set<String>, val delegated: Boolean = false, val parent: String? = null)
+    data class Snapshot(
+        val people: List<Person>, val entries: List<Entry>, val unreadDm: Set<String>,
+        val delegated: Boolean = false, val parent: String? = null,
+        /** The planet's groups (flag to title) and the moon's own, for "join the same groups". */
+        val parentGroups: List<GroupRef> = emptyList(), val moonGroups: Set<String> = emptySet(),
+    )
+
+    data class GroupRef(val flag: String, val title: String, val hostedByParent: Boolean)
 
     /**
      * Delegation: when %nativeplanet-mobile mirrors the parent planet's DMs, the
@@ -34,7 +41,7 @@ class Ship(private val eyre: Eyre) {
         return ownSnapshot(self)
     }
 
-    private fun mirrorSnapshot(m: JSONObject): Snapshot {
+    private suspend fun mirrorSnapshot(m: JSONObject): Snapshot {
         val parent = m.optString("parent")
         val snap = m.getJSONObject("snapshot")
         val our = snap.optString("our", parent)
@@ -79,8 +86,35 @@ class Ship(private val eyre: Eyre) {
             ))
             if (people.none { it.ship == whom }) people.add(Person(whom, null, null))
         }
+        // Group activity is the moon's own: once it has joined the planet's groups, its %activity carries them.
+        entries.addAll(activityEntries())
+        val parentGroups = mutableListOf<GroupRef>()
+        snap.optJSONObject("groups")?.let { g ->
+            g.keys().forEach { flag ->
+                val title = g.optJSONObject(flag)?.optJSONObject("meta")?.optString("title")?.takeIf { it.isNotBlank() } ?: flag.substringAfter('/')
+                parentGroups.add(GroupRef(flag, title, hostedByParent = flag.startsWith("$parent/")))
+            }
+        }
+        val moonGroups = eyre.scry("groups/groups/light")?.keys()?.asSequence()?.toSet() ?: emptySet()
         people.sortByDescending { p -> entries.filter { it.ship == p.ship || it.link?.endsWith(p.ship) == true }.maxOfOrNull { it.timeMs } ?: 0L }
-        return Snapshot(people, entries.sortedByDescending { it.timeMs }, unreadDm, delegated = true, parent = parent)
+        return Snapshot(people, entries.sortedByDescending { it.timeMs }, unreadDm, delegated = true, parent = parent,
+            parentGroups = parentGroups.sortedBy { it.title.lowercase() }, moonGroups = moonGroups)
+    }
+
+    /**
+     * Join one of the planet's groups as the moon. A group the planet hosts needs an invite
+     * first, which the relay issues on the moon's behalf; the moon's own %groups then joins
+     * with the token. Any other group is joined directly, which works for open groups and
+     * leaves a knock pending for closed ones.
+     */
+    suspend fun joinGroup(self: String, group: GroupRef): Boolean {
+        if (group.hostedByParent) {
+            val ask = JSONObject().put("invite-moon", group.flag)
+            if (!eyre.poke("nativeplanet-mobile", "json", ask, self)) return false
+            kotlinx.coroutines.delay(3000)
+        }
+        val join = JSONObject().put("flag", group.flag).put("join-all", true)
+        return eyre.poke("groups", "group-join", join, self)
     }
 
     /** Send a DM as the planet, through the moon's mirror agent and the planet's relay. */
@@ -126,7 +160,15 @@ class Ship(private val eyre: Eyre) {
             }
         }
 
-        // Group-level activity: one line per group/channel with unread activity, from the v4 summaries.
+        entries.addAll(activityEntries())
+
+        people.sortByDescending { p -> entries.filter { it.ship == p.ship }.maxOfOrNull { it.timeMs } ?: 0L }
+        return Snapshot(people, entries.sortedByDescending { it.timeMs }, unreadDm)
+    }
+
+    /** Group-level activity: one line per group or channel with unread activity, from the v4 summaries. */
+    private suspend fun activityEntries(): List<Entry> {
+        val out = mutableListOf<Entry>()
         eyre.scry("activity/v4/activity")?.let { act ->
             act.keys().forEach { key ->
                 if (!key.startsWith("channel/") && !key.startsWith("group/")) return@forEach
@@ -134,7 +176,7 @@ class Ship(private val eyre: Eyre) {
                 val count = s.optInt("count", 0)
                 if (count <= 0) return@forEach
                 val name = key.substringAfterLast('/').replace('-', ' ')
-                entries.add(Entry(
+                out.add(Entry(
                     id = "act:$key", timeMs = s.optLong("recency", 0L),
                     who = name, ship = null,
                     text = if (count == 1) "1 new post" else "$count new posts",
@@ -143,9 +185,7 @@ class Ship(private val eyre: Eyre) {
                 ))
             }
         }
-
-        people.sortByDescending { p -> entries.filter { it.ship == p.ship }.maxOfOrNull { it.timeMs } ?: 0L }
-        return Snapshot(people, entries.sortedByDescending { it.timeMs }, unreadDm)
+        return out
     }
 
     private fun renderInline(content: JSONArray?): String {

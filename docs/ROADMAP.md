@@ -173,8 +173,13 @@ Whisper Home (`home/`) reads the mirror and gains a compose line.
 and a DM composed in Whisper Home landed in the star's `%chat` authored
 `~hobdem`. Deployment steps are in
 [architecture/delegation.md](architecture/delegation.md#deploying-to-a-real-parent).
-Still open: mirror snapshot refresh after a new DM opens, groups auto-join
-(phase A), the setup-flow steps.
+Groups phase A also holds: the snapshot carries the planet's groups, Whisper
+Home's Settings lists them, and joining a group the planet hosts goes
+invite-then-join through the relay (the phone's moon joined the star's closed
+group on 2026-09-18). The mirror asks for a fresh snapshot when a fact names
+a DM thread it has not seen. Still open: the setup-flow steps, and group
+activity from the relay (today it is the moon's own, from the groups it has
+joined).
 
 ---
 

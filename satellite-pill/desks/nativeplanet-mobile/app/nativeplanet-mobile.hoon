@@ -91,7 +91,17 @@
           this(errors (scag 50 `(list json)`[(~(got by p.jon) 'error') errors.state]))
         this
       :_  new
-      ~[[%give %fact ~[/mirror] %json !>((mirror-of:hc state.new))]]
+      :-  [%give %fact ~[/mirror] %json !>((mirror-of:hc state.new))]
+      ::  a fact about a DM thread the snapshot never mentioned: ask the
+      ::  planet for a fresh snapshot so the thread list learns of it
+      ?.  ?&  ?=([%o *] jon)
+              (~(has by p.jon) 'chat')
+              ?=(^ parent.state.new)
+              (unknown-whom:hc (~(got by p.jon) 'chat') snap.state.new)
+          ==
+        ~
+      =/  ask=json  (frond:enjs:format 'refresh' ~)
+      ~[[%pass /fwd %agent [u.parent.state.new %satellite] %poke %json !>(ask)]]
     ==
   ==
 ::
@@ -114,6 +124,20 @@
   |=  p=ship
   ^-  card
   [%pass /sat %agent [p %satellite] %watch /moon/chat]
+::
+::  +unknown-whom: does this chat fact name a DM the snapshot lacks?
+++  unknown-whom
+  |=  [fact=json snap=json]
+  ^-  ?
+  ?.  ?=([%o *] fact)  |
+  =/  whom=(unit json)  (~(get by p.fact) 'whom')
+  ?~  whom  |
+  ?.  ?=([%s *] u.whom)  |
+  ?.  ?=([%o *] snap)  &
+  =/  writs=(unit json)  (~(get by p.snap) 'writs')
+  ?~  writs  &
+  ?.  ?=([%o *] u.writs)  &
+  !(~(has by p.u.writs) p.u.whom)
 ::
 ++  mirror  (mirror-of state)
 ++  mirror-of

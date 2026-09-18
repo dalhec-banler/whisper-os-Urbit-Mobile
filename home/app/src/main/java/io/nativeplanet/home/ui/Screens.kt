@@ -335,6 +335,17 @@ private fun Settings(vm: HomeViewModel, s: UiState) {
                 }
                 Hairline()
             }
+            if (s.delegated && s.parentGroups.isNotEmpty()) {
+                item { Mono("GROUPS · SAME AS ${s.parent?.uppercase()}", size = 10, tracking = 0.14, modifier = Modifier.padding(top = 22.dp, bottom = 6.dp)) }
+                items(s.parentGroups, key = { it.flag }) { g ->
+                    val joined = g.flag in s.moonGroups
+                    Row(Modifier.fillMaxWidth().clickable(enabled = !joined) { vm.joinGroup(g) }.padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(g.title, color = if (joined) W.Paper else W.Paper60, fontFamily = W.Serif, fontSize = 18.sp)
+                        Mono(if (joined) "JOINED" else "JOIN", color = if (joined) W.Paper else W.Paper40, size = 10)
+                    }
+                    Hairline()
+                }
+            }
             item { Mono("PHONE", size = 10, tracking = 0.14, modifier = Modifier.padding(top = 22.dp, bottom = 6.dp)) }
             item { Text("Notification access", color = W.Paper90, fontFamily = W.Serif, fontSize = 16.sp, modifier = Modifier.clickable {
                 ctx.startActivity(android.content.Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }.padding(vertical = 8.dp)) }
