@@ -121,6 +121,28 @@ plus `%satellite` on `~zod`, the mobile desk on the moon. Fake ships DM each
 other fine. The emulator's Whisper Home points at the moon. Nothing touches a
 real identity until the relay is proven end to end.
 
+## Deploying to a real parent
+
+Done once on 2026-09-18 for the test phone; this is the path.
+
+1. The relay travels by Clay. Copy `artemis/desk/app/satellite.hoon` and the
+   `desk.bill` that lists `%satellite` into the dev moon's mounted `artemis`
+   desk and `|commit %artemis` there. The dev moon pier only runs on the 4.3
+   `tools/urbit` binary in daemon mode (`-t`); the 64-bit runtime refuses its
+   stale snapshot.
+2. On the parent: `|install <dev-moon> %artemis`. The parent's web terminal
+   types but shows nothing, so verify with
+   `GET /~/scry/satellite/moons.json` (404 before, 200 after).
+3. On the phone: `tools/install-mobile-metadata-desk.sh` puts the mirror
+   agent on the moon; confirm with a scry of
+   `/gx/nativeplanet-mobile/mirror/json`. Pair by poking
+   `%nativeplanet-mobile` with `%noun [%pair ~parent]` over conn.sock. The
+   parent's `moons.json` then lists the moon, and the moon's mirror carries
+   the parent's DMs. Artemis must already hold the moon with role `%mobile`
+   (`/~/scry/artemis/mons.json`).
+4. `conn-client eval` prints a long cord as one big integer: decode it as
+   little-endian bytes, then UTF-8.
+
 ## Pitfalls to design around
 
 - Mark drift. Compile against the tlon-apps commit installed on the parent;

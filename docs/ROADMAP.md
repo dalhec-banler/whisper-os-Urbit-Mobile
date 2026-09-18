@@ -167,6 +167,15 @@ are authored by the planet. Groups follow the planet.
 `%nativeplanet-mobile` mirrors DMs, groups and unreads and forwards sends.
 Whisper Home (`home/`) reads the mirror and gains a compose line.
 
+**Status (2026-09-18):** verified on the real chain. `%satellite` runs on
+`~hobdem` (installed over Clay from the dev moon), the test phone's moon
+`~hadwyn-taslyx-dozzod-hobdem` is paired, its mirror carries the star's DMs,
+and a DM composed in Whisper Home landed in the star's `%chat` authored
+`~hobdem`. Deployment steps are in
+[architecture/delegation.md](architecture/delegation.md#deploying-to-a-real-parent).
+Still open: mirror snapshot refresh after a new DM opens, groups auto-join
+(phase A), the setup-flow steps.
+
 ---
 
 ## Phase 4: Modern Urbit Integration
