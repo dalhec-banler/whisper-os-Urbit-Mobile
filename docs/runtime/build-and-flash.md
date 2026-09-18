@@ -15,28 +15,23 @@ You need local checkouts of:
 The examples below assume you're in the relevant directory.
 
 ## Build Vere64
-
-Use modern Vere. Do not regress to old/32-bit runtime.
+Use upstream vere `develop`, 64-bit loom, edge pace. The recipe and the
+reasons for the container are in `vere-android-build.md`:
 
 ```bash
-# From your vere checkout
-zig build \
-  -Dtarget=aarch64-linux-musl \
-  -Doptimize=ReleaseFast \
-  -Dandroid=true \
-  --summary all
+tools/build-vere-android.sh ./vere ../tools
 ```
 
 Output:
 
 ```text
-zig-out/aarch64-linux-musl/urbit
+vere64-develop-<sha>-linux-aarch64
 ```
 
 Copy to the GrapheneOS vendor tree only when intentionally updating the ROM prebuilt:
 
 ```bash
-cp zig-out/aarch64-linux-musl/urbit \
+cp vere64-develop-<sha>-linux-aarch64 \
   $GRAPHENEOS/vendor/nativeplanet/prebuilts/bin/vere
 ```
 

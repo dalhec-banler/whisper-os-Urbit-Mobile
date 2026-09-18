@@ -1,66 +1,34 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# Build vere for Android ARM64
+# Build upstream vere (develop) for the phone: aarch64, static musl, 64-bit
+# loom, edge pace. Runs in a Linux container because vere pins zig 0.15.2,
+# which cannot link its own build runner on current macOS.
 #
-# Usage: VERE_SRC=/path/to/vere ZIG_PATH=/path/to/zig ./build-vere-android.sh
-#    or: ./build-vere-android.sh /path/to/vere /path/to/zig
+# Usage: tools/build-vere-android.sh /path/to/vere [output-dir]
 #
-
+# Needs a docker CLI with a Linux daemon (colima start, or Docker Desktop).
+# Output: <output-dir>/vere64-develop-<short-sha>-linux-aarch64
 set -euo pipefail
 
-VERE_SRC="${1:-${VERE_SRC:-}}"
-ZIG_PATH="${2:-${ZIG_PATH:-}}"
+VERE_SRC="${1:?vere source dir}"
+OUT_DIR="${2:-$VERE_SRC/zig-out}"
+ZIG_VERSION="${ZIG_VERSION:-0.15.2}"
 
-if [[ -z "$VERE_SRC" || -z "$ZIG_PATH" ]]; then
-    echo "Usage: $0 [path-to-vere-source] [path-to-zig]"
-    echo "   or: VERE_SRC=/path/to/vere ZIG_PATH=/path/to/zig $0"
-    exit 1
-fi
+[[ -f "$VERE_SRC/build.zig" ]] || { echo "not a vere checkout: $VERE_SRC" >&2; exit 1; }
+docker info >/dev/null 2>&1 || { echo "no Linux docker daemon; run 'colima start' first" >&2; exit 1; }
 
-if [[ ! -d "$VERE_SRC" ]]; then
-    echo "Error: Vere source directory not found: $VERE_SRC"
-    echo "Usage: $0 [path-to-vere-source] [path-to-zig]"
-    exit 1
-fi
+docker run --rm --platform linux/arm64 -v "$VERE_SRC:/src" -w /src debian:bookworm-slim bash -lc "
+  set -e
+  apt-get update -qq >/dev/null
+  apt-get install -y -qq curl xz-utils ca-certificates >/dev/null
+  curl -sL https://ziglang.org/download/$ZIG_VERSION/zig-aarch64-linux-$ZIG_VERSION.tar.xz | tar -xJ -C /opt
+  export PATH=/opt/zig-aarch64-linux-$ZIG_VERSION:\$PATH
+  rm -rf .zig-cache zig-out
+  zig build -Dtarget=aarch64-linux-musl -Drelease -Dpace=edge -Dvere64=true
+  zig-out/aarch64-linux-musl/urbit --version | head -1
+"
 
-if [[ ! -x "$ZIG_PATH/zig" ]]; then
-    echo "Error: Zig not found at: $ZIG_PATH/zig"
-    echo "Usage: $0 [path-to-vere-source] [path-to-zig]"
-    exit 1
-fi
-
-echo "=== Building vere for Android ARM64 ==="
-echo "Source: $VERE_SRC"
-echo "Zig: $ZIG_PATH"
-
-cd "$VERE_SRC"
-
-# Clean previous build
-echo "Cleaning previous build..."
-rm -rf .zig-cache zig-out
-
-# Build
-echo "Building..."
-"$ZIG_PATH/zig" build \
-    -Dtarget=aarch64-linux-musl \
-    -Dandroid=true \
-    -Drelease
-
-# Verify
-BINARY="zig-out/aarch64-linux-musl/urbit"
-if [[ ! -f "$BINARY" ]]; then
-    echo "Error: Build failed, binary not found"
-    exit 1
-fi
-
-echo ""
-echo "=== Build successful ==="
-echo "Binary: $BINARY"
-echo ""
-echo "Verification:"
-readelf -h "$BINARY" | grep -E 'Type|Entry'
-echo ""
-echo "Size: $(du -h "$BINARY" | cut -f1)"
-echo ""
-echo "To install:"
-echo "  cp $BINARY /path/to/grapheneos/vendor/nativeplanet/prebuilts/bin/vere"
+sha="$(git -C "$VERE_SRC" rev-parse --short HEAD)"
+mkdir -p "$OUT_DIR"
+cp "$VERE_SRC/zig-out/aarch64-linux-musl/urbit" "$OUT_DIR/vere64-develop-$sha-linux-aarch64"
+shasum -a 256 "$OUT_DIR/vere64-develop-$sha-linux-aarch64"

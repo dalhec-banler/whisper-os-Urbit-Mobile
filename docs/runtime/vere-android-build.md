@@ -1,132 +1,47 @@
-# Vere Android Build Configuration
+# Building vere for the phone
 
-## Build System
+Status: current, 2026-09-18. Supersedes the patched build this file used to
+describe.
 
-Vere uses Zig as its build system, configured in `build.zig`. Android support requires specific flags and modifications.
+Upstream vere on the `develop` branch builds for the phone without patches.
+The image-base and `-fPIC` changes the earlier Android build carried are not
+needed with the 64-bit loom; the official edge binary runs on the ROM as-is
+(see `docs/verification/2026-09-15-device-recheck.md`).
 
-## Key Build Flags
-
-```bash
-zig build \
-  -Dtarget=aarch64-linux-musl \  # ARM64 with musl libc
-  -Dandroid=true \                # Enable Android-specific code
-  -Drelease                       # Optimized release build
-```
-
-## Android-Specific Changes
-
-### 1. Image Base Address
-
-In `build.zig`:
-
-```zig
-const urbit = b.addExecutable(.{
-    .name = cfg.binary_name,
-    .root_module = b.createModule(.{
-        .target = target,
-        .optimize = optimize,
-    })
-});
-
-// For Android: use a high base address to avoid conflicts
-// Android typically uses low addresses (0-256MB) for vDSO/linker
-// We move the binary to 0x40000000 (1GB) which is safely in user space
-if (cfg.android) {
-    urbit.image_base = 0x40000000;
-}
-```
-
-### 2. wasm3 PIC Flag
-
-In `ext/wasm3/build.zig`:
-
-```zig
-const common_flags = [_][]const u8{
-    "-std=c99",
-    "-Wall",
-    "-Wextra",
-    "-Wparentheses",
-    "-Wundef",
-    "-Wpointer-arith",
-    "-Wstrict-aliasing=2",
-    "-Werror=implicit-function-declaration",
-    "-fno-sanitize=all",
-    "-fPIC",  // Required for Android image_base relocation
-};
-```
-
-### 3. Android Defines
-
-When `-Dandroid=true`, the following are defined:
-
-- `__ANDROID__` - General Android detection
-- Platform-specific entropy source selection
-
-## Binary Characteristics
-
-The resulting binary is:
-
-- **Type**: EXEC (non-PIE executable)
-- **Entry Point**: ~0x40242000 (above 1GB)
-- **Linking**: Statically linked with musl libc
-- **Size**: ~21MB unstripped
-
-## Verification
+## Recipe
 
 ```bash
-# Check binary type and entry point
-readelf -h zig-out/aarch64-linux-musl/urbit
-
-# Expected output:
-#   Type:                              EXEC (Executable file)
-#   Entry point address:               0x40242000
-
-# Check it's statically linked
-file zig-out/aarch64-linux-musl/urbit
-# Expected: statically linked
+git clone --branch develop https://github.com/urbit/vere.git
+colima start                      # any Linux docker daemon
+tools/build-vere-android.sh ./vere ../tools
 ```
 
-## Cross-Compilation Notes
+The script runs, inside a `linux/arm64` Debian container with zig 0.15.2:
 
-### Host Requirements
-
-- Linux x86_64 host
-- Zig 0.15.2 or later
-- No Android NDK required (Zig provides toolchain)
-
-### Target Platform
-
-- Android 14+ (API 34+)
-- ARM64 (aarch64)
-- GrapheneOS or AOSP-based ROM
-
-## Build Output Location
-
-After build:
-- Binary: `zig-out/aarch64-linux-musl/urbit`
-- Not stripped (debug symbols preserved)
-
-Copy to ROM tree as:
-- `vendor/nativeplanet/prebuilts/bin/vere`
-
-## Troubleshooting
-
-### Linker errors about relocations
-
-```
-error: ld.lld: relocation R_AARCH64_ABS64 cannot be used against symbol
+```bash
+zig build -Dtarget=aarch64-linux-musl -Drelease -Dpace=edge -Dvere64=true
 ```
 
-**Fix**: Add `-fPIC` to the affected library's build flags.
+and copies `zig-out/aarch64-linux-musl/urbit` out as
+`vere64-develop-<sha>-linux-aarch64` with its SHA-256.
 
-### Binary crashes before main()
+## Why a container
 
-**Cause**: Load address conflict with Android mappings.
+vere pins zig 0.15.2 in CI. On macOS 26 that zig cannot link its own build
+runner against any installed SDK; zig 0.16 links but rejects vere's
+`build.zig.zon` files. A Linux container with the pinned zig is the build
+that matches upstream.
 
-**Fix**: Ensure `image_base = 0x40000000` is set in build.zig.
+## Result
 
-### Missing symbols at runtime
+- `urbit 5.0 edge (64-bit)`, ELF aarch64, statically linked, about 24 MB.
+- The launch wrapper already passes `--lmdb-map-size` and `--loom 32`, which
+  the 64-bit runtime needs on the phone.
 
-**Cause**: Dynamic linking attempted.
+## Putting it on the phone
 
-**Fix**: Ensure static linking with musl (`-Dtarget=aarch64-linux-musl`).
+The ROM prebuilt is `vendor/nativeplanet/prebuilts/bin/vere` in the
+GrapheneOS tree (`docs/runtime/build-and-flash.md`). The system partition is
+read-only on the device, so a built binary reaches a running phone only
+through a ROM build, or through `adb remount` on a userdebug build for a test.
+Record the SHA-256 and the vere commit with the ROM.
