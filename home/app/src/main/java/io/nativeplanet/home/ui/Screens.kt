@@ -193,8 +193,11 @@ private fun Later(vm: HomeViewModel, s: UiState) {
 @Composable
 private fun EntryRow(vm: HomeViewModel, s: UiState, e: Entry) {
     Column(Modifier.fillMaxWidth().combinedClickable(onClick = { vm.openEntry(e) }, onLongClick = { vm.markDone(e); vm.toast("done") }).padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(e.who, color = W.Paper, fontFamily = W.Serif, fontSize = 16.sp)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                e.ship?.let { ship -> Avatar(ship, s.people.firstOrNull { it.ship == ship }?.avatar, size = 24.dp) }
+                Text(e.who, color = W.Paper, fontFamily = W.Serif, fontSize = 16.sp)
+            }
             Mono(ago(s.nowMs, e.timeMs), size = 10, tracking = 0.0)
         }
         Text(e.text, color = W.Paper90, fontFamily = W.Serif, fontSize = 16.sp, lineHeight = 22.sp, maxLines = 3)
@@ -216,7 +219,10 @@ private fun People(vm: HomeViewModel, s: UiState) {
             items(s.people, key = { it.ship }) { p ->
                 Row(Modifier.fillMaxWidth().clickable { vm.openPerson(p) }.padding(vertical = 14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
-                        Text(p.display, color = W.Paper, fontFamily = W.Serif, fontSize = 18.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Avatar(p.ship, p.avatar)
+                            Text(p.display, color = W.Paper, fontFamily = W.Serif, fontSize = 18.sp)
+                        }
                         if (p.nickname != null) Mono(p.ship, color = W.Paper40, size = 10, tracking = 0.0, modifier = Modifier.padding(top = 2.dp))
                     }
                     if (p.ship in s.reachShips) Mono("REACH", size = 10) else if (p.ship in s.mutedShips) Mono("MUTED", color = W.Paper40, size = 10)
@@ -237,7 +243,10 @@ private fun PersonPage(vm: HomeViewModel, s: UiState) {
     val muted = p.ship in s.mutedShips
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = PAD)) {
         Spacer(Modifier.height(22.dp))
-        Text(p.display, color = W.Paper, fontFamily = W.Serif, fontWeight = FontWeight.Light, fontSize = 30.sp, modifier = Modifier.clickable { vm.show(Surface.PEOPLE) })
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Avatar(p.ship, p.avatar, size = 44.dp)
+            Text(p.display, color = W.Paper, fontFamily = W.Serif, fontWeight = FontWeight.Light, fontSize = 30.sp, modifier = Modifier.clickable { vm.show(Surface.PEOPLE) })
+        }
         Mono(p.ship + when { canReach -> " · can reach you"; muted -> " · muted"; else -> "" }, color = W.Paper40, size = 11, tracking = 0.0, modifier = Modifier.padding(top = 4.dp))
         Row(Modifier.padding(top = 26.dp), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
             Mono("MESSAGE", color = W.Paper, modifier = Modifier.clickable { vm.openEntry(Entry("open:${p.ship}", 0, p.display, p.ship, "", Source.MESSAGE, link = "apps/groups/dm/${p.ship}")) })

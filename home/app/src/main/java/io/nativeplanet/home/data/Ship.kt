@@ -56,8 +56,13 @@ class Ship(private val eyre: Eyre) {
         val people = mutableListOf<Person>()
         val entries = mutableListOf<Entry>()
         val unreadDm = mutableSetOf<String>()
+        val contacts = snap.optJSONObject("contacts")
+        fun person(ship: String): Person {
+            val c = contacts?.optJSONObject(ship)
+            return Person(ship, c?.optString("nickname")?.takeIf { it.isNotBlank() }, c?.optString("avatar")?.takeIf { it.isNotBlank() })
+        }
         writsBy.keys().forEach { ship ->
-            people.add(Person(ship, null, null))
+            people.add(person(ship))
             val u = unreads?.optJSONObject(ship)
             if ((u?.optInt("count", 0) ?: 0) > 0) unreadDm.add(ship)
             val writs = writsBy.optJSONObject(ship)?.optJSONObject("writs") ?: return@forEach
@@ -90,7 +95,7 @@ class Ship(private val eyre: Eyre) {
                 who = if (author == our) "You → $whom" else author,
                 ship = author, text = text, source = Source.MESSAGE, link = "apps/groups/dm/$whom",
             ))
-            if (people.none { it.ship == whom }) people.add(Person(whom, null, null))
+            if (people.none { it.ship == whom }) people.add(person(whom))
         }
         // Group activity is the moon's own: once it has joined the planet's groups, its %activity carries them.
         entries.addAll(activityEntries())
