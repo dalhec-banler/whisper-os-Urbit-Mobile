@@ -47,7 +47,9 @@ check_pattern() {
   fi
 }
 
-check_pattern "no local home paths" '(/home/|/Users/|grapheneos-[0-9]|dev/mobile-vere)'
+# (^|[^.]) keeps relative markdown links like ../home/README.md from matching;
+# only absolute machine paths are a leak.
+check_pattern "no local home paths" '((^|[^.])/home/|(^|[^.])/Users/|grapheneos-[0-9]|dev/mobile-vere)'
 check_pattern "no local build owner labels" '(eng\.[A-Za-z0-9_-]+|anoffice)'
 check_pattern "no plus-code fragments in secret contexts" '(NP_PAIRING_CODE|password=|accessCode|access code|\+code).*[a-z]{6}-[a-z]{6}-[a-z]{6}-[a-z]{6}'
 check_pattern "no raw moon keys" '(^|[^A-Za-z0-9])0w[0-9A-Za-z.~_-]{20,}'
