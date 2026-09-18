@@ -72,6 +72,8 @@ fun Root(vm: HomeViewModel) {
             Surface.PERSON -> PersonPage(vm, s)
             Surface.TYPE -> TypeSurface(vm, s)
             Surface.SETTINGS -> Settings(vm, s)
+            Surface.SERVER -> ServerPage(vm, s)
+            Surface.SETUP -> SetupFlow(vm, s)
         }
         s.toast?.let { msg ->
             LaunchedEffect(msg) { kotlinx.coroutines.delay(TOAST_MS); vm.toast(null) }
@@ -84,11 +86,12 @@ fun Root(vm: HomeViewModel) {
 
 // ---------- shared bits ----------
 
-@Composable private fun Mono(text: String, color: Color = W.Paper60, size: Int = 11, tracking: Double = 0.12, modifier: Modifier = Modifier) =
+@Composable internal fun Mono(text: String, color: Color = W.Paper60, size: Int = 11, tracking: Double = 0.12, modifier: Modifier = Modifier) =
     Text(text, color = color, fontFamily = W.Mono, fontSize = size.sp, letterSpacing = tracking.em, modifier = modifier)
 
-@Composable private fun Hairline() = Box(Modifier.fillMaxWidth().height(1.dp).background(W.Hair))
-@Composable private fun Rule() = Box(Modifier.fillMaxWidth().height(1.dp).background(W.Paper))
+@Composable internal fun Hairline() = Box(Modifier.fillMaxWidth().height(1.dp).background(W.Hair))
+@Composable internal fun Rule() = Box(Modifier.fillMaxWidth().height(1.dp).background(W.Paper))
+internal val PAGE_PAD = PAD
 
 private fun clock(ms: Long): String = SimpleDateFormat("h:mm", Locale.getDefault()).format(Date(ms))
 private fun dayLine(ms: Long): String = SimpleDateFormat("EEE d MMM", Locale.getDefault()).format(Date(ms)).uppercase()
@@ -326,7 +329,8 @@ private fun Settings(vm: HomeViewModel, s: UiState) {
         Rule()
         LazyColumn {
             item { Mono("SERVER", size = 10, tracking = 0.14, modifier = Modifier.padding(top = 22.dp, bottom = 6.dp)) }
-            item { Text("${s.self ?: "no ship"} · ${s.runtime}" + (if (s.connected) " · connected" else "") + (if (s.delegated) " · acting as ${s.parent}" else ""), color = W.Paper90, fontFamily = W.Serif, fontSize = 16.sp, modifier = Modifier.padding(vertical = 8.dp)) }
+            item { Text("${s.self ?: "no ship"} · ${s.runtime}" + (if (s.connected) " · connected" else "") + (if (s.delegated) " · acting as ${s.parent}" else ""), color = W.Paper90, fontFamily = W.Serif, fontSize = 16.sp, modifier = Modifier.clickable { vm.openServer() }.padding(vertical = 8.dp)) }
+            item { Mono("TAP · DETAILS AND CONTROLS", size = 9, tracking = 0.14, modifier = Modifier.padding(bottom = 4.dp)) }
             item { Mono("TOOLS ON THE HOME SCREEN", size = 10, tracking = 0.14, modifier = Modifier.padding(top = 22.dp, bottom = 6.dp)) }
             items(all) { w ->
                 val on = w in s.toolWords

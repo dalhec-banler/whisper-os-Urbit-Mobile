@@ -52,6 +52,18 @@
     ~[(watch-parent:hc p)]
   ::
       %json
+    ::  {"pair": "~ship"} pairs from the phone over Eyre, where a %noun
+    ::  poke is not available; everything else is forwarded to the planet
+    =/  jon=json  !<(json vase)
+    =/  pair=(unit ship)
+      ?.  ?=([%o *] jon)  ~
+      =/  p=(unit json)  (~(get by p.jon) 'pair')
+      ?~  p  ~
+      ?.  ?=([%s *] u.p)  ~
+      (slaw %p p.u.p)
+    ?^  pair
+      :_  this(parent pair, snap ~, live ~, errors ~)
+      ~[(watch-parent:hc u.pair)]
     ?~  parent.state  ~|('not paired with a planet' !!)
     :_  this
     ~[[%pass /fwd %agent [u.parent.state %satellite] %poke %json vase]]

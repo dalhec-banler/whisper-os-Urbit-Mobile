@@ -13,6 +13,8 @@ import org.json.JSONObject
  */
 /** Wait for the relay's invite to land before the moon joins a planet-hosted group. */
 private const val INVITE_SETTLE_MS = 3000L
+/** Entries kept from a planet's mirror; Later is the recent record, not the archive. */
+private const val MIRROR_ENTRY_CAP = 400
 /** DM writs fetched per thread for the record. */
 private const val DM_PREVIEW_COUNT = 5
 
@@ -39,9 +41,10 @@ class Ship(private val eyre: Eyre) {
         return m
     }
 
-    suspend fun snapshot(self: String?): Snapshot {
-        mirror()?.let { m -> return mirrorSnapshot(m) }
-        return ownSnapshot(self)
+    /** Built off the main thread: a planet's mirror can carry thousands of writs. */
+    suspend fun snapshot(self: String?): Snapshot = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+        mirror()?.let { m -> return@withContext mirrorSnapshot(m) }
+        ownSnapshot(self)
     }
 
     private suspend fun mirrorSnapshot(m: JSONObject): Snapshot {
@@ -99,8 +102,16 @@ class Ship(private val eyre: Eyre) {
             }
         }
         val moonGroups = eyre.scry("groups/groups/light")?.keys()?.asSequence()?.toSet() ?: emptySet()
-        people.sortByDescending { p -> entries.filter { it.ship == p.ship || it.link?.endsWith(p.ship) == true }.maxOfOrNull { it.timeMs } ?: 0L }
-        return Snapshot(people, entries.sortedByDescending { it.timeMs }, unreadDm, delegated = true, parent = parent,
+        // Latest activity per person, computed once: sorting with a comparator that rescans
+        // every entry is quadratic and stalled the main thread on a planet with real history.
+        val latest = HashMap<String, Long>()
+        for (e in entries) {
+            e.ship?.let { latest[it] = maxOf(latest[it] ?: 0L, e.timeMs) }
+            e.link?.substringAfterLast('/')?.let { latest[it] = maxOf(latest[it] ?: 0L, e.timeMs) }
+        }
+        people.sortByDescending { latest[it.ship] ?: 0L }
+        val recent = entries.sortedByDescending { it.timeMs }.take(MIRROR_ENTRY_CAP)
+        return Snapshot(people, recent, unreadDm, delegated = true, parent = parent,
             parentGroups = parentGroups.sortedBy { it.title.lowercase() }, moonGroups = moonGroups)
     }
 
@@ -165,7 +176,9 @@ class Ship(private val eyre: Eyre) {
 
         entries.addAll(activityEntries())
 
-        people.sortByDescending { p -> entries.filter { it.ship == p.ship }.maxOfOrNull { it.timeMs } ?: 0L }
+        val latest = HashMap<String, Long>()
+        for (e in entries) e.ship?.let { latest[it] = maxOf(latest[it] ?: 0L, e.timeMs) }
+        people.sortByDescending { latest[it.ship] ?: 0L }
         return Snapshot(people, entries.sortedByDescending { it.timeMs }, unreadDm)
     }
 
